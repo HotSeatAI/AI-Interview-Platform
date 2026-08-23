@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.api.auth import get_current_user
 from app.models.resume import Resume
+from app.models.resume_analysis import ResumeAnalysis
 from app.services.pdf_parser import extract_text_from_pdf
 from app.schemas.resume import ResumeResponse
 
@@ -112,6 +113,10 @@ def delete_resume(
             status_code=403,
             detail="You are not authorized to delete this resume"
         )
+
+    db.query(ResumeAnalysis).filter(
+        ResumeAnalysis.resume_id == resume.id
+    ).delete()
 
     file_deleted = True
 
