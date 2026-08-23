@@ -1,4 +1,6 @@
+import hashlib
 import json
+import re
 
 from fastapi import (
     APIRouter,
@@ -26,6 +28,38 @@ router = APIRouter(
     prefix="/resume-analysis",
     tags=["Resume Analysis"],
 )
+
+
+def _normalize_for_hash(text: str) -> str:
+    """
+    Collapse whitespace/formatting noise (extra spaces, blank
+    lines, CRLF vs LF) before hashing, so two pastes of the same
+    JD that differ only in formatting still hit the JD cache.
+    Never touches actual wording.
+    """
+
+    text = text.replace(
+        "\r\n", "\n"
+    ).replace(
+        "\r", "\n"
+    )
+
+    text = re.sub(
+        r"[ \t]+", " ", text
+    )
+
+    lines = [
+        line.strip()
+        for line in text.split("\n")
+    ]
+
+    text = "\n".join(lines)
+
+    text = re.sub(
+        r"\n{2,}", "\n", text
+    )
+
+    return text.strip()
 
 
 @router.post("/start")
@@ -120,12 +154,20 @@ async def start_resume_analysis(
     # Create analysis record
     # --------------------------------------------------------
 
+    jd_text_hash = hashlib.sha256(
+        _normalize_for_hash(
+            extracted_jd
+        ).encode("utf-8")
+    ).hexdigest()
+
     analysis = ResumeAnalysis(
         user_id=current_user.id,
 
         resume_id=resume.id,
 
         job_description_text=extracted_jd,
+
+        jd_text_hash=jd_text_hash,
 
         status="processing",
 

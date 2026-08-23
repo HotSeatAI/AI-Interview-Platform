@@ -1,4 +1,54 @@
 import pymupdf
+from google.genai import types
+
+from app.services.api_key_manager import api_key_manager
+
+RESUME_OCR_PROMPT = """
+You are extracting the full text of a resume from a PDF that has no usable text layer (it is scanned or image-based).
+
+Read every page carefully.
+
+Extract the COMPLETE visible content, preserving structure such as:
+- Name and contact details
+- Summary / objective
+- Work experience (titles, companies, dates, bullet points)
+- Education
+- Skills
+- Certifications
+- Projects
+- Links (portfolio, LinkedIn, GitHub, etc.)
+
+Do NOT summarize.
+
+Do NOT invent missing information.
+
+Do NOT add information that is not visible.
+
+Return only the extracted resume text.
+"""
+
+
+def extract_text_via_gemini_ocr(pdf_bytes: bytes) -> str:
+
+    response = api_key_manager.generate_content(
+        contents=[
+            types.Part.from_bytes(
+                data=pdf_bytes,
+                mime_type="application/pdf",
+            ),
+            RESUME_OCR_PROMPT,
+        ],
+        purpose="resume_pdf_ocr",
+    )
+
+    text = (response.text or "").strip()
+
+    if not text:
+        raise ValueError(
+            "Could not extract text from the resume."
+        )
+
+    return text
 
 
 def _get_background_color(page: pymupdf.Page) -> tuple[int, int, int]:

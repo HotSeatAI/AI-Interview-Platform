@@ -53,7 +53,7 @@ export default function ResumeSelector({
 
               <div className="resume-option-info">
                 <strong>
-                  {resume.filename}
+                  {resume.original_filename}
                 </strong>
 
                 {resume.created_at && (

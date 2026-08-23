@@ -102,9 +102,9 @@ function VoiceInput({
 
     shouldContinueRef.current = true;
 
-    setHasStartedOnce(true);
-
     recognitionRef.current.start();
+
+    setHasStartedOnce(true);
   };
 
   const stopListening = () => {
@@ -116,7 +116,7 @@ function VoiceInput({
   return (
     <div className="mode-block">
       <div className="mode-block__header">
-        <span className="mode-block__label">EXPLANATION</span>
+        <span className="mode-block__label">YOUR EXPLANATION</span>
         {isListening && (
           <span className="recording-badge">
             <span className="recording-dot" />
@@ -137,7 +137,7 @@ function VoiceInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        placeholder="Speak or type your answer — add edge cases, complexity, assumptions..."
+        placeholder="Speak, or type your explanation, notes, edge cases, assumptions..."
       />
 
       <div className="voice-button-row">

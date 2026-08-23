@@ -57,13 +57,9 @@ Examples:
 
 Python does NOT imply Django.
 
-Docker does NOT imply Kubernetes.
-
 AWS does NOT imply Azure.
 
-PostgreSQL does NOT imply MySQL.
-
-React does NOT imply Next.js.
+Salesforce does NOT imply HubSpot.
 
 Salesforce does NOT imply HubSpot.
 
@@ -83,10 +79,7 @@ source text from the resume.
 Examples:
 
 "20% improvement"
-"15+ APIs"
 "500 users"
-"3-person team"
-"2 seconds"
 "95% accuracy"
 
 8. NEVER create metrics that are not present.
@@ -107,15 +100,8 @@ must NOT become:
 Examples:
 
 Developed
-Designed
-Implemented
-Built
 Optimized
-Automated
 Led
-Analyzed
-Integrated
-Deployed
 
 11. Identify achievements separately from ordinary
 responsibilities.
@@ -181,6 +167,7 @@ Return ONLY structured data matching the schema.
             config=types.GenerateContentConfig(
             response_mime_type="application/json",
             response_schema=ResumeProfile,
+            temperature=0.0,
             ),
             purpose="resume_structuring",
         )

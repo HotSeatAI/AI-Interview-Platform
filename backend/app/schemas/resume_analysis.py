@@ -94,6 +94,19 @@ class JDRequirement(BaseModel):
         ),
     )
 
+    is_dealbreaker: bool = Field(
+        default=False,
+        description=(
+            "True only for a genuine hard gate a real recruiter "
+            "would screen out on if missing — an explicit "
+            "years-of-experience floor, a required license or "
+            "certification, work authorization/clearance. False "
+            "for every other 'required' requirement (most "
+            "required skills are important but not a hard gate "
+            "on their own)."
+        ),
+    )
+
 
 class JDProfile(BaseModel):
     job_title: str | None = None
@@ -401,7 +414,12 @@ class MatchingReport(BaseModel):
     matches: list[RequirementMatch] = Field(
         default_factory=list
     )
-    
+
+    dealbreaker_capped: bool = False
+
+    dealbreaker_reason: str | None = None
+
+
 # ============================================================
 # SEMANTIC VERIFICATION SCHEMAS
 # ============================================================

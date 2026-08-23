@@ -10,6 +10,10 @@ from app.models.resume_analysis import ResumeAnalysis
 from app.services.job_description_parser import (
     JobDescriptionParser,
 )
+from app.schemas.resume_analysis import (
+    JDProfile,
+    ResumeProfile,
+)
 from app.services.resume_analyzer import (
     ResumeAnalyzer,
 )
@@ -87,6 +91,78 @@ class ResumeAnalysisWorker:
                 return
 
             # =================================================
+            # FULL-RESULT CACHE — same resume + same JD, already
+            # completed before. Reuse the entire prior result and
+            # skip the pipeline entirely (zero Gemini calls).
+            # =================================================
+
+            full_cache = (
+                db.query(ResumeAnalysis)
+                .filter(
+                    ResumeAnalysis.user_id
+                    == analysis.user_id,
+                    ResumeAnalysis.resume_id
+                    == analysis.resume_id,
+                    ResumeAnalysis.jd_text_hash
+                    == analysis.jd_text_hash,
+                    ResumeAnalysis.id
+                    != analysis.id,
+                    ResumeAnalysis.status
+                    == "completed",
+                    ResumeAnalysis.analysis_result_json.isnot(
+                        None
+                    ),
+                )
+                .order_by(
+                    ResumeAnalysis.created_at.desc()
+                )
+                .first()
+            )
+
+            if (
+                full_cache
+                and analysis.jd_text_hash
+            ):
+
+                analysis.job_title = (
+                    full_cache.job_title
+                )
+
+                analysis.jd_profile_json = (
+                    full_cache.jd_profile_json
+                )
+
+                analysis.resume_profile_json = (
+                    full_cache.resume_profile_json
+                )
+
+                analysis.analysis_result_json = (
+                    full_cache.analysis_result_json
+                )
+
+                analysis.overall_score = (
+                    full_cache.overall_score
+                )
+
+                analysis.status = "completed"
+
+                analysis.progress = 100
+
+                analysis.current_stage = (
+                    "Analysis complete"
+                )
+
+                analysis.completed_at = (
+                    datetime.utcnow()
+                )
+
+                analysis.error_message = None
+
+                db.commit()
+
+                return
+
+            # =================================================
             # STEP 1 — Extract JD
             # =================================================
 
@@ -124,11 +200,42 @@ class ResumeAnalysisWorker:
                 "Understanding job requirements",
             )
 
-            jd_profile = (
-                parser.structure_job_description(
-                    jd_text
+            cached_jd = (
+                db.query(ResumeAnalysis)
+                .filter(
+                    ResumeAnalysis.user_id
+                    == analysis.user_id,
+                    ResumeAnalysis.jd_text_hash
+                    == analysis.jd_text_hash,
+                    ResumeAnalysis.id
+                    != analysis.id,
+                    ResumeAnalysis.jd_profile_json.isnot(
+                        None
+                    ),
                 )
+                .order_by(
+                    ResumeAnalysis.created_at.desc()
+                )
+                .first()
             )
+
+            if cached_jd:
+
+                jd_profile = (
+                    JDProfile.model_validate(
+                        json.loads(
+                            cached_jd.jd_profile_json
+                        )
+                    )
+                )
+
+            else:
+
+                jd_profile = (
+                    parser.structure_job_description(
+                        jd_text
+                    )
+                )
 
             analysis.job_title = (
                 jd_profile.job_title
@@ -151,13 +258,48 @@ class ResumeAnalysisWorker:
                 "Analyzing resume",
             )
 
-            resume_analyzer = ResumeAnalyzer()
-
-            resume_profile = (
-                resume_analyzer.analyze(
-                    resume.extracted_text
+            cached_resume = (
+                db.query(ResumeAnalysis)
+                .filter(
+                    ResumeAnalysis.resume_id
+                    == analysis.resume_id,
+                    ResumeAnalysis.id
+                    != analysis.id,
+                    ResumeAnalysis.resume_profile_json.isnot(
+                        None
+                    ),
                 )
+                .order_by(
+                    ResumeAnalysis.created_at.desc()
+                )
+                .first()
             )
+
+            if cached_resume:
+
+                resume_profile = (
+                    ResumeProfile.model_validate(
+                        json.loads(
+                            cached_resume.resume_profile_json
+                        )
+                    )
+                )
+
+            else:
+
+                resume_analyzer = ResumeAnalyzer()
+
+                resume_profile = (
+                    resume_analyzer.analyze(
+                        resume.extracted_text
+                    )
+                )
+
+            analysis.resume_profile_json = (
+                resume_profile.model_dump_json()
+            )
+
+            db.commit()
 
             # =================================================
             # STEP 4 — Evidence Validation
@@ -195,6 +337,7 @@ class ResumeAnalysisWorker:
             matching_report = matcher.match(
                 jd_profile=jd_profile,
                 resume_profile=resume_profile,
+                resume_text=resume.extracted_text,
             )
 
             # =================================================

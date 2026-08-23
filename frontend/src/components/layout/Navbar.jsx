@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
+import BrandLogo from "./BrandLogo";
 
 const privateLinks = [
   { label: "Dashboard", to: "/dashboard" },
@@ -21,7 +22,7 @@ function Navbar() {
   return (
     <header className="navbar">
       <NavLink className="navbar__brand" to="/dashboard">
-        HotSeat
+        <BrandLogo />
       </NavLink>
 
       <nav className="navbar__links" aria-label="Main navigation">

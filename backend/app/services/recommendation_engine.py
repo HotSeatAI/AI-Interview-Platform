@@ -391,29 +391,13 @@ ABSOLUTE TRUTH RULES
 The resume evidence above is the ONLY source of
 candidate facts.
 
-NEVER invent:
-
-- technologies
-- frameworks
-- programming languages
-- databases
-- cloud platforms
-- companies
-- job titles
-- responsibilities
-- achievements
-- leadership
-- ownership
-- production experience
-- scale
-- users
-- rankings
-- percentages
-- accuracy values
-- performance improvements
-- dates
-- years of experience
-- metrics of any kind
+NEVER invent any factual claim not already present in the
+verified evidence: technologies, frameworks, languages,
+databases, cloud platforms, companies, job titles,
+responsibilities, achievements, leadership/ownership,
+production experience, scale, users, rankings, or any
+metric (percentages, accuracy, performance, dates, years
+of experience).
 
 A technology may only be mentioned if supported
 by the verified resume evidence.
@@ -505,6 +489,7 @@ Do not return explanations outside the JSON object.
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=RecommendationBatchResponse,
+                temperature=0.0,
             ),
             purpose="batched_recommendations",
         )

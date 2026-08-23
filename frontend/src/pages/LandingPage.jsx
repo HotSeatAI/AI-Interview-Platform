@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import BrandLogo from "../components/layout/BrandLogo";
 
 const FEATURES = [
   {
@@ -116,7 +117,7 @@ function LandingPage() {
     <div className="landing">
       <header className="landing__nav">
         <a href="#top" className="landing__brand">
-          HotSeat
+          <BrandLogo />
         </a>
         <nav className="landing__nav-links">
           <a href="#features" className="landing__nav-link">
@@ -255,7 +256,9 @@ function LandingPage() {
       </section>
 
       <footer className="landing__footer">
-        <span className="landing__footer-brand">HotSeat</span>
+        <span className="landing__footer-brand">
+          <BrandLogo />
+        </span>
         <span className="landing__footer-copy">© 2026 HotSeat. Practice with intent.</span>
       </footer>
     </div>

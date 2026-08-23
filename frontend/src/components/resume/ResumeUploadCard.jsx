@@ -94,10 +94,10 @@ function ResumeUploadCard() {
       setError("");
       setSuccess("");
 
-      const response = await uploadResume(selectedFile, token);
+      await uploadResume(selectedFile, token);
 
       setSuccess(
-        `Resume uploaded successfully: ${response.filename}`
+        `${selectedFile.name} has been uploaded successfully`
       );
 
       setSelectedFile(null);
