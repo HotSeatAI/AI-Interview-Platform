@@ -29,7 +29,7 @@ const AnswerBox = forwardRef(function AnswerBox(
 ) {
   const { token } = useAuth();
 
-  const [voiceText, setVoiceText] = useState("");
+  const [explanationText, setExplanationText] = useState("");
   const [code, setCode] = useState("");
 
   const [customInput, setCustomInput] = useState("");
@@ -47,7 +47,7 @@ const AnswerBox = forwardRef(function AnswerBox(
   const [submitting, setSubmitting] = useState(false);
 
   const hasContent =
-    voiceText.trim() ||
+    explanationText.trim() ||
     code.trim();
 
   const handleRunCode = async () => {
@@ -129,7 +129,7 @@ const AnswerBox = forwardRef(function AnswerBox(
       const response = await submitAnswer(
         {
           question_id: questionId,
-          voice_text: voiceText.trim(),
+          voice_text: explanationText.trim(),
           // TODO(backend migration): the "Additional Notes" box was merged
           // into the voice/explanation textarea above, so typed_text is now
           // always empty from this client. Once the backend drops typed_text
@@ -141,7 +141,7 @@ const AnswerBox = forwardRef(function AnswerBox(
         token
       );
 
-      setVoiceText("");
+      setExplanationText("");
       setCode("");
       setCustomInput("");
       setConsoleOutput("");
@@ -191,8 +191,8 @@ const AnswerBox = forwardRef(function AnswerBox(
       </div>
 
       <VoiceInput
-        value={voiceText}
-        onChange={setVoiceText}
+        value={explanationText}
+        onChange={setExplanationText}
         disabled={disabled}
       />
 
@@ -218,7 +218,7 @@ const AnswerBox = forwardRef(function AnswerBox(
       />
 
       <CombinedPreview
-        voiceText={voiceText}
+        explanationText={explanationText}
         code={code}
       />
 

@@ -1,12 +1,12 @@
 function CombinedPreview({
-  voiceText,
+  explanationText,
   code,
 }) {
   const sections = [];
 
-  if (voiceText.trim()) {
+  if (explanationText.trim()) {
     sections.push(
-      `Explanation:\n${voiceText.trim()}`
+      `Explanation:\n${explanationText.trim()}`
     );
   }
 

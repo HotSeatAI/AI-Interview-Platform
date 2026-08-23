@@ -58,6 +58,22 @@ if not GEMINI_API_KEYS:
 
 FOLLOW_UP_SCORE_THRESHOLD = 5
 
+# -----------------------------
+# LangFuse Configuration (optional)
+# -----------------------------
+# Tracing is disabled unless both keys are set — no import-time
+# failure like GEMINI_API_KEYS/GOOGLE_CLIENT_ID, since observability
+# should never block the app from starting.
+
+LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY")
+
+LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY")
+
+LANGFUSE_BASE_URL = os.getenv(
+    "LANGFUSE_BASE_URL",
+    "https://cloud.langfuse.com",
+)
+
 GEMINI_SEMANTIC_VERIFICATION_BATCH_SIZE = int(
     os.getenv("GEMINI_SEMANTIC_VERIFICATION_BATCH_SIZE", 12)
 )

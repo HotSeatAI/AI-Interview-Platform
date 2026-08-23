@@ -165,6 +165,32 @@ class RequirementMatcher:
         "unclear": 0.50,
     }
 
+    # A "required" match and a "missing" match don't move the
+    # overall score the same amount for every category — a
+    # missing named technical skill/tool should hurt more than a
+    # missing degree requirement, since many roles waive the
+    # latter when the actual skills are present. This multiplies
+    # into effective_weight alongside IMPORTANCE_MULTIPLIERS
+    # (see _calculate_overall_score) rather than changing what
+    # match_type itself means.
+    CATEGORY_MULTIPLIERS = {
+        "technical_skill": 1.00,
+        "tool": 1.00,
+        "responsibility": 0.85,
+        "domain": 0.75,
+        "experience": 0.75,
+        "certification": 0.60,
+        "soft_skill": 0.55,
+        "education": 0.50,
+        "other": 0.50,
+    }
+
+    # A missing JDRequirement.is_dealbreaker requirement caps
+    # the overall score at this ceiling, regardless of how well
+    # everything else matches — mirrors a recruiter screening
+    # out on a genuine hard gate rather than averaging it away.
+    DEALBREAKER_SCORE_CEILING = 50.0
+
     # --------------------------------------------------------
     # Controlled concept -> evidence-keyword mapping.
     #
@@ -349,6 +375,7 @@ class RequirementMatcher:
     self,
     jd_profile: JDProfile,
     resume_profile: ResumeProfile,
+    resume_text: str = "",
 ) -> MatchingReport:
 
         # ----------------------------------------------------
@@ -365,46 +392,37 @@ class RequirementMatcher:
         ]
 
         # ----------------------------------------------------
-        # Pass 2 — semantic verification is used for
-        # requirements the deterministic matcher could not
-        # confidently classify ("ambiguous"), AND for
-        # requirements it found zero evidence for ("missing")
-        # but where a broader retrieval search still turns up
-        # something loosely related worth a second look.
-        # Requirements with genuinely zero retrievable evidence
-        # stay hard-"missing" and never reach Gemini. All
-        # qualifying requirements are verified via one or more
-        # batched Gemini calls (chunked, not one call per
-        # requirement) to stay within a bounded call budget.
+        # Pass 2 — every requirement now goes through a single
+        # holistic Gemini pass (SemanticVerifier), not just the
+        # ones Pass 1 flagged "ambiguous" or a narrower retrieval
+        # search happened to find something loosely related to.
+        # Gating on that narrower search meant a requirement
+        # whose evidence sat in a resume section the structured
+        # extraction step missed entirely (e.g. an Education
+        # section that came back empty) could never earn a
+        # second look, even though the real evidence was sitting
+        # in the raw resume text the whole time. Every
+        # requirement is verified via one or more batched Gemini
+        # calls (chunked, not one call per requirement) to stay
+        # within a bounded call budget. Pass 1's own confident
+        # direct/strong matches still act as a floor in
+        # _merge_verification — this pass can upgrade a
+        # classification but never downgrade a confirmed literal
+        # match.
         # ----------------------------------------------------
 
-        ambiguous_requirements = [
-            requirement
-            for requirement, result in zip(
-                jd_profile.requirements,
-                preliminary_results,
-            )
-            if result.match_type == "ambiguous"
-        ]
-
-        missing_requirements = [
-            requirement
-            for requirement, result in zip(
-                jd_profile.requirements,
-                preliminary_results,
-            )
-            if result.match_type == "missing"
-        ]
+        candidate_requirements = list(
+            jd_profile.requirements
+        )
 
         # ----------------------------------------------------
-        # Retrieval step: for each ambiguous requirement, pull
-        # only the top-K most relevant resume evidence lines
-        # instead of dumping the entire resume into the
-        # prompt. These are RETRIEVAL signals only (broader
-        # than the tier-gated matching above) — their
-        # presence means "worth Gemini's attention", not
-        # proof. Gemini still has to decide strong/partial/
-        # missing based on what's actually here.
+        # Retrieval step: for each requirement, pull the top-K
+        # most relevant resume evidence lines as a focused hint
+        # alongside the complete raw resume text given below.
+        # These are RETRIEVAL signals only — their presence
+        # means "worth Gemini's attention", not proof. Gemini
+        # still has to decide strong/partial/missing based on
+        # what's actually here.
         # ----------------------------------------------------
 
         evidence_map: dict[str, list[str]] = {
@@ -412,37 +430,8 @@ class RequirementMatcher:
                 requirement,
                 resume_profile,
             )
-            for requirement in ambiguous_requirements
+            for requirement in candidate_requirements
         }
-
-        # ----------------------------------------------------
-        # A "missing" requirement only earns a second look if
-        # this same broader retrieval search finds SOMETHING —
-        # otherwise there is nothing for Gemini to reconsider
-        # and the call would be wasted on a genuinely absent
-        # skill.
-        # ----------------------------------------------------
-
-        qualifying_missing_requirements = []
-
-        for requirement in missing_requirements:
-
-            retrieved = self._retrieve_relevant_evidence(
-                requirement,
-                resume_profile,
-            )
-
-            if retrieved:
-
-                evidence_map[requirement.name] = retrieved
-                qualifying_missing_requirements.append(
-                    requirement
-                )
-
-        candidate_requirements = (
-            ambiguous_requirements
-            + qualifying_missing_requirements
-        )
 
         # ----------------------------------------------------
         # Deterministic adjacency hints: for each candidate
@@ -486,18 +475,15 @@ class RequirementMatcher:
         # ----------------------------------------------------
         # The per-requirement evidence_map above is a narrow,
         # retrieval-ranked subset — useful to focus Gemini's
-        # attention, but retrieval can miss real evidence
-        # phrased in a way none of the search terms anticipated.
-        # The complete flattened resume evidence is also given
-        # as a shared reference for the whole batch, so a
-        # genuinely relevant line that retrieval didn't surface
+        # attention, but retrieval (and even the structured
+        # resume extraction itself) can miss real evidence
+        # phrased in a way nothing anticipated. The complete
+        # RAW resume text is also given as a shared reference
+        # for the whole batch, so a genuinely relevant line
+        # that never made it into the structured profile at all
         # can still be found and cited, instead of silently
         # causing a wrong "missing"/"ambiguous" outcome.
         # ----------------------------------------------------
-
-        full_resume_evidence = self._all_resume_evidence_lines(
-            resume_profile
-        )
 
         verifications = {}
 
@@ -508,48 +494,75 @@ class RequirementMatcher:
                     requirements=candidate_requirements,
                     evidence_map=evidence_map,
                     adjacency_hints=adjacency_hints,
-                    full_resume_evidence=full_resume_evidence,
+                    full_resume_text=resume_text,
                 )
             )
 
-        verified_names = {
-            requirement.name.strip().lower()
-            for requirement in candidate_requirements
-        }
-
         results: list[RequirementMatch] = []
+
+        missing_dealbreakers: list[str] = []
 
         for requirement, preliminary_result in zip(
             jd_profile.requirements,
             preliminary_results,
         ):
 
-            if requirement.name.strip().lower() in verified_names:
+            verification = verifications.get(
+                requirement.name.strip().lower()
+            )
 
-                verification = verifications.get(
-                    requirement.name.strip().lower()
+            result = self._merge_verification(
+                requirement,
+                preliminary_result,
+                verification,
+                evidence_map.get(
+                    requirement.name,
+                    [],
+                ),
+                resume_text,
+            )
+
+            if (
+                requirement.is_dealbreaker
+                and result.match_type == "missing"
+            ):
+
+                missing_dealbreakers.append(
+                    requirement.name
                 )
-
-                result = self._merge_verification(
-                    requirement,
-                    preliminary_result,
-                    verification,
-                    evidence_map.get(
-                        requirement.name,
-                        [],
-                    )
-                    + full_resume_evidence,
-                )
-
-            else:
-
-                result = preliminary_result
 
             results.append(result)
 
         overall_score = self._calculate_overall_score(
             results
         )
+
+        # ----------------------------------------------------
+        # Dealbreaker gate: a real recruiter treats a missing
+        # hard requirement (a required license, a hard years-
+        # of-experience floor, work authorization) as an
+        # override, not just one line item in a blended
+        # average. If any JD-tagged dealbreaker requirement is
+        # missing, cap the overall score regardless of how well
+        # everything else matches, and surface why plainly
+        # rather than leaving it as an unexplained low number.
+        # ----------------------------------------------------
+
+        dealbreaker_capped = bool(missing_dealbreakers)
+
+        dealbreaker_reason = None
+
+        if dealbreaker_capped:
+
+            overall_score = min(
+                overall_score,
+                self.DEALBREAKER_SCORE_CEILING,
+            )
+
+            dealbreaker_reason = (
+                "Score capped — missing required: "
+                + "; ".join(missing_dealbreakers)
+            )
 
         summary = self._build_summary(
             results
@@ -562,6 +575,8 @@ class RequirementMatcher:
             ),
             summary=summary,
             matches=results,
+            dealbreaker_capped=dealbreaker_capped,
+            dealbreaker_reason=dealbreaker_reason,
         )
 
     # --------------------------------------------------------
@@ -1470,91 +1485,6 @@ class RequirementMatcher:
         )
 
     # --------------------------------------------------------
-    # Complete resume evidence (for semantic verification)
-    # --------------------------------------------------------
-
-    def _all_resume_evidence_lines(
-        self,
-        resume_profile: ResumeProfile,
-    ) -> list[str]:
-        """
-        Returns every distinct evidence line in the structured
-        resume — top-level evidence claims, per-skill evidence,
-        and every experience/project bullet — with no keyword
-        filtering or top-K truncation.
-
-        Unlike _find_evidence (which filters by candidate_terms)
-        or _retrieve_relevant_evidence (which ranks and caps at
-        a small top-K), this is the complete pool, used to give
-        semantic verification a full-resume reference alongside
-        the narrow per-requirement retrieval, so real evidence
-        phrased in a way no search term anticipated can still be
-        found and cited instead of silently missed.
-
-        Deliberately built from the STRUCTURED ResumeProfile —
-        the same evidence-grounded representation every other
-        matching step already trusts — rather than raw PDF text,
-        so this stays consistent with the rest of the pipeline
-        and doesn't reintroduce ungrounded/unvalidated text at a
-        stage that specifically exists to prevent hallucination.
-        """
-
-        all_evidence = list(
-            resume_profile.evidence
-        )
-
-        for skill in resume_profile.skills:
-
-            all_evidence.extend(
-                skill.evidence
-            )
-
-        for experience in resume_profile.experience:
-
-            for bullet in experience.bullets:
-
-                all_evidence.append(
-                    ResumeEvidence(
-                        claim=bullet.text,
-                        category="responsibility",
-                        source_text=bullet.text,
-                        section="experience",
-                        confidence=0.90,
-                    )
-                )
-
-        for project in resume_profile.projects:
-
-            for bullet in project.bullets:
-
-                all_evidence.append(
-                    ResumeEvidence(
-                        claim=bullet.text,
-                        category="project",
-                        source_text=bullet.text,
-                        section="projects",
-                        confidence=0.90,
-                    )
-                )
-
-        seen: set[str] = set()
-        lines: list[str] = []
-
-        for evidence in all_evidence:
-
-            key = self._normalize(
-                evidence.source_text
-            )
-
-            if not key or key in seen:
-                continue
-
-            seen.add(key)
-            lines.append(evidence.source_text)
-
-        return lines
-
-    # --------------------------------------------------------
     # Evidence search
     # --------------------------------------------------------
 
@@ -1752,9 +1682,23 @@ class RequirementMatcher:
                 )
             )
 
+            if (
+                result.category == "other"
+                and result.importance == "required"
+            ):
+                category_multiplier = 1.00
+            else:
+                category_multiplier = (
+                    self.CATEGORY_MULTIPLIERS.get(
+                        result.category,
+                        0.50,
+                    )
+                )
+
             effective_weight = (
                 result.weight
                 * importance_multiplier
+                * category_multiplier
             )
 
             weighted_score += (
@@ -1908,6 +1852,7 @@ class RequirementMatcher:
         preliminary_result: RequirementMatch,
         verification,
         retrieved_evidence: list[str],
+        resume_text: str = "",
     ) -> RequirementMatch:
         """
         Merges a batched SemanticVerification result (or None,
@@ -1918,13 +1863,38 @@ class RequirementMatcher:
         produced once, up front, for every ambiguous requirement
         in the analysis via SemanticVerifier.verify_batch().
 
-        `retrieved_evidence` is the exact evidence pool that was
-        given to Gemini for this requirement. Any
+        `retrieved_evidence` is the narrow per-requirement hint
+        pool given to Gemini; `resume_text` is the complete raw
+        resume text also given to Gemini for this requirement
+        (see SemanticVerifier.verify_batch). Any
         "supporting_evidence" string Gemini returns that does
-        NOT correspond to something in that pool is treated as
+        NOT correspond to something in `retrieved_evidence` AND
+        is NOT a real substring of `resume_text` is treated as
         hallucinated and dropped before it can influence the
         result (evidence-grounding validation).
         """
+
+        # --------------------------------------------------------
+        # Stage 1 floor: every requirement now goes through this
+        # holistic pass, including ones Pass 1 already resolved
+        # with high confidence via an exact literal phrase/alias
+        # hit. That confirmed result can be upgraded by this pass
+        # (a "strong" direct match can't get any stronger, but a
+        # weaker preliminary result can still be improved below),
+        # but it must never be downgraded by an inference — or,
+        # worse, silently dropped to "missing" just because this
+        # requirement's verification happened to go missing from
+        # Gemini's response (a malformed chunk, a name-echo
+        # mismatch). A confirmed literal match is a fact, not a
+        # judgment call, and outranks anything Pass 2 says.
+        # --------------------------------------------------------
+
+        if (
+            preliminary_result.evidence_type == "direct"
+            and preliminary_result.match_type == "strong"
+        ):
+
+            return preliminary_result
 
         # --------------------------------------------------------
         # Conservative fallback: if Gemini did not return a
@@ -1970,6 +1940,10 @@ class RequirementMatcher:
             for item in retrieved_evidence
         }
 
+        normalized_resume_text = self._normalize(
+            resume_text
+        )
+
         supporting_evidence = [
             item
             for item in verification.supporting_evidence
@@ -1977,6 +1951,10 @@ class RequirementMatcher:
                 self._normalize(item) in pool_item
                 or pool_item in self._normalize(item)
                 for pool_item in normalized_pool
+            )
+            or (
+                self._normalize(item)
+                in normalized_resume_text
             )
         ]
 

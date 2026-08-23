@@ -57,9 +57,7 @@ You are extracting a Job Description from a PDF that has no usable text layer (i
 
 Read every page carefully.
 
-Extract the COMPLETE visible job description.
-
-Preserve:
+Extract the COMPLETE visible job description, preserving:
 - Job title
 - Responsibilities
 - Required qualifications
@@ -293,7 +291,6 @@ unless they are part of a meaningful requirement.
 Valid examples:
 
 Postgres → PostgreSQL
-RESTful API → REST API
 JS → JavaScript
 CRM → Customer Relationship Management
 GAAP → Generally Accepted Accounting Principles
@@ -303,10 +300,7 @@ GAAP → Generally Accepted Accounting Principles
 For example:
 
 AWS != Azure
-AWS != GCP
 Docker != Kubernetes
-React != Angular
-Python != Java
 
 Related-but-different tools like these should instead be
 captured via "adjacent_alternatives" — see rule 14 below.
@@ -331,7 +325,6 @@ concepts, usually joined by "and", "&", "/", or a comma.
 Examples of compound requirement names:
 
 "Frontend Technologies & Web Services"
-"Code Review and Production Safety"
 "Collaborative Coding Experience"
 "Client Relationship Management & Account Growth"
 
@@ -344,9 +337,6 @@ Examples:
 
 "Frontend Technologies & Web Services"
 components: ["frontend technologies", "web services"]
-
-"Code Review and Production Safety"
-components: ["code review", "production safety"]
 
 "Collaborative Coding Experience"
 components: ["collaborative coding experience"]
@@ -422,6 +412,66 @@ Leave "evidence_hints" empty for requirements that are
 already concrete named tools/technologies (e.g. "Python",
 "Salesforce") where a direct name match is sufficient.
 
+16. DEALBREAKER FLAG:
+
+Set "is_dealbreaker" to true ONLY for a genuine hard gate a
+real recruiter would screen a candidate OUT on if missing —
+regardless of how strong everything else is. This is RARE.
+
+Valid dealbreakers:
+- An explicit hard floor on years of experience ("minimum 5
+  years required")
+- A required license or professional certification (e.g. a
+  nursing license, a bar admission, a PE license)
+- Required work authorization / security clearance
+
+NOT dealbreakers (leave false): a required technical skill,
+a required degree, a required tool/technology, or any other
+"required" item that a strong candidate could still plausibly
+compensate for elsewhere. Most requirements, including most
+"required" ones, are NOT dealbreakers — default to false
+unless a requirement clearly matches one of the valid
+categories above.
+
+17. COMPLETENESS OF REQUIRED/PREFERRED QUALIFICATIONS:
+
+Every distinct qualification named anywhere under a
+Required/Minimum Qualifications or Preferred Qualifications
+section MUST end up represented somewhere in the output —
+either as its own requirement in "requirements", or folded
+into an existing requirement's "aliases"/"evidence_hints" if
+it is a close variant of something already captured. Do not
+silently drop a named qualification because it seems minor
+or because another requirement already covers something
+similar.
+
+This especially applies to a SINGLE bullet that names several
+distinct sub-qualifications joined by commas/"or"/"and" —
+every named term in that bullet must be individually
+represented, not just the first or most prominent one.
+
+Example — this input bullet:
+
+"Understanding of software engineering fundamentals,
+including testing, code quality, and maintainability."
+
+must NOT be dropped entirely, and must not collapse to only
+one of its three named concepts. Represent it as its own
+requirement with components ["testing", "code quality",
+"maintainability"], or, if closely related to an existing
+requirement, add "testing", "code quality", and
+"maintainability" into that requirement's "evidence_hints".
+
+Example — this input bullet:
+
+"Exposure to telemetry, data analysis, statistics, or cloud
+data platforms."
+
+If a requirement already exists for "telemetry" and "data
+analysis", still add "statistics" and "cloud data platforms"
+into that requirement's "aliases" or "evidence_hints" rather
+than leaving them unrepresented anywhere in the output.
+
 Return ONLY structured data matching the schema.
 """
 
@@ -430,6 +480,7 @@ Return ONLY structured data matching the schema.
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=JDProfile,
+                temperature=0.0,
             ),
             purpose="jd_structuring",
         )

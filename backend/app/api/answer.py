@@ -21,6 +21,10 @@ from app.schemas.answer import (
 )
 
 from app.services.ai_service import AIService
+from app.services.api_key_manager import (
+    clear_gemini_context,
+    set_gemini_context,
+)
 
 from app.api.auth import get_current_user
 
@@ -74,116 +78,123 @@ def submit_answer(
 
     ai_service = AIService()
 
+    set_gemini_context(question.session_id)
+
     try:
-        combined_answer = ai_service.build_combined_answer(
-            voice_text=payload.voice_text,
-            typed_text=payload.typed_text,
-            code=payload.code
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=str(e)
-        )
-    
-    try:
-        evaluation = ai_service.evaluate_answer(
-            question_text=question.question_text,
-            user_answer=combined_answer
-        )
-    except Exception as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "The answer evaluation service is temporarily "
-                "unavailable. Please try submitting again in a "
-                "moment."
-            ),
-        ) from exc
-
-    answer = Answer(
-        question_id=question.id,
-
-        voice_text=payload.voice_text,
-        typed_text=payload.typed_text,
-        code=payload.code,
-        combined_answer=combined_answer,
-
-        score=evaluation["score"],
-        feedback=evaluation["feedback"],
-        strengths=evaluation["strengths"],
-        improvements=evaluation["improvements"],
-    )
-
-    db.add(answer)
-    db.commit()
-    db.refresh(answer)
-
-    follow_up = None
-    follow_up_text = None
-
-    if (
-        answer.score >= FOLLOW_UP_SCORE_THRESHOLD
-        and question.follow_up_depth < 2
-    ):
 
         try:
-
-            follow_up_text = (
-                ai_service.generate_follow_up_question(
-                    original_question=question.question_text,
-                    candidate_answer=combined_answer,
-                    evaluation=evaluation,
-                    follow_up_depth=question.follow_up_depth,
-                )
-                .strip()
+            combined_answer = ai_service.build_combined_answer(
+                voice_text=payload.voice_text,
+                typed_text=payload.typed_text,
+                code=payload.code
+            )
+        except ValueError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=str(e)
             )
 
-        except Exception as e:
-
-            print("\n===== FOLLOW-UP GENERATION FAILED =====")
-            print(e)
-
-        if follow_up_text:
-
-            follow_up = Question(
-                session_id=question.session_id,
-                question_text=follow_up_text.strip(),
-                is_follow_up=True,
-                parent_question_id=(
-                    question.parent_question_id
-                    if question.is_follow_up
-                    else question.id
+        try:
+            evaluation = ai_service.evaluate_answer(
+                question_text=question.question_text,
+                user_answer=combined_answer
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "The answer evaluation service is temporarily "
+                    "unavailable. Please try submitting again in a "
+                    "moment."
                 ),
-                follow_up_depth=question.follow_up_depth + 1,
-            )
+            ) from exc
 
-            db.add(follow_up)
-            db.commit()
-            db.refresh(follow_up)
+        answer = Answer(
+            question_id=question.id,
 
-            print("\n===== FOLLOW-UP CREATED =====")
-            print(f"Parent Question : {question.id}")
-            print(f"Depth           : {follow_up.follow_up_depth}")
-            print(f"Question        : {follow_up.question_text}")
+            voice_text=payload.voice_text,
+            typed_text=payload.typed_text,
+            code=payload.code,
+            combined_answer=combined_answer,
 
-    return AnswerResponse(
-        answer_id=answer.id,
-        score=answer.score,
-        feedback=answer.feedback,
-        strengths=answer.strengths,
-        improvements=answer.improvements,
-        has_follow_up=follow_up is not None,
-        follow_up=(
-            FollowUpQuestionResponse(
-                question_id=follow_up.id,
-                question_text=follow_up.question_text,
-                follow_up_depth=follow_up.follow_up_depth,
-            )
-            if follow_up
-            else None
-        ),
-    )
+            score=evaluation["score"],
+            feedback=evaluation["feedback"],
+            strengths=evaluation["strengths"],
+            improvements=evaluation["improvements"],
+        )
+
+        db.add(answer)
+        db.commit()
+        db.refresh(answer)
+
+        follow_up = None
+        follow_up_text = None
+
+        if (
+            answer.score >= FOLLOW_UP_SCORE_THRESHOLD
+            and question.follow_up_depth < 2
+        ):
+
+            try:
+
+                follow_up_text = (
+                    ai_service.generate_follow_up_question(
+                        original_question=question.question_text,
+                        candidate_answer=combined_answer,
+                        evaluation=evaluation,
+                        follow_up_depth=question.follow_up_depth,
+                    )
+                    .strip()
+                )
+
+            except Exception as e:
+
+                print("\n===== FOLLOW-UP GENERATION FAILED =====")
+                print(e)
+
+            if follow_up_text:
+
+                follow_up = Question(
+                    session_id=question.session_id,
+                    question_text=follow_up_text.strip(),
+                    is_follow_up=True,
+                    parent_question_id=(
+                        question.parent_question_id
+                        if question.is_follow_up
+                        else question.id
+                    ),
+                    follow_up_depth=question.follow_up_depth + 1,
+                )
+
+                db.add(follow_up)
+                db.commit()
+                db.refresh(follow_up)
+
+                print("\n===== FOLLOW-UP CREATED =====")
+                print(f"Parent Question : {question.id}")
+                print(f"Depth           : {follow_up.follow_up_depth}")
+                print(f"Question        : {follow_up.question_text}")
+
+        return AnswerResponse(
+            answer_id=answer.id,
+            score=answer.score,
+            feedback=answer.feedback,
+            strengths=answer.strengths,
+            improvements=answer.improvements,
+            has_follow_up=follow_up is not None,
+            follow_up=(
+                FollowUpQuestionResponse(
+                    question_id=follow_up.id,
+                    question_text=follow_up.question_text,
+                    follow_up_depth=follow_up.follow_up_depth,
+                )
+                if follow_up
+                else None
+            ),
+        )
+
+    finally:
+        clear_gemini_context()
     
 @router.get(
     "/{answer_id}",

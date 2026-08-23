@@ -1,3 +1,4 @@
+import contextlib
 import contextvars
 import threading
 import time
@@ -8,7 +9,40 @@ from google.genai.errors import APIError
 from app.core.config import (
     GEMINI_API_KEYS,
     GEMINI_MODEL,
+    LANGFUSE_PUBLIC_KEY,
+    LANGFUSE_SECRET_KEY,
 )
+
+# ============================================================
+# LangFuse tracing (optional)
+#
+# Disabled unless both LangFuse keys are configured, so local
+# dev / deployments without a LangFuse project keep working
+# exactly as before. When enabled, every Gemini call made
+# through this manager is auto-captured (prompt, response,
+# tokens, latency) via OpenInference's google-genai
+# instrumentation, tagged with the call's `purpose` and the
+# owning resume-analysis id (when set).
+# ============================================================
+
+LANGFUSE_ENABLED = bool(
+    LANGFUSE_PUBLIC_KEY
+    and LANGFUSE_SECRET_KEY
+)
+
+if LANGFUSE_ENABLED:
+
+    from openinference.instrumentation.google_genai import (
+        GoogleGenAIInstrumentor,
+    )
+    from langfuse import (
+        get_client as get_langfuse_client,
+        propagate_attributes,
+    )
+
+    GoogleGenAIInstrumentor().instrument()
+
+    get_langfuse_client()
 
 
 # ============================================================
@@ -307,26 +341,42 @@ class APIKeyManager:
 
             client = self._get_client()
 
+            trace_scope = (
+                propagate_attributes(
+                    session_id=(
+                        str(analysis_id)
+                        if analysis_id is not None
+                        else None
+                    ),
+                    metadata={"purpose": purpose},
+                    tags=[purpose],
+                )
+                if LANGFUSE_ENABLED
+                else contextlib.nullcontext()
+            )
+
             try:
 
-                if config is None:
+                with trace_scope:
 
-                    response = (
-                        client.models.generate_content(
-                            model=model,
-                            contents=contents,
+                    if config is None:
+
+                        response = (
+                            client.models.generate_content(
+                                model=model,
+                                contents=contents,
+                            )
                         )
-                    )
 
-                else:
+                    else:
 
-                    response = (
-                        client.models.generate_content(
-                            model=model,
-                            contents=contents,
-                            config=config,
+                        response = (
+                            client.models.generate_content(
+                                model=model,
+                                contents=contents,
+                                config=config,
+                            )
                         )
-                    )
 
                 self._log_call_result(
                     analysis_id,
