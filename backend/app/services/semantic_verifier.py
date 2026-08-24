@@ -481,6 +481,11 @@ what would need to change to become a full match. Reserve
 "strong" for when the requirement's own literal condition is
 actually, fully met.
 
+Keep every "reasoning" field to 1-2 concise, complete
+sentences — state the verdict and why, once, plainly. Do not
+restate the requirement name or the cited evidence before
+explaining it.
+
 Return ONLY structured data matching the requested schema,
 with exactly one verification per requirement listed above.
 """

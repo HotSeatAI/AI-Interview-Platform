@@ -440,7 +440,14 @@ class SemanticVerification(BaseModel):
         le=1,
     )
 
-    reasoning: str
+    reasoning: str = Field(
+        description=(
+            "1-2 concise, complete sentences stating the "
+            "verdict and why. Do not restate the requirement "
+            "name or the cited evidence verbatim before "
+            "explaining — say the judgment once, plainly."
+        ),
+    )
 
     supporting_evidence: list[str] = Field(
         default_factory=list
@@ -609,7 +616,14 @@ class RecommendationDraft(BaseModel):
 
     jd_requirement: str | None = None
 
-    reason: str
+    reason: str = Field(
+        description=(
+            "1-2 concise, complete sentences on why this "
+            "rewrite helps. State the point once, plainly — "
+            "do not repeat the original/suggested text back "
+            "or over-explain."
+        ),
+    )
 
     evidence_used: list[str] = Field(
         default_factory=list
@@ -725,7 +739,13 @@ class PartialMatchGuidanceDraft(BaseModel):
 
     requirement: str
 
-    how_to_strengthen: str
+    how_to_strengthen: str = Field(
+        description=(
+            "1-2 concise, complete sentences of actionable "
+            "guidance. State it once, plainly — no repeated "
+            "framing or restated evidence."
+        ),
+    )
 
     example_wording: list[str] = Field(
         default_factory=list

@@ -376,6 +376,7 @@ class RequirementMatcher:
     jd_profile: JDProfile,
     resume_profile: ResumeProfile,
     resume_text: str = "",
+    embedding_evidence_map: dict[str, list[str]] | None = None,
 ) -> MatchingReport:
 
         # ----------------------------------------------------
@@ -432,6 +433,37 @@ class RequirementMatcher:
             )
             for requirement in candidate_requirements
         }
+
+        # ----------------------------------------------------
+        # RAG retrieval (optional): meaning-based candidates from
+        # embedding_service.build_embedding_evidence_map, unioned
+        # into the keyword-based evidence_map above — never
+        # replacing it. This is what catches real evidence phrased
+        # in different words than the requirement (resume:
+        # "automated deployment pipeline", JD: "CI/CD experience")
+        # that keyword/alias/fuzzy matching has no way to find.
+        # Purely additive to the candidate pool: every item here
+        # still has to pass the same evidence-grounding check in
+        # _merge_verification as any keyword-retrieved candidate,
+        # so widening this pool can only improve recall, never
+        # weaken the grounding guarantee.
+        # ----------------------------------------------------
+
+        if embedding_evidence_map:
+
+            for requirement in candidate_requirements:
+
+                existing = evidence_map.setdefault(
+                    requirement.name,
+                    [],
+                )
+
+                for line in embedding_evidence_map.get(
+                    requirement.name,
+                    [],
+                ):
+                    if line not in existing:
+                        existing.append(line)
 
         # ----------------------------------------------------
         # Deterministic adjacency hints: for each candidate

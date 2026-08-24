@@ -546,6 +546,191 @@ class APIKeyManager:
                 raise
 
     # ========================================================
+    # Gemini embeddings
+    # ========================================================
+
+    def embed_content(
+        self,
+        contents,
+        *,
+        model=None,
+        task_type=None,
+        purpose="embedding",
+    ):
+        """
+        Generate Gemini embeddings for one or more texts.
+
+        `contents` may be a single string or a list of strings —
+        the return shape mirrors it (a single vector, or a list
+        of vectors, one per input string, in the same order).
+
+        Shares the same key-rotation/retry behavior as
+        generate_content() (429/404/503 handling) so embedding
+        calls are just as resilient to quota exhaustion and
+        transient outages, without duplicating that logic's
+        surrounding request-shaping.
+        """
+
+        from app.core.config import GEMINI_EMBEDDING_MODEL
+
+        model = model or GEMINI_EMBEDDING_MODEL
+
+        is_batch = isinstance(contents, list)
+
+        config = (
+            {"task_type": task_type}
+            if task_type
+            else None
+        )
+
+        call_number, analysis_id = (
+            self._log_call_start(
+                purpose,
+                model,
+            )
+        )
+
+        unavailable_attempts = 0
+
+        while True:
+
+            client = self._get_client()
+
+            trace_scope = (
+                propagate_attributes(
+                    session_id=(
+                        str(analysis_id)
+                        if analysis_id is not None
+                        else None
+                    ),
+                    metadata={"purpose": purpose},
+                    tags=[purpose],
+                )
+                if LANGFUSE_ENABLED
+                else contextlib.nullcontext()
+            )
+
+            try:
+
+                with trace_scope:
+
+                    response = client.models.embed_content(
+                        model=model,
+                        contents=contents,
+                        config=config,
+                    )
+
+                self._log_call_result(
+                    analysis_id,
+                    call_number,
+                    purpose,
+                    "success",
+                )
+
+                vectors = [
+                    embedding.values
+                    for embedding in response.embeddings
+                ]
+
+                return vectors if is_batch else vectors[0]
+
+            except APIError as error:
+
+                if self._is_rate_limit_error(error):
+
+                    try:
+                        self._move_to_next_key()
+
+                    except RuntimeError:
+
+                        self._log_call_result(
+                            analysis_id,
+                            call_number,
+                            purpose,
+                            "failed (all API keys rate-limited)",
+                        )
+
+                        raise
+
+                    continue
+
+                if self._is_key_access_error(error):
+
+                    try:
+                        self._move_to_next_key()
+
+                    except RuntimeError:
+
+                        self._log_call_result(
+                            analysis_id,
+                            call_number,
+                            purpose,
+                            "failed (no configured key has model access)",
+                        )
+
+                        raise
+
+                    continue
+
+                if self._is_unavailable_error(error):
+
+                    unavailable_attempts += 1
+
+                    if (
+                        unavailable_attempts
+                        > self.MAX_UNAVAILABLE_RETRIES
+                    ):
+
+                        try:
+                            self._move_to_next_key()
+
+                        except RuntimeError:
+
+                            self._log_call_result(
+                                analysis_id,
+                                call_number,
+                                purpose,
+                                "failed (503 retries exhausted "
+                                "on all keys)",
+                            )
+
+                            raise
+
+                        unavailable_attempts = 0
+
+                        continue
+
+                    delay = min(
+                        self.BASE_BACKOFF_SECONDS
+                        * (2 ** (unavailable_attempts - 1)),
+                        self.MAX_BACKOFF_SECONDS,
+                    )
+
+                    time.sleep(delay)
+
+                    continue
+
+                self._log_call_result(
+                    analysis_id,
+                    call_number,
+                    purpose,
+                    f"failed ({type(error).__name__})",
+                )
+
+                raise
+
+            except Exception as error:
+
+                self._log_call_result(
+                    analysis_id,
+                    call_number,
+                    purpose,
+                    f"failed ({type(error).__name__})",
+                )
+
+                raise
+
+    # ========================================================
     # Rate-limit detection
     # ========================================================
 
