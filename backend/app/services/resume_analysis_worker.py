@@ -23,6 +23,10 @@ from app.services.evidence_validator import (
 from app.services.requirement_matcher import (
     RequirementMatcher,
 )
+from app.services.embedding_service import (
+    build_embedding_evidence_map,
+    ensure_resume_evidence_vectors,
+)
 from app.services.resume_optimizer import (
     ResumeOptimizer,
 )
@@ -332,12 +336,50 @@ class ResumeAnalysisWorker:
                 "Matching resume against requirements",
             )
 
+            # RAG retrieval: meaning-based evidence candidates,
+            # unioned into the deterministic matcher's own
+            # keyword-based retrieval — never replacing it. Best-
+            # effort: embedding vectors are cached once per resume
+            # (like resume_profile_json), and any failure here
+            # (embedding API hiccup, pgvector unavailable) simply
+            # falls back to keyword-only retrieval rather than
+            # failing the whole analysis.
+
+            embedding_evidence_map = {}
+
+            try:
+
+                ensure_resume_evidence_vectors(
+                    db,
+                    resume.id,
+                    resume_profile,
+                )
+
+                embedding_evidence_map = (
+                    build_embedding_evidence_map(
+                        db,
+                        resume.id,
+                        jd_profile.requirements,
+                    )
+                )
+
+            except Exception as exc:
+
+                db.rollback()
+
+                print(
+                    "\n===== RAG EVIDENCE RETRIEVAL FAILED "
+                    "(falling back to keyword-only) =====",
+                )
+                print(exc)
+
             matcher = RequirementMatcher()
 
             matching_report = matcher.match(
                 jd_profile=jd_profile,
                 resume_profile=resume_profile,
                 resume_text=resume.extracted_text,
+                embedding_evidence_map=embedding_evidence_map,
             )
 
             # =================================================

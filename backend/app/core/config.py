@@ -43,6 +43,11 @@ GEMINI_MODEL = os.getenv(
     "gemini-3.6-flash",
 )
 
+GEMINI_EMBEDDING_MODEL = os.getenv(
+    "GEMINI_EMBEDDING_MODEL",
+    "gemini-embedding-001",
+)
+
 raw_keys = os.getenv("GEMINI_API_KEYS")
 
 GEMINI_API_KEYS = [
