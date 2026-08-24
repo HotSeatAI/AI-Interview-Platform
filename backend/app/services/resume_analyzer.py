@@ -2,7 +2,10 @@ import json
 
 from google.genai import types
 
-from app.core.config import GEMINI_MODEL
+from app.core.config import (
+    GEMINI_MODEL,
+    GEMINI_STRUCTURING_THINKING_BUDGET,
+)
 
 from app.services.api_key_manager import (
     api_key_manager,
@@ -168,6 +171,9 @@ Return ONLY structured data matching the schema.
             response_mime_type="application/json",
             response_schema=ResumeProfile,
             temperature=0.0,
+            thinking_config=types.ThinkingConfig(
+                thinking_budget=GEMINI_STRUCTURING_THINKING_BUDGET,
+            ),
             ),
             purpose="resume_structuring",
         )

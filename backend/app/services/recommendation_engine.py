@@ -481,6 +481,11 @@ If there are no optimization findings, return an empty
 "recommendations" array. If there are no partial match
 requirements, return an empty "partial_match_guidance" array.
 
+Keep every "reason" and "how_to_strengthen" field to 1-2
+concise, complete sentences — state the point once, plainly,
+without repeating the original/suggested text or evidence
+back before explaining it.
+
 Do not return explanations outside the JSON object.
 """
 

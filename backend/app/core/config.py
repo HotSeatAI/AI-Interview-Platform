@@ -48,6 +48,18 @@ GEMINI_EMBEDDING_MODEL = os.getenv(
     "gemini-embedding-001",
 )
 
+# Structuring calls (JD -> JDProfile, resume -> ResumeProfile) are
+# schema-constrained extraction, not the multi-step judgment calls
+# semantic verification/recommendations are — capping the model's
+# hidden "thinking" budget here cuts a large chunk of billed-but-
+# invisible output tokens with no observed completeness/quality
+# loss (verified via full field-level diff against default
+# thinking on a real JD). gemini-3.6-flash requires a minimum of
+# 1 — 0 is rejected outright as an invalid argument.
+GEMINI_STRUCTURING_THINKING_BUDGET = int(
+    os.getenv("GEMINI_STRUCTURING_THINKING_BUDGET", 128)
+)
+
 raw_keys = os.getenv("GEMINI_API_KEYS")
 
 GEMINI_API_KEYS = [
