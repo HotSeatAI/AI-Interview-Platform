@@ -10,6 +10,7 @@ from app.services.prompts.marketing_prompt import build_marketing_prompt
 from app.services.prompts.evaluation_prompt import (
     build_evaluation_prompt,
     build_follow_up_prompt,
+    build_skipped_topics_prompt,
 )
 
 class AIService:
@@ -84,7 +85,8 @@ class AIService:
         print(category)
 
         response = self.key_manager.generate_content(
-            prompt
+            prompt,
+            purpose="interview_question_generation",
         )
 
         print("\n===== GEMINI QUESTION RESPONSE =====\n")
@@ -105,6 +107,9 @@ class AIService:
                 f"Explanation:\n{voice_text.strip()}"
             )
 
+        # TODO(backend migration): typed_text is always empty from the
+        # frontend now — see the TODO on AnswerCreate.typed_text in
+        # schemas/answer.py. Drop this parameter once nothing relies on it.
         if typed_text and typed_text.strip():
             sections.append(
                 f"Additional Notes:\n{typed_text.strip()}"
@@ -194,7 +199,8 @@ class AIService:
         )
 
         response = self.key_manager.generate_content(
-            prompt
+            prompt,
+            purpose="answer_evaluation",
         )
 
         print("\n===== GEMINI ANSWER EVALUATION RESPONSE =====\n")
@@ -232,10 +238,72 @@ class AIService:
         )
 
         response = self.key_manager.generate_content(
-            prompt
+            prompt,
+            purpose="follow_up_question_generation",
         )
 
         print("\n===== GEMINI FOLLOW-UP QUESTION =====\n")
         print(response.text)
 
         return response.text.strip()
+
+    def generate_skipped_topics(
+        self,
+        question_texts: list[str],
+    ) -> list[str]:
+        """
+        For a batch of skipped interview questions, returns the
+        single study topic for each, in the same order. One
+        Gemini call handles the whole batch regardless of how
+        many questions were skipped.
+
+        Falls back to a generic per-question label instead of
+        raising if Gemini's response can't be parsed, so a
+        malformed response never breaks the final report.
+        """
+
+        if not question_texts:
+            return []
+
+        prompt = build_skipped_topics_prompt(
+            question_texts
+        )
+
+        try:
+
+            response = self.key_manager.generate_content(
+                prompt
+            )
+
+            topics = json.loads(
+                response.text.strip()
+            )
+
+            if (
+                not isinstance(topics, list)
+                or len(topics) != len(question_texts)
+                or not all(
+                    isinstance(topic, str) and topic.strip()
+                    for topic in topics
+                )
+            ):
+                raise ValueError(
+                    "Unexpected skipped-topics response shape."
+                )
+
+            return [
+                topic.strip()
+                for topic in topics
+            ]
+
+        except Exception as exc:
+
+            print(
+                "\n===== SKIPPED TOPICS GENERATION FAILED =====\n"
+                f"{exc}"
+            )
+
+            return [
+                "Review This Topic"
+                for _ in question_texts
+            ]

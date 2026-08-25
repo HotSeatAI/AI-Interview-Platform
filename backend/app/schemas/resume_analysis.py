@@ -39,7 +39,15 @@ class JDRequirement(BaseModel):
     )
 
     aliases: list[str] = Field(
-        default_factory=list
+        default_factory=list,
+        description=(
+            "Alternate names/spellings/abbreviations for this "
+            "requirement that mean the SAME thing (e.g. "
+            "'PostgreSQL' <-> 'Postgres', 'CRM' <-> 'Customer "
+            "Relationship Management'). Do NOT include related-"
+            "but-different terms here — use "
+            "adjacent_alternatives for those."
+        ),
     )
 
     components: list[str] = Field(
@@ -50,6 +58,52 @@ class JDRequirement(BaseModel):
             "['frontend technologies', 'web services']). "
             "Empty when the requirement already names a single "
             "concept."
+        ),
+    )
+
+    adjacent_alternatives: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Tools/platforms/frameworks/standards that are "
+            "RELATED to this requirement but NOT equivalent or "
+            "interchangeable substitutes for it — e.g. for "
+            "'Salesforce': 'hubspot', 'zoho crm'; for 'AWS': "
+            "'azure', 'gcp'; for 'GAAP': 'ifrs'. Used only to "
+            "detect adjacent-but-not-matching resume "
+            "experience, never to award credit for this "
+            "requirement. Leave empty if no well-known adjacent "
+            "alternative exists (e.g. for a general "
+            "experience/years requirement)."
+        ),
+    )
+
+    evidence_hints: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Short literal resume phrases (2-5 words) that "
+            "would count as indirect/supporting evidence for "
+            "this requirement even if the requirement's own "
+            "name/aliases never appear verbatim — e.g. for "
+            "'Client Relationship Management': 'account "
+            "management', 'renewals', 'upsells', 'client "
+            "retention'. These are SEARCH TERMS only; a resume "
+            "must still contain the literal phrase to count as "
+            "a match. Leave empty for requirements that are "
+            "already a concrete named tool (e.g. 'Salesforce', "
+            "'Python') where a direct-name match is sufficient."
+        ),
+    )
+
+    is_dealbreaker: bool = Field(
+        default=False,
+        description=(
+            "True only for a genuine hard gate a real recruiter "
+            "would screen out on if missing — an explicit "
+            "years-of-experience floor, a required license or "
+            "certification, work authorization/clearance. False "
+            "for every other 'required' requirement (most "
+            "required skills are important but not a hard gate "
+            "on their own)."
         ),
     )
 
@@ -159,6 +213,8 @@ class ResumeSkill(BaseModel):
         "tool",
         "domain",
         "soft_skill",
+        "platform_or_system",
+        "methodology_or_standard",
         "other",
     ]
 
@@ -294,6 +350,7 @@ class RequirementMatch(BaseModel):
         "partial",
         "ambiguous",
         "unsupported",
+        "adjacent",
     ] = "unsupported"
 
     match_strength: float = Field(
@@ -357,7 +414,12 @@ class MatchingReport(BaseModel):
     matches: list[RequirementMatch] = Field(
         default_factory=list
     )
-    
+
+    dealbreaker_capped: bool = False
+
+    dealbreaker_reason: str | None = None
+
+
 # ============================================================
 # SEMANTIC VERIFICATION SCHEMAS
 # ============================================================
@@ -370,6 +432,7 @@ class SemanticVerification(BaseModel):
         "partial",
         "missing",
         "ambiguous",
+        "adjacent",
     ]
 
     confidence: float = Field(
@@ -377,7 +440,14 @@ class SemanticVerification(BaseModel):
         le=1,
     )
 
-    reasoning: str
+    reasoning: str = Field(
+        description=(
+            "1-2 concise, complete sentences stating the "
+            "verdict and why. Do not restate the requirement "
+            "name or the cited evidence verbatim before "
+            "explaining — say the judgment once, plainly."
+        ),
+    )
 
     supporting_evidence: list[str] = Field(
         default_factory=list
@@ -546,7 +616,14 @@ class RecommendationDraft(BaseModel):
 
     jd_requirement: str | None = None
 
-    reason: str
+    reason: str = Field(
+        description=(
+            "1-2 concise, complete sentences on why this "
+            "rewrite helps. State the point once, plainly — "
+            "do not repeat the original/suggested text back "
+            "or over-explain."
+        ),
+    )
 
     evidence_used: list[str] = Field(
         default_factory=list
@@ -662,9 +739,34 @@ class PartialMatchGuidanceDraft(BaseModel):
 
     requirement: str
 
-    how_to_strengthen: str
+    how_to_strengthen: str = Field(
+        description=(
+            "1-2 concise, complete sentences of actionable "
+            "guidance. State it once, plainly — no repeated "
+            "framing or restated evidence."
+        ),
+    )
 
     example_wording: list[str] = Field(
+        default_factory=list
+    )
+
+
+class RecommendationBatchResponse(BaseModel):
+    """
+    Response schema for the single combined Gemini call that
+    generates both rewrite recommendations and Partial Match
+    wording guidance for one analysis at once. Passed as
+    response_schema so Gemini's structured-output mode enforces
+    the exact field names/types below, instead of relying on
+    the prompt's prose description alone.
+    """
+
+    recommendations: list[RecommendationDraft] = Field(
+        default_factory=list
+    )
+
+    partial_match_guidance: list[PartialMatchGuidanceDraft] = Field(
         default_factory=list
     )
 

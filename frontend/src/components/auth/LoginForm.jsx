@@ -9,6 +9,7 @@ function LoginForm() {
     resendVerificationEmail,
 } = useAuth();
   const [showResend, setShowResend] = useState(false);
+  const [isGoogleAccount, setIsGoogleAccount] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
   const [formData, setFormData] = useState({
@@ -30,6 +31,7 @@ function LoginForm() {
     setError("");
     setSuccessMessage("");
     setShowResend(false);
+    setIsGoogleAccount(false);
 
     try {
       await login(formData);
@@ -48,6 +50,12 @@ function LoginForm() {
           "Please verify your email before logging in."
       ) {
           setShowResend(true);
+      } else if (
+        err.response?.status === 401 &&
+        message ===
+          "This account was created using Google Sign-In. Please continue with Google."
+      ) {
+          setIsGoogleAccount(true);
       } else {
           setShowResend(false);
   }
@@ -102,6 +110,10 @@ function LoginForm() {
         />
       </label>
 
+      <Link to="/forgot-password" className="auth-forgot-link">
+        Forgot Password?
+      </Link>
+
       {error && <p className="error-text">{error}</p>}
 
       <button className="button button--primary button--lg button--wide" type="submit">
@@ -127,6 +139,16 @@ function LoginForm() {
           <button type="button" className="auth-alert__action" onClick={handleResendVerification}>
             Resend verification email
           </button>
+        </div>
+      )}
+
+      {isGoogleAccount && (
+        <div className="auth-alert">
+          <div className="auth-alert__label">STATE · GOOGLE ACCOUNT</div>
+          <p className="auth-alert__text">
+            This account was created using Google Sign-In. Please use the
+            "Continue with Google" button above to log in.
+          </p>
         </div>
       )}
 

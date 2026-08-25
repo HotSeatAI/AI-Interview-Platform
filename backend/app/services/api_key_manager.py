@@ -1,3 +1,4 @@
+import contextlib
 import contextvars
 import threading
 import time
@@ -8,7 +9,40 @@ from google.genai.errors import APIError
 from app.core.config import (
     GEMINI_API_KEYS,
     GEMINI_MODEL,
+    LANGFUSE_PUBLIC_KEY,
+    LANGFUSE_SECRET_KEY,
 )
+
+# ============================================================
+# LangFuse tracing (optional)
+#
+# Disabled unless both LangFuse keys are configured, so local
+# dev / deployments without a LangFuse project keep working
+# exactly as before. When enabled, every Gemini call made
+# through this manager is auto-captured (prompt, response,
+# tokens, latency) via OpenInference's google-genai
+# instrumentation, tagged with the call's `purpose` and the
+# owning resume-analysis id (when set).
+# ============================================================
+
+LANGFUSE_ENABLED = bool(
+    LANGFUSE_PUBLIC_KEY
+    and LANGFUSE_SECRET_KEY
+)
+
+if LANGFUSE_ENABLED:
+
+    from openinference.instrumentation.google_genai import (
+        GoogleGenAIInstrumentor,
+    )
+    from langfuse import (
+        get_client as get_langfuse_client,
+        propagate_attributes,
+    )
+
+    GoogleGenAIInstrumentor().instrument()
+
+    get_langfuse_client()
 
 
 # ============================================================
@@ -307,26 +341,42 @@ class APIKeyManager:
 
             client = self._get_client()
 
+            trace_scope = (
+                propagate_attributes(
+                    session_id=(
+                        str(analysis_id)
+                        if analysis_id is not None
+                        else None
+                    ),
+                    metadata={"purpose": purpose},
+                    tags=[purpose],
+                )
+                if LANGFUSE_ENABLED
+                else contextlib.nullcontext()
+            )
+
             try:
 
-                if config is None:
+                with trace_scope:
 
-                    response = (
-                        client.models.generate_content(
-                            model=model,
-                            contents=contents,
+                    if config is None:
+
+                        response = (
+                            client.models.generate_content(
+                                model=model,
+                                contents=contents,
+                            )
                         )
-                    )
 
-                else:
+                    else:
 
-                    response = (
-                        client.models.generate_content(
-                            model=model,
-                            contents=contents,
-                            config=config,
+                        response = (
+                            client.models.generate_content(
+                                model=model,
+                                contents=contents,
+                                config=config,
+                            )
                         )
-                    )
 
                 self._log_call_result(
                     analysis_id,
@@ -411,14 +461,51 @@ class APIKeyManager:
                         > self.MAX_UNAVAILABLE_RETRIES
                     ):
 
-                        self._log_call_result(
-                            analysis_id,
-                            call_number,
-                            purpose,
-                            "failed (503 retries exhausted)",
+                        # Local backoff on this key is exhausted.
+                        # A "503 unavailable" response isn't
+                        # always a genuine model-wide outage —
+                        # some quota-exhaustion errors (e.g. a
+                        # free-tier key that has used its full
+                        # daily request allowance) can surface
+                        # through this SDK in the same 503 shape
+                        # rather than as a standard 429. Rather
+                        # than failing immediately, try rotating
+                        # to another configured key and giving
+                        # the request a fresh attempt there —
+                        # this only costs extra time if the
+                        # outage really is model-wide, but
+                        # recovers the analysis if it was
+                        # actually a per-key quota problem.
+
+                        current_key_number = (
+                            self.current_index + 1
                         )
 
-                        raise
+                        print(
+                            "\n[Gemini API] "
+                            f"API Key #{current_key_number} "
+                            "exhausted its 503 retry budget. "
+                            "Trying next key."
+                        )
+
+                        try:
+                            self._move_to_next_key()
+
+                        except RuntimeError:
+
+                            self._log_call_result(
+                                analysis_id,
+                                call_number,
+                                purpose,
+                                "failed (503 retries exhausted "
+                                "on all keys)",
+                            )
+
+                            raise
+
+                        unavailable_attempts = 0
+
+                        continue
 
                     delay = min(
                         self.BASE_BACKOFF_SECONDS
@@ -432,6 +519,191 @@ class APIKeyManager:
                         f"Retrying in {delay:.1f}s "
                         f"(attempt {unavailable_attempts}/"
                         f"{self.MAX_UNAVAILABLE_RETRIES})."
+                    )
+
+                    time.sleep(delay)
+
+                    continue
+
+                self._log_call_result(
+                    analysis_id,
+                    call_number,
+                    purpose,
+                    f"failed ({type(error).__name__})",
+                )
+
+                raise
+
+            except Exception as error:
+
+                self._log_call_result(
+                    analysis_id,
+                    call_number,
+                    purpose,
+                    f"failed ({type(error).__name__})",
+                )
+
+                raise
+
+    # ========================================================
+    # Gemini embeddings
+    # ========================================================
+
+    def embed_content(
+        self,
+        contents,
+        *,
+        model=None,
+        task_type=None,
+        purpose="embedding",
+    ):
+        """
+        Generate Gemini embeddings for one or more texts.
+
+        `contents` may be a single string or a list of strings —
+        the return shape mirrors it (a single vector, or a list
+        of vectors, one per input string, in the same order).
+
+        Shares the same key-rotation/retry behavior as
+        generate_content() (429/404/503 handling) so embedding
+        calls are just as resilient to quota exhaustion and
+        transient outages, without duplicating that logic's
+        surrounding request-shaping.
+        """
+
+        from app.core.config import GEMINI_EMBEDDING_MODEL
+
+        model = model or GEMINI_EMBEDDING_MODEL
+
+        is_batch = isinstance(contents, list)
+
+        config = (
+            {"task_type": task_type}
+            if task_type
+            else None
+        )
+
+        call_number, analysis_id = (
+            self._log_call_start(
+                purpose,
+                model,
+            )
+        )
+
+        unavailable_attempts = 0
+
+        while True:
+
+            client = self._get_client()
+
+            trace_scope = (
+                propagate_attributes(
+                    session_id=(
+                        str(analysis_id)
+                        if analysis_id is not None
+                        else None
+                    ),
+                    metadata={"purpose": purpose},
+                    tags=[purpose],
+                )
+                if LANGFUSE_ENABLED
+                else contextlib.nullcontext()
+            )
+
+            try:
+
+                with trace_scope:
+
+                    response = client.models.embed_content(
+                        model=model,
+                        contents=contents,
+                        config=config,
+                    )
+
+                self._log_call_result(
+                    analysis_id,
+                    call_number,
+                    purpose,
+                    "success",
+                )
+
+                vectors = [
+                    embedding.values
+                    for embedding in response.embeddings
+                ]
+
+                return vectors if is_batch else vectors[0]
+
+            except APIError as error:
+
+                if self._is_rate_limit_error(error):
+
+                    try:
+                        self._move_to_next_key()
+
+                    except RuntimeError:
+
+                        self._log_call_result(
+                            analysis_id,
+                            call_number,
+                            purpose,
+                            "failed (all API keys rate-limited)",
+                        )
+
+                        raise
+
+                    continue
+
+                if self._is_key_access_error(error):
+
+                    try:
+                        self._move_to_next_key()
+
+                    except RuntimeError:
+
+                        self._log_call_result(
+                            analysis_id,
+                            call_number,
+                            purpose,
+                            "failed (no configured key has model access)",
+                        )
+
+                        raise
+
+                    continue
+
+                if self._is_unavailable_error(error):
+
+                    unavailable_attempts += 1
+
+                    if (
+                        unavailable_attempts
+                        > self.MAX_UNAVAILABLE_RETRIES
+                    ):
+
+                        try:
+                            self._move_to_next_key()
+
+                        except RuntimeError:
+
+                            self._log_call_result(
+                                analysis_id,
+                                call_number,
+                                purpose,
+                                "failed (503 retries exhausted "
+                                "on all keys)",
+                            )
+
+                            raise
+
+                        unavailable_attempts = 0
+
+                        continue
+
+                    delay = min(
+                        self.BASE_BACKOFF_SECONDS
+                        * (2 ** (unavailable_attempts - 1)),
+                        self.MAX_BACKOFF_SECONDS,
                     )
 
                     time.sleep(delay)

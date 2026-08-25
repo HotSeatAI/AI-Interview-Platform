@@ -126,10 +126,27 @@ class RequirementMatcher:
     }
 
     # --------------------------------------------------------
-    # Important: these must NEVER be treated as aliases.
+    # Known related-but-NOT-equivalent technology pairs.
+    #
+    # These are never treated as aliases — Pass 1 keyword/fuzzy
+    # matching must never conflate them. They ARE used as a
+    # deterministic hint fed into semantic verification: if the
+    # resume shows one of a pair while the JD requires the
+    # other (e.g. Azure when AWS is required), Gemini is told
+    # this explicitly so its "adjacent" judgment is grounded in
+    # a curated fact instead of a free-form guess.
+    #
+    # This table only covers software/tech pairs and is a free,
+    # zero-cost baseline for that domain — for every other
+    # domain (sales, finance, healthcare, etc.), the same
+    # mechanism is extended per-JD by JDRequirement.
+    # adjacent_alternatives (LLM-generated once during JD
+    # structuring), unioned with this table wherever it's
+    # consulted (_detect_adjacency_hints,
+    # _retrieve_relevant_evidence).
     # --------------------------------------------------------
 
-    INCOMPATIBLE_TECHNOLOGIES = {
+    ADJACENT_TECHNOLOGY_PAIRS = {
         frozenset(("aws", "azure")),
         frozenset(("aws", "gcp")),
         frozenset(("azure", "gcp")),
@@ -148,6 +165,32 @@ class RequirementMatcher:
         "unclear": 0.50,
     }
 
+    # A "required" match and a "missing" match don't move the
+    # overall score the same amount for every category — a
+    # missing named technical skill/tool should hurt more than a
+    # missing degree requirement, since many roles waive the
+    # latter when the actual skills are present. This multiplies
+    # into effective_weight alongside IMPORTANCE_MULTIPLIERS
+    # (see _calculate_overall_score) rather than changing what
+    # match_type itself means.
+    CATEGORY_MULTIPLIERS = {
+        "technical_skill": 1.00,
+        "tool": 1.00,
+        "responsibility": 0.85,
+        "domain": 0.75,
+        "experience": 0.75,
+        "certification": 0.60,
+        "soft_skill": 0.55,
+        "education": 0.50,
+        "other": 0.50,
+    }
+
+    # A missing JDRequirement.is_dealbreaker requirement caps
+    # the overall score at this ceiling, regardless of how well
+    # everything else matches — mirrors a recruiter screening
+    # out on a genuine hard gate rather than averaging it away.
+    DEALBREAKER_SCORE_CEILING = 50.0
+
     # --------------------------------------------------------
     # Controlled concept -> evidence-keyword mapping.
     #
@@ -157,6 +200,13 @@ class RequirementMatcher:
     # entry is a fixed, human-curated list of literal phrases —
     # a match still requires one of these phrases to appear
     # verbatim in the resume evidence.
+    #
+    # This table's vocabulary is tech-flavored and is a free,
+    # zero-cost baseline for that domain — _concept_hint_terms
+    # unions it with JDRequirement.evidence_hints (LLM-generated
+    # once per JD during structuring) so the same indirect-
+    # evidence mechanism works for any domain this table has no
+    # phrases for.
     #
     # "triggers" identify when a requirement/component name
     # refers to this concept. "evidence_terms" are the resume
@@ -325,6 +375,8 @@ class RequirementMatcher:
     self,
     jd_profile: JDProfile,
     resume_profile: ResumeProfile,
+    resume_text: str = "",
+    embedding_evidence_map: dict[str, list[str]] | None = None,
 ) -> MatchingReport:
 
         # ----------------------------------------------------
@@ -341,85 +393,208 @@ class RequirementMatcher:
         ]
 
         # ----------------------------------------------------
-        # Pass 2 — semantic verification is ONLY used for
-        # requirements the deterministic matcher could not
-        # confidently classify, and ALL of them are verified
-        # in a single batched Gemini call (not one call per
-        # requirement) to stay within the Gemini call budget.
+        # Pass 2 — every requirement now goes through a single
+        # holistic Gemini pass (SemanticVerifier), not just the
+        # ones Pass 1 flagged "ambiguous" or a narrower retrieval
+        # search happened to find something loosely related to.
+        # Gating on that narrower search meant a requirement
+        # whose evidence sat in a resume section the structured
+        # extraction step missed entirely (e.g. an Education
+        # section that came back empty) could never earn a
+        # second look, even though the real evidence was sitting
+        # in the raw resume text the whole time. Every
+        # requirement is verified via one or more batched Gemini
+        # calls (chunked, not one call per requirement) to stay
+        # within a bounded call budget. Pass 1's own confident
+        # direct/strong matches still act as a floor in
+        # _merge_verification — this pass can upgrade a
+        # classification but never downgrade a confirmed literal
+        # match.
         # ----------------------------------------------------
 
-        ambiguous_requirements = [
-            requirement
-            for requirement, result in zip(
-                jd_profile.requirements,
-                preliminary_results,
+        candidate_requirements = list(
+            jd_profile.requirements
+        )
+
+        # ----------------------------------------------------
+        # Retrieval step: for each requirement, pull the top-K
+        # most relevant resume evidence lines as a focused hint
+        # alongside the complete raw resume text given below.
+        # These are RETRIEVAL signals only — their presence
+        # means "worth Gemini's attention", not proof. Gemini
+        # still has to decide strong/partial/missing based on
+        # what's actually here.
+        # ----------------------------------------------------
+
+        evidence_map: dict[str, list[str]] = {
+            requirement.name: self._retrieve_relevant_evidence(
+                requirement,
+                resume_profile,
             )
-            if result.match_type == "ambiguous"
-        ]
+            for requirement in candidate_requirements
+        }
 
-        verifications = {}
-        evidence_map: dict[str, list[str]] = {}
+        # ----------------------------------------------------
+        # RAG retrieval (optional): meaning-based candidates from
+        # embedding_service.build_embedding_evidence_map, unioned
+        # into the keyword-based evidence_map above — never
+        # replacing it. This is what catches real evidence phrased
+        # in different words than the requirement (resume:
+        # "automated deployment pipeline", JD: "CI/CD experience")
+        # that keyword/alias/fuzzy matching has no way to find.
+        # Purely additive to the candidate pool: every item here
+        # still has to pass the same evidence-grounding check in
+        # _merge_verification as any keyword-retrieved candidate,
+        # so widening this pool can only improve recall, never
+        # weaken the grounding guarantee.
+        # ----------------------------------------------------
 
-        if ambiguous_requirements:
+        if embedding_evidence_map:
 
-            # ----------------------------------------------------
-            # Retrieval step: for each ambiguous requirement, pull
-            # only the top-K most relevant resume evidence lines
-            # instead of dumping the entire resume into the
-            # prompt. These are RETRIEVAL signals only (broader
-            # than the tier-gated matching above) — their
-            # presence means "worth Gemini's attention", not
-            # proof. Gemini still has to decide strong/partial/
-            # missing based on what's actually here.
-            # ----------------------------------------------------
+            for requirement in candidate_requirements:
 
-            evidence_map = {
-                requirement.name: self._retrieve_relevant_evidence(
+                existing = evidence_map.setdefault(
+                    requirement.name,
+                    [],
+                )
+
+                for line in embedding_evidence_map.get(
+                    requirement.name,
+                    [],
+                ):
+                    if line not in existing:
+                        existing.append(line)
+
+        # ----------------------------------------------------
+        # Deterministic adjacency hints: for each candidate
+        # requirement, check whether the resume shows evidence
+        # of a known related-but-not-equivalent tool/technology
+        # (e.g. Azure when AWS is required, or HubSpot when
+        # Salesforce is required), via the static
+        # ADJACENT_TECHNOLOGY_PAIRS table unioned with each
+        # requirement's LLM-provided adjacent_alternatives. This
+        # is a fixed lookup, not an LLM guess — it grounds
+        # Gemini's "adjacent" judgment, and any evidence text it
+        # finds is folded into the same evidence pool used for
+        # grounding validation in _merge_verification.
+        # ----------------------------------------------------
+
+        adjacency_hints: dict[str, list[str]] = {}
+
+        for requirement in candidate_requirements:
+
+            technologies, evidence_lines = (
+                self._detect_adjacency_hints(
                     requirement,
                     resume_profile,
                 )
-                for requirement in ambiguous_requirements
-            }
+            )
+
+            if not technologies:
+                continue
+
+            adjacency_hints[requirement.name] = technologies
+
+            existing = evidence_map.setdefault(
+                requirement.name,
+                [],
+            )
+
+            for line in evidence_lines:
+                if line not in existing:
+                    existing.append(line)
+
+        # ----------------------------------------------------
+        # The per-requirement evidence_map above is a narrow,
+        # retrieval-ranked subset — useful to focus Gemini's
+        # attention, but retrieval (and even the structured
+        # resume extraction itself) can miss real evidence
+        # phrased in a way nothing anticipated. The complete
+        # RAW resume text is also given as a shared reference
+        # for the whole batch, so a genuinely relevant line
+        # that never made it into the structured profile at all
+        # can still be found and cited, instead of silently
+        # causing a wrong "missing"/"ambiguous" outcome.
+        # ----------------------------------------------------
+
+        verifications = {}
+
+        if candidate_requirements:
 
             verifications = (
                 self.semantic_verifier.verify_batch(
-                    requirements=ambiguous_requirements,
+                    requirements=candidate_requirements,
                     evidence_map=evidence_map,
+                    adjacency_hints=adjacency_hints,
+                    full_resume_text=resume_text,
                 )
             )
 
         results: list[RequirementMatch] = []
+
+        missing_dealbreakers: list[str] = []
 
         for requirement, preliminary_result in zip(
             jd_profile.requirements,
             preliminary_results,
         ):
 
-            if preliminary_result.match_type == "ambiguous":
+            verification = verifications.get(
+                requirement.name.strip().lower()
+            )
 
-                verification = verifications.get(
-                    requirement.name.strip().lower()
+            result = self._merge_verification(
+                requirement,
+                preliminary_result,
+                verification,
+                evidence_map.get(
+                    requirement.name,
+                    [],
+                ),
+                resume_text,
+            )
+
+            if (
+                requirement.is_dealbreaker
+                and result.match_type == "missing"
+            ):
+
+                missing_dealbreakers.append(
+                    requirement.name
                 )
-
-                result = self._merge_verification(
-                    requirement,
-                    preliminary_result,
-                    verification,
-                    evidence_map.get(
-                        requirement.name,
-                        [],
-                    ),
-                )
-
-            else:
-
-                result = preliminary_result
 
             results.append(result)
 
         overall_score = self._calculate_overall_score(
             results
         )
+
+        # ----------------------------------------------------
+        # Dealbreaker gate: a real recruiter treats a missing
+        # hard requirement (a required license, a hard years-
+        # of-experience floor, work authorization) as an
+        # override, not just one line item in a blended
+        # average. If any JD-tagged dealbreaker requirement is
+        # missing, cap the overall score regardless of how well
+        # everything else matches, and surface why plainly
+        # rather than leaving it as an unexplained low number.
+        # ----------------------------------------------------
+
+        dealbreaker_capped = bool(missing_dealbreakers)
+
+        dealbreaker_reason = None
+
+        if dealbreaker_capped:
+
+            overall_score = min(
+                overall_score,
+                self.DEALBREAKER_SCORE_CEILING,
+            )
+
+            dealbreaker_reason = (
+                "Score capped — missing required: "
+                + "; ".join(missing_dealbreakers)
+            )
 
         summary = self._build_summary(
             results
@@ -432,6 +607,8 @@ class RequirementMatcher:
             ),
             summary=summary,
             matches=results,
+            dealbreaker_capped=dealbreaker_capped,
+            dealbreaker_reason=dealbreaker_reason,
         )
 
     # --------------------------------------------------------
@@ -599,7 +776,8 @@ class RequirementMatcher:
         # ------------------------------------------------
 
         concept_terms = self._concept_hint_terms(
-            component_name
+            component_name,
+            requirement,
         )
 
         if concept_terms:
@@ -641,6 +819,7 @@ class RequirementMatcher:
     def _concept_hint_terms(
         self,
         normalized_component: str,
+        requirement: JDRequirement,
     ) -> set[str]:
 
         matched_terms: set[str] = set()
@@ -656,6 +835,25 @@ class RequirementMatcher:
                 matched_terms.update(
                     entry["evidence_terms"]
                 )
+
+        # ------------------------------------------------
+        # Domain-general supplement: the JD-structuring LLM
+        # call already generates per-requirement evidence_hints
+        # (e.g. "renewals", "upsells" for a sales CRM
+        # requirement) — this covers domains the static
+        # CONCEPT_EVIDENCE_HINTS table above has no vocabulary
+        # for. Gated to single-component requirements, mirroring
+        # the requirement.aliases gating in _match_component, so
+        # a compound requirement's hints don't leak uniformly
+        # across sub-concepts they don't actually describe.
+        # ------------------------------------------------
+
+        if len(self._resolve_components(requirement)) == 1:
+
+            matched_terms.update(
+                self._normalize(hint)
+                for hint in requirement.evidence_hints
+            )
 
         return matched_terms
 
@@ -699,8 +897,37 @@ class RequirementMatcher:
             )
 
             search_terms.update(
-                self._concept_hint_terms(component)
+                self._concept_hint_terms(
+                    component,
+                    requirement,
+                )
             )
+
+            # --------------------------------------------------
+            # Critical for adjacency detection to ever trigger:
+            # without this, a "missing" requirement whose ONLY
+            # resume overlap is an adjacent-but-different tool
+            # (e.g. JD wants AWS, resume only has Azure) never
+            # retrieves any evidence, never qualifies as a
+            # candidate for semantic verification, and
+            # _detect_adjacency_hints is never even called for
+            # it — it stays hard-"missing" forever. This is
+            # still pure retrieval breadth, not a matching
+            # decision: zero LLM calls, zero effect on Pass 1
+            # tier classification.
+            # --------------------------------------------------
+
+            for pair in self.ADJACENT_TECHNOLOGY_PAIRS:
+
+                if component in pair:
+                    search_terms.update(
+                        pair - {component}
+                    )
+
+        search_terms.update(
+            self._normalize(alternative)
+            for alternative in requirement.adjacent_alternatives
+        )
 
         if len(components) == 1:
 
@@ -786,6 +1013,89 @@ class RequirementMatcher:
                 break
 
         return fallback_results
+
+    # --------------------------------------------------------
+    # Adjacency hint detection (for candidate requirements only)
+    # --------------------------------------------------------
+
+    def _detect_adjacency_hints(
+        self,
+        requirement: JDRequirement,
+        resume_profile: ResumeProfile,
+    ) -> tuple[list[str], list[str]]:
+        """
+        Checks whether the resume shows evidence of a tool or
+        technology that is related-but-not-equivalent to one of
+        this requirement's components, per
+        ADJACENT_TECHNOLOGY_PAIRS (e.g. Azure evidence when the
+        requirement is AWS) UNIONED with the JD-structuring
+        LLM's own per-requirement adjacent_alternatives (e.g.
+        HubSpot when the requirement is Salesforce) — the static
+        table remains a free, zero-cost baseline for well-known
+        tech pairs, while adjacent_alternatives extends the same
+        mechanism to any domain the static table has no
+        vocabulary for.
+
+        Returns (technology_names_detected, evidence_lines). The
+        technology names feed a hint line into the semantic-
+        verification prompt; the evidence lines are merged into
+        the requirement's evidence pool so any "adjacent"
+        citation Gemini makes can survive grounding validation
+        in _merge_verification.
+
+        This is deterministic, code-computed evidence — not the
+        LLM's own free-form inference at match time — which is
+        what keeps the "adjacent" judgment grounded.
+        """
+
+        components = self._resolve_components(
+            requirement
+        )
+
+        candidate_technologies: set[str] = set()
+
+        for component in components:
+
+            for pair in self.ADJACENT_TECHNOLOGY_PAIRS:
+
+                if component in pair:
+                    candidate_technologies.update(
+                        pair - {component}
+                    )
+
+        candidate_technologies.update(
+            self._normalize(alternative)
+            for alternative in requirement.adjacent_alternatives
+        )
+
+        detected_technologies: list[str] = []
+        evidence_lines: list[str] = []
+
+        for technology in candidate_technologies:
+
+            matches = [
+                item
+                for item in self._find_evidence(
+                    {technology},
+                    resume_profile,
+                )
+                if item["strength"] >= 1.0
+            ]
+
+            if not matches:
+                continue
+
+            if technology not in detected_technologies:
+                detected_technologies.append(technology)
+
+            for item in matches:
+
+                if item["source_text"] not in evidence_lines:
+                    evidence_lines.append(
+                        item["source_text"]
+                    )
+
+        return detected_technologies, evidence_lines
 
     # --------------------------------------------------------
     # Aggregation across components
@@ -1404,9 +1714,23 @@ class RequirementMatcher:
                 )
             )
 
+            if (
+                result.category == "other"
+                and result.importance == "required"
+            ):
+                category_multiplier = 1.00
+            else:
+                category_multiplier = (
+                    self.CATEGORY_MULTIPLIERS.get(
+                        result.category,
+                        0.50,
+                    )
+                )
+
             effective_weight = (
                 result.weight
                 * importance_multiplier
+                * category_multiplier
             )
 
             weighted_score += (
@@ -1560,6 +1884,7 @@ class RequirementMatcher:
         preliminary_result: RequirementMatch,
         verification,
         retrieved_evidence: list[str],
+        resume_text: str = "",
     ) -> RequirementMatch:
         """
         Merges a batched SemanticVerification result (or None,
@@ -1570,13 +1895,38 @@ class RequirementMatcher:
         produced once, up front, for every ambiguous requirement
         in the analysis via SemanticVerifier.verify_batch().
 
-        `retrieved_evidence` is the exact evidence pool that was
-        given to Gemini for this requirement. Any
+        `retrieved_evidence` is the narrow per-requirement hint
+        pool given to Gemini; `resume_text` is the complete raw
+        resume text also given to Gemini for this requirement
+        (see SemanticVerifier.verify_batch). Any
         "supporting_evidence" string Gemini returns that does
-        NOT correspond to something in that pool is treated as
+        NOT correspond to something in `retrieved_evidence` AND
+        is NOT a real substring of `resume_text` is treated as
         hallucinated and dropped before it can influence the
         result (evidence-grounding validation).
         """
+
+        # --------------------------------------------------------
+        # Stage 1 floor: every requirement now goes through this
+        # holistic pass, including ones Pass 1 already resolved
+        # with high confidence via an exact literal phrase/alias
+        # hit. That confirmed result can be upgraded by this pass
+        # (a "strong" direct match can't get any stronger, but a
+        # weaker preliminary result can still be improved below),
+        # but it must never be downgraded by an inference — or,
+        # worse, silently dropped to "missing" just because this
+        # requirement's verification happened to go missing from
+        # Gemini's response (a malformed chunk, a name-echo
+        # mismatch). A confirmed literal match is a fact, not a
+        # judgment call, and outranks anything Pass 2 says.
+        # --------------------------------------------------------
+
+        if (
+            preliminary_result.evidence_type == "direct"
+            and preliminary_result.match_type == "strong"
+        ):
+
+            return preliminary_result
 
         # --------------------------------------------------------
         # Conservative fallback: if Gemini did not return a
@@ -1622,6 +1972,10 @@ class RequirementMatcher:
             for item in retrieved_evidence
         }
 
+        normalized_resume_text = self._normalize(
+            resume_text
+        )
+
         supporting_evidence = [
             item
             for item in verification.supporting_evidence
@@ -1629,6 +1983,10 @@ class RequirementMatcher:
                 self._normalize(item) in pool_item
                 or pool_item in self._normalize(item)
                 for pool_item in normalized_pool
+            )
+            or (
+                self._normalize(item)
+                in normalized_resume_text
             )
         ]
 
@@ -1687,6 +2045,25 @@ class RequirementMatcher:
             match_type = "partial"
             evidence_type = "partial"
 
+        elif verification.decision == "adjacent":
+
+            # Real, grounded evidence of a DIFFERENT (but
+            # related, per ADJACENT_TECHNOLOGY_PAIRS or a
+            # well-established same-category adjacency)
+            # technology than the one required — e.g. Azure
+            # experience against an AWS requirement. Deliberately
+            # mapped into match_type "partial" (so every existing
+            # match_type-keyed consumer needs no changes) but
+            # kept numerically well below same-skill partial
+            # credit via a much lower ceiling, and distinguished
+            # via evidence_type "adjacent" for anyone inspecting
+            # the breakdown.
+
+            ceiling = 0.35
+
+            match_type = "partial"
+            evidence_type = "adjacent"
+
         else:
 
             # Covers both an explicit "missing" decision and
@@ -1694,7 +2071,7 @@ class RequirementMatcher:
             # classifications are only strong/partial/missing —
             # if even semantic verification can't confidently
             # place a requirement, the conservative outcome is
-            # missing, not a fourth terminal state.
+            # missing, not a further terminal state.
 
             ceiling = 0.0
             match_type = "missing"

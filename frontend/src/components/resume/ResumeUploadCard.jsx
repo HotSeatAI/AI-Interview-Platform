@@ -14,6 +14,7 @@ import AnalysisProgress from "../resume-analysis/AnalysisProgress";
 function ResumeUploadCard() {
   const { token } = useAuth();
   const fileInputRef = useRef(null);
+  const jdFileInputRef = useRef(null);
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [resumes, setResumes] = useState([]);
@@ -93,10 +94,10 @@ function ResumeUploadCard() {
       setError("");
       setSuccess("");
 
-      const response = await uploadResume(selectedFile, token);
+      await uploadResume(selectedFile, token);
 
       setSuccess(
-        `Resume uploaded successfully: ${response.filename}`
+        `${selectedFile.name} has been uploaded successfully`
       );
 
       setSelectedFile(null);
@@ -167,6 +168,13 @@ function ResumeUploadCard() {
 
     setAnalysisError("");
     setJobDescriptionFile(file);
+  };
+
+  const handleRemoveJdFile = () => {
+    setJobDescriptionFile(null);
+    if (jdFileInputRef.current) {
+      jdFileInputRef.current.value = "";
+    }
   };
 
   const latestResumeId = resumes.length
@@ -320,6 +328,7 @@ function ResumeUploadCard() {
               <label className="button button--ghost jd-file-row__button">
                 Choose file
                 <input
+                  ref={jdFileInputRef}
                   type="file"
                   accept=".pdf,.png,.jpg,.jpeg,.webp"
                   hidden
@@ -331,6 +340,14 @@ function ResumeUploadCard() {
             {jobDescriptionFile && (
               <p className="file-preview">
                 Selected JD: <strong>{jobDescriptionFile.name}</strong>
+                <button
+                  type="button"
+                  className="file-preview__remove"
+                  title="Remove JD file"
+                  onClick={handleRemoveJdFile}
+                >
+                  <FaTrash />
+                </button>
               </p>
             )}
 

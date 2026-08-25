@@ -13,6 +13,8 @@ import InterviewSessionPage from "./pages/InterviewSessionPage";
 import HistoryPage from "./pages/HistoryPage";
 import SessionResultsPage from "./pages/SessionResultsPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 const router = createBrowserRouter([
   {
@@ -38,6 +40,16 @@ const router = createBrowserRouter([
       {
         path: "verify-email",
         element: <VerifyEmailPage />,
+      },
+
+      {
+        path: "forgot-password",
+        element: <ForgotPasswordPage />,
+      },
+
+      {
+        path: "reset-password",
+        element: <ResetPasswordPage />,
       },
 
       {

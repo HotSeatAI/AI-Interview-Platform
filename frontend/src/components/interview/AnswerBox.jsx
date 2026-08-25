@@ -8,7 +8,6 @@ import { submitAnswer } from "../../api/answerApi";
 import useAuth from "../../hooks/useAuth";
 import { runCode } from "../../api/codeApi";
 import VoiceInput from "./VoiceInput";
-import NotesInput from "./NotesInput";
 import CodeEditor from "./CodeEditor";
 import CombinedPreview from "./CombinedPreview";
 import ConsoleOutput from "./ConsoleOutput";
@@ -23,14 +22,14 @@ const AnswerBox = forwardRef(function AnswerBox(
   {
     questionId,
     onAnswerSubmitted,
+    onSubmittingChange,
     disabled = false,
   },
   ref
 ) {
   const { token } = useAuth();
 
-  const [voiceText, setVoiceText] = useState("");
-  const [typedText, setTypedText] = useState("");
+  const [explanationText, setExplanationText] = useState("");
   const [code, setCode] = useState("");
 
   const [customInput, setCustomInput] = useState("");
@@ -48,8 +47,7 @@ const AnswerBox = forwardRef(function AnswerBox(
   const [submitting, setSubmitting] = useState(false);
 
   const hasContent =
-    voiceText.trim() ||
-    typedText.trim() ||
+    explanationText.trim() ||
     code.trim();
 
   const handleRunCode = async () => {
@@ -118,27 +116,32 @@ const AnswerBox = forwardRef(function AnswerBox(
 
     if (!hasContent) {
       setError(
-        "Please provide a voice explanation, notes or code."
+        "Please provide an explanation or code."
       );
       return;
     }
 
     try {
       setSubmitting(true);
+      onSubmittingChange?.(true);
       setError("");
 
       const response = await submitAnswer(
         {
           question_id: questionId,
-          voice_text: voiceText.trim(),
-          typed_text: typedText.trim(),
+          voice_text: explanationText.trim(),
+          // TODO(backend migration): the "Additional Notes" box was merged
+          // into the voice/explanation textarea above, so typed_text is now
+          // always empty from this client. Once the backend drops typed_text
+          // (see TODOs in schemas/answer.py, models/answer.py and
+          // ai_service.build_combined_answer), this field can be removed too.
+          typed_text: "",
           code: code.trim(),
         },
         token
       );
 
-      setVoiceText("");
-      setTypedText("");
+      setExplanationText("");
       setCode("");
       setCustomInput("");
       setConsoleOutput("");
@@ -156,6 +159,7 @@ const AnswerBox = forwardRef(function AnswerBox(
 
     } finally {
       setSubmitting(false);
+      onSubmittingChange?.(false);
     }
   };
 
@@ -182,19 +186,13 @@ const AnswerBox = forwardRef(function AnswerBox(
       <div className="answer-card__header">
         <div className="answer-card__label">YOUR ANSWER</div>
         <div className="answer-card__sublabel">
-          Think. Explain. Write. Code. Submit — all three modes are graded together.
+          Think. Explain. Write. Code. Submit — both are graded together.
         </div>
       </div>
 
       <VoiceInput
-        value={voiceText}
-        onChange={setVoiceText}
-        disabled={disabled}
-      />
-
-      <NotesInput
-        value={typedText}
-        onChange={setTypedText}
+        value={explanationText}
+        onChange={setExplanationText}
         disabled={disabled}
       />
 
@@ -220,8 +218,7 @@ const AnswerBox = forwardRef(function AnswerBox(
       />
 
       <CombinedPreview
-        voiceText={voiceText}
-        typedText={typedText}
+        explanationText={explanationText}
         code={code}
       />
 

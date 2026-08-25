@@ -14,11 +14,18 @@ from app.schemas.user import (
 from app.services.email_verification_service import (
     EmailVerificationService,
 )
+from app.services.password_reset_service import (
+    PasswordResetService,
+)
 from app.utils.security import (
     hash_password,
     verify_password
 )
-from app.schemas.user import ResendVerificationRequest
+from app.schemas.user import (
+    ResendVerificationRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+)
 from app.utils.jwt_handler import (
     create_access_token,
     get_current_user
@@ -207,6 +214,88 @@ def resend_verification_email(
             "a verification email has been sent."
         )
     }
+@router.post("/auth/forgot-password")
+def forgot_password(
+    request: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Starts a password reset for a local account.
+
+    Always returns the same generic response, regardless of
+    whether the email exists, belongs to a Google account, or
+    belongs to an unverified local account - this endpoint must
+    not reveal account existence or provider.
+
+    Policy: password reset is allowed even if the account has
+    not completed email verification yet. Resetting a password
+    does not itself grant access - the existing /login check
+    (auth_provider == "local" and not email_verified) still
+    blocks sign-in afterwards, so this cannot be used to bypass
+    email verification.
+    """
+
+    generic_response = {
+        "message": (
+            "If an eligible account exists for this email, "
+            "password reset instructions have been sent."
+        )
+    }
+
+    user = (
+        db.query(User)
+        .filter(User.email == request.email)
+        .first()
+    )
+
+    if user is None or user.auth_provider != "local":
+        return generic_response
+
+    reset_token = (
+        PasswordResetService.generate_reset_token(
+            db=db,
+            user_id=user.id,
+        )
+    )
+
+    EmailService().send_password_reset_email(
+        recipient_email=user.email,
+        recipient_name=user.username,
+        reset_token=reset_token,
+    )
+
+    return generic_response
+
+
+@router.post("/auth/reset-password")
+def reset_password(
+    request: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+):
+
+    user, reset_record = (
+        PasswordResetService.verify_reset_token(
+            db=db,
+            token=request.token,
+        )
+    )
+
+    user.hashed_password = hash_password(
+        request.new_password
+    )
+
+    db.delete(reset_record)
+
+    db.commit()
+
+    return {
+        "message": (
+            "Password reset successfully. "
+            "You can now log in with your new password."
+        )
+    }
+
+
 @router.get(
     "/me",
     response_model=UserResponse

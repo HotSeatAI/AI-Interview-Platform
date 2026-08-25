@@ -81,6 +81,8 @@ const EVIDENCE_TYPE_EXPLANATIONS = {
   ambiguous:
     "Your resume has related content, but it isn't explicit enough to confirm this.",
   unsupported: "No reliable evidence was found in your resume for this.",
+  adjacent:
+    "Your resume shows experience with a related technology, but not the specific one requested.",
 };
 
 export function getEvidenceExplanation(evidenceType) {

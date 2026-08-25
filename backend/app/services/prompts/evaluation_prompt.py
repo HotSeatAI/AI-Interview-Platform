@@ -315,3 +315,93 @@ General Rules
 - Do NOT provide explanations.
 - Do NOT include markdown.
 """.strip()
+
+
+def build_skipped_topics_prompt(
+    question_texts: list[str],
+) -> str:
+    """
+    Builds a prompt that identifies, for each skipped interview
+    question, the single specific topic the candidate should
+    study. Batched into one request for every skipped question
+    in a session, instead of one Gemini call per skipped
+    question.
+    """
+
+    numbered_questions = "\n\n".join(
+        f"Question {index + 1}:\n{text}"
+        for index, text in enumerate(question_texts)
+    )
+
+    return f"""
+You are helping a student understand exactly what they should
+study after skipping interview questions.
+
+For EACH question below, identify ONE specific topic or concept
+the student should study to be able to answer it.
+
+Rules:
+
+- Return exactly one topic per question, in the same order as
+  the questions.
+- The topic must be a specific, concrete concept - not vague
+  advice.
+- Keep each topic short: roughly 2-6 words.
+- Use simple, clear wording a student can immediately understand
+  and search for.
+
+Do NOT return generic advice such as:
+- Study fundamentals
+- Improve technical knowledge
+- Practice more
+- Learn the basics
+- Prepare better
+- Review concepts
+
+Instead identify the exact concept being tested.
+
+Examples:
+
+Question: What are the ACID properties in DBMS?
+Topic: ACID Properties
+
+Question: How does binary search work?
+Topic: Binary Search
+
+Question: How does TCP establish a connection?
+Topic: TCP Three-Way Handshake
+
+If a question is clearly based on the candidate's own resume,
+project, or experience (it references a specific project name,
+a technology used in a project, an internship, or similar), the
+topic MUST name that specific project or technology so the
+student knows exactly what to revise.
+
+Examples:
+
+Question: How would you implement JWT authentication in your
+HotSeat AI project?
+Topic: JWT Authentication in HotSeat AI
+
+Question: Walk me through the database design in your project.
+Topic: Database Design in Your Project
+
+Question: You mentioned using Docker in your resume - how did
+you use it?
+Topic: Docker Containerization
+
+Return ONLY valid JSON.
+Do not include markdown.
+Do not include code fences.
+Do not include explanations outside JSON.
+
+The JSON must be an array of exactly {len(question_texts)}
+strings, one topic per question, in the same order as the
+questions below:
+
+["Topic 1", "Topic 2", ...]
+
+Questions:
+
+{numbered_questions}
+""".strip()

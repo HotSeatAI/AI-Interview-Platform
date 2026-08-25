@@ -40,7 +40,24 @@ RESUME_DIR.mkdir(
 
 GEMINI_MODEL = os.getenv(
     "GEMINI_MODEL",
-    "gemini-2.5-flash",
+    "gemini-3.6-flash",
+)
+
+GEMINI_EMBEDDING_MODEL = os.getenv(
+    "GEMINI_EMBEDDING_MODEL",
+    "gemini-embedding-001",
+)
+
+# Structuring calls (JD -> JDProfile, resume -> ResumeProfile) are
+# schema-constrained extraction, not the multi-step judgment calls
+# semantic verification/recommendations are — capping the model's
+# hidden "thinking" budget here cuts a large chunk of billed-but-
+# invisible output tokens with no observed completeness/quality
+# loss (verified via full field-level diff against default
+# thinking on a real JD). gemini-3.6-flash requires a minimum of
+# 1 — 0 is rejected outright as an invalid argument.
+GEMINI_STRUCTURING_THINKING_BUDGET = int(
+    os.getenv("GEMINI_STRUCTURING_THINKING_BUDGET", 128)
 )
 
 raw_keys = os.getenv("GEMINI_API_KEYS")
@@ -57,6 +74,26 @@ if not GEMINI_API_KEYS:
     )
 
 FOLLOW_UP_SCORE_THRESHOLD = 5
+
+# -----------------------------
+# LangFuse Configuration (optional)
+# -----------------------------
+# Tracing is disabled unless both keys are set — no import-time
+# failure like GEMINI_API_KEYS/GOOGLE_CLIENT_ID, since observability
+# should never block the app from starting.
+
+LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY")
+
+LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY")
+
+LANGFUSE_BASE_URL = os.getenv(
+    "LANGFUSE_BASE_URL",
+    "https://cloud.langfuse.com",
+)
+
+GEMINI_SEMANTIC_VERIFICATION_BATCH_SIZE = int(
+    os.getenv("GEMINI_SEMANTIC_VERIFICATION_BATCH_SIZE", 12)
+)
 
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 

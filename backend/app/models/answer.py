@@ -35,6 +35,9 @@ class Answer(Base):
         nullable=True
     )
 
+    # TODO(backend migration): always empty from the frontend now — see
+    # the TODO on AnswerCreate.typed_text in schemas/answer.py. Drop this
+    # column via Alembic once nothing relies on it.
     typed_text = Column(
         Text,
         nullable=True

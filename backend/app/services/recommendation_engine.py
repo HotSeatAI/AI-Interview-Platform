@@ -21,6 +21,7 @@ from app.schemas.resume_analysis import (
     MissingRequirementRecommendation,
     RecommendationDraft,
     RecommendationReport,
+    RecommendationBatchResponse,
     PartialMatchGuidance,
     PartialMatchGuidanceDraft,
 )
@@ -390,29 +391,13 @@ ABSOLUTE TRUTH RULES
 The resume evidence above is the ONLY source of
 candidate facts.
 
-NEVER invent:
-
-- technologies
-- frameworks
-- programming languages
-- databases
-- cloud platforms
-- companies
-- job titles
-- responsibilities
-- achievements
-- leadership
-- ownership
-- production experience
-- scale
-- users
-- rankings
-- percentages
-- accuracy values
-- performance improvements
-- dates
-- years of experience
-- metrics of any kind
+NEVER invent any factual claim not already present in the
+verified evidence: technologies, frameworks, languages,
+databases, cloud platforms, companies, job titles,
+responsibilities, achievements, leadership/ownership,
+production experience, scale, users, rankings, or any
+metric (percentages, accuracy, performance, dates, years
+of experience).
 
 A technology may only be mentioned if supported
 by the verified resume evidence.
@@ -496,6 +481,11 @@ If there are no optimization findings, return an empty
 "recommendations" array. If there are no partial match
 requirements, return an empty "partial_match_guidance" array.
 
+Keep every "reason" and "how_to_strengthen" field to 1-2
+concise, complete sentences — state the point once, plainly,
+without repeating the original/suggested text or evidence
+back before explaining it.
+
 Do not return explanations outside the JSON object.
 """
 
@@ -503,6 +493,8 @@ Do not return explanations outside the JSON object.
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
+                response_schema=RecommendationBatchResponse,
+                temperature=0.0,
             ),
             purpose="batched_recommendations",
         )
@@ -517,57 +509,23 @@ Do not return explanations outside the JSON object.
         try:
             parsed = json.loads(raw)
 
+            batch = RecommendationBatchResponse.model_validate(
+                parsed
+            )
+
         except Exception as exc:
             print(
                 "[RecommendationEngine] "
-                f"Failed to parse batch response as JSON: "
+                f"Failed to parse batch response: "
                 f"{exc}"
             )
 
             return [], []
 
-        try:
-            drafts = [
-                RecommendationDraft.model_validate(
-                    item
-                )
-                for item in parsed.get(
-                    "recommendations",
-                    [],
-                )
-            ]
-
-        except Exception as exc:
-            print(
-                "[RecommendationEngine] "
-                f"Failed to parse batch recommendations: "
-                f"{exc}"
-            )
-
-            drafts = []
-
-        try:
-
-            guidance_drafts = [
-                PartialMatchGuidanceDraft.model_validate(
-                    item
-                )
-                for item in parsed.get(
-                    "partial_match_guidance",
-                    [],
-                )
-            ]
-
-        except Exception as exc:
-            print(
-                "[RecommendationEngine] "
-                f"Failed to parse partial match guidance: "
-                f"{exc}"
-            )
-
-            guidance_drafts = []
-
-        return drafts, guidance_drafts
+        return (
+            batch.recommendations,
+            batch.partial_match_guidance,
+        )
 
     def _validate_draft(
         self,
@@ -879,7 +837,8 @@ Do not return explanations outside the JSON object.
 
             hint_terms.update(
                 self._requirement_matcher._concept_hint_terms(
-                    component
+                    component,
+                    requirement,
                 )
             )
 

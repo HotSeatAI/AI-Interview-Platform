@@ -16,10 +16,15 @@ from app.schemas.answer import (
     AnswerResponse,
     AnswerDetail,
     SessionResultsResponse,
+    SkippedQuestionInfo,
     FollowUpQuestionResponse,
 )
 
 from app.services.ai_service import AIService
+from app.services.api_key_manager import (
+    clear_gemini_context,
+    set_gemini_context,
+)
 
 from app.api.auth import get_current_user
 
@@ -73,116 +78,123 @@ def submit_answer(
 
     ai_service = AIService()
 
+    set_gemini_context(question.session_id)
+
     try:
-        combined_answer = ai_service.build_combined_answer(
-            voice_text=payload.voice_text,
-            typed_text=payload.typed_text,
-            code=payload.code
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=str(e)
-        )
-    
-    try:
-        evaluation = ai_service.evaluate_answer(
-            question_text=question.question_text,
-            user_answer=combined_answer
-        )
-    except Exception as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "The answer evaluation service is temporarily "
-                "unavailable. Please try submitting again in a "
-                "moment."
-            ),
-        ) from exc
-
-    answer = Answer(
-        question_id=question.id,
-
-        voice_text=payload.voice_text,
-        typed_text=payload.typed_text,
-        code=payload.code,
-        combined_answer=combined_answer,
-
-        score=evaluation["score"],
-        feedback=evaluation["feedback"],
-        strengths=evaluation["strengths"],
-        improvements=evaluation["improvements"],
-    )
-
-    db.add(answer)
-    db.commit()
-    db.refresh(answer)
-
-    follow_up = None
-    follow_up_text = None
-
-    if (
-        answer.score >= FOLLOW_UP_SCORE_THRESHOLD
-        and question.follow_up_depth < 2
-    ):
 
         try:
-
-            follow_up_text = (
-                ai_service.generate_follow_up_question(
-                    original_question=question.question_text,
-                    candidate_answer=combined_answer,
-                    evaluation=evaluation,
-                    follow_up_depth=question.follow_up_depth,
-                )
-                .strip()
+            combined_answer = ai_service.build_combined_answer(
+                voice_text=payload.voice_text,
+                typed_text=payload.typed_text,
+                code=payload.code
+            )
+        except ValueError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=str(e)
             )
 
-        except Exception as e:
-
-            print("\n===== FOLLOW-UP GENERATION FAILED =====")
-            print(e)
-
-        if follow_up_text:
-
-            follow_up = Question(
-                session_id=question.session_id,
-                question_text=follow_up_text.strip(),
-                is_follow_up=True,
-                parent_question_id=(
-                    question.parent_question_id
-                    if question.is_follow_up
-                    else question.id
+        try:
+            evaluation = ai_service.evaluate_answer(
+                question_text=question.question_text,
+                user_answer=combined_answer
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "The answer evaluation service is temporarily "
+                    "unavailable. Please try submitting again in a "
+                    "moment."
                 ),
-                follow_up_depth=question.follow_up_depth + 1,
-            )
+            ) from exc
 
-            db.add(follow_up)
-            db.commit()
-            db.refresh(follow_up)
+        answer = Answer(
+            question_id=question.id,
 
-            print("\n===== FOLLOW-UP CREATED =====")
-            print(f"Parent Question : {question.id}")
-            print(f"Depth           : {follow_up.follow_up_depth}")
-            print(f"Question        : {follow_up.question_text}")
+            voice_text=payload.voice_text,
+            typed_text=payload.typed_text,
+            code=payload.code,
+            combined_answer=combined_answer,
 
-    return AnswerResponse(
-        answer_id=answer.id,
-        score=answer.score,
-        feedback=answer.feedback,
-        strengths=answer.strengths,
-        improvements=answer.improvements,
-        has_follow_up=follow_up is not None,
-        follow_up=(
-            FollowUpQuestionResponse(
-                question_id=follow_up.id,
-                question_text=follow_up.question_text,
-                follow_up_depth=follow_up.follow_up_depth,
-            )
-            if follow_up
-            else None
-        ),
-    )
+            score=evaluation["score"],
+            feedback=evaluation["feedback"],
+            strengths=evaluation["strengths"],
+            improvements=evaluation["improvements"],
+        )
+
+        db.add(answer)
+        db.commit()
+        db.refresh(answer)
+
+        follow_up = None
+        follow_up_text = None
+
+        if (
+            answer.score >= FOLLOW_UP_SCORE_THRESHOLD
+            and question.follow_up_depth < 2
+        ):
+
+            try:
+
+                follow_up_text = (
+                    ai_service.generate_follow_up_question(
+                        original_question=question.question_text,
+                        candidate_answer=combined_answer,
+                        evaluation=evaluation,
+                        follow_up_depth=question.follow_up_depth,
+                    )
+                    .strip()
+                )
+
+            except Exception as e:
+
+                print("\n===== FOLLOW-UP GENERATION FAILED =====")
+                print(e)
+
+            if follow_up_text:
+
+                follow_up = Question(
+                    session_id=question.session_id,
+                    question_text=follow_up_text.strip(),
+                    is_follow_up=True,
+                    parent_question_id=(
+                        question.parent_question_id
+                        if question.is_follow_up
+                        else question.id
+                    ),
+                    follow_up_depth=question.follow_up_depth + 1,
+                )
+
+                db.add(follow_up)
+                db.commit()
+                db.refresh(follow_up)
+
+                print("\n===== FOLLOW-UP CREATED =====")
+                print(f"Parent Question : {question.id}")
+                print(f"Depth           : {follow_up.follow_up_depth}")
+                print(f"Question        : {follow_up.question_text}")
+
+        return AnswerResponse(
+            answer_id=answer.id,
+            score=answer.score,
+            feedback=answer.feedback,
+            strengths=answer.strengths,
+            improvements=answer.improvements,
+            has_follow_up=follow_up is not None,
+            follow_up=(
+                FollowUpQuestionResponse(
+                    question_id=follow_up.id,
+                    question_text=follow_up.question_text,
+                    follow_up_depth=follow_up.follow_up_depth,
+                )
+                if follow_up
+                else None
+            ),
+        )
+
+    finally:
+        clear_gemini_context()
     
 @router.get(
     "/{answer_id}",
@@ -241,7 +253,38 @@ def get_session_results(
     questions = (
         db.query(Question)
         .filter(Question.session_id == session.id)
+        .order_by(Question.id)
         .all()
+    )
+
+    # Main-question numbering must ignore follow-up questions,
+    # so an inserted follow-up never shifts the number of the
+    # main question that comes after it.
+    main_questions = [
+        question
+        for question in questions
+        if not question.is_follow_up
+    ]
+
+    # A skipped question is simply a main question the user
+    # never submitted an answer for, evaluated at the moment the
+    # report is requested - this is derived entirely from
+    # existing data (no new "skipped" field needed) and is
+    # naturally correct for every case in the spec: skip-then-
+    # answer-later leaves an Answer row and so is no longer
+    # skipped, and finishing the interview early simply leaves
+    # the remaining questions unanswered, which is exactly what
+    # "skipped" means once the report is being viewed. Follow-up
+    # questions are excluded from this list, consistent with the
+    # main-question-only numbering above.
+    skipped_main_questions = [
+        (index + 1, question)
+        for index, question in enumerate(main_questions)
+        if not question.answer
+    ]
+
+    skipped_questions = _build_skipped_questions(
+        skipped_main_questions
     )
 
     answered_questions = [
@@ -257,6 +300,7 @@ def get_session_results(
             questions_attempted=0,
             strong_topics=[],
             weak_topics=[],
+            skipped_questions=skipped_questions,
         )
 
     total_score = 0
@@ -330,7 +374,41 @@ def get_session_results(
         questions_attempted=len(answered_questions),
         strong_topics=strong_topics,
         weak_topics=weak_topics,
+        skipped_questions=skipped_questions,
     )
+
+
+def _build_skipped_questions(
+    skipped_main_questions: list[tuple[int, Question]],
+) -> list[SkippedQuestionInfo]:
+    """
+    Turns (main_question_number, Question) pairs into
+    SkippedQuestionInfo entries, with a specific study topic for
+    each - determined in a single batched Gemini call covering
+    every skipped question in the session (never one call per
+    question).
+    """
+
+    if not skipped_main_questions:
+        return []
+
+    topics = AIService().generate_skipped_topics(
+        [
+            question.question_text
+            for _, question in skipped_main_questions
+        ]
+    )
+
+    return [
+        SkippedQuestionInfo(
+            question_number=question_number,
+            topic=topic,
+        )
+        for (question_number, _), topic in zip(
+            skipped_main_questions,
+            topics,
+        )
+    ]
 
 
 # Question stems that indicate a value is a leaked question or

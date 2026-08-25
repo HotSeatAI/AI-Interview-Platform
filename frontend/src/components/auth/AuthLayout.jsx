@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
+import BrandLogo from "../layout/BrandLogo";
 
 function AuthLayout({ eyebrow, headline, body, preview, children }) {
   return (
     <div className="auth-screen">
       <div className="auth-screen__left">
         <Link to="/" className="auth-screen__brand">
-          HotSeat
+          <BrandLogo />
         </Link>
 
         <div className="auth-screen__left-content">

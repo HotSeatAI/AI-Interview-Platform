@@ -2,7 +2,10 @@ import json
 
 from google.genai import types
 
-from app.core.config import GEMINI_MODEL
+from app.core.config import (
+    GEMINI_MODEL,
+    GEMINI_STRUCTURING_THINKING_BUDGET,
+)
 
 from app.services.api_key_manager import (
     api_key_manager,
@@ -57,13 +60,13 @@ Examples:
 
 Python does NOT imply Django.
 
-Docker does NOT imply Kubernetes.
-
 AWS does NOT imply Azure.
 
-PostgreSQL does NOT imply MySQL.
+Salesforce does NOT imply HubSpot.
 
-React does NOT imply Next.js.
+Salesforce does NOT imply HubSpot.
+
+GAAP knowledge does NOT imply IFRS knowledge.
 
 3. Every important claim must have supporting
 source text from the resume.
@@ -79,10 +82,7 @@ source text from the resume.
 Examples:
 
 "20% improvement"
-"15+ APIs"
 "500 users"
-"3-person team"
-"2 seconds"
 "95% accuracy"
 
 8. NEVER create metrics that are not present.
@@ -103,15 +103,8 @@ must NOT become:
 Examples:
 
 Developed
-Designed
-Implemented
-Built
 Optimized
-Automated
 Led
-Analyzed
-Integrated
-Deployed
 
 11. Identify achievements separately from ordinary
 responsibilities.
@@ -126,6 +119,12 @@ responsibilities.
 - Experience
 - Education
 - Certifications
+
+"Technologies" includes not only software languages and
+frameworks but any named professional tool, platform,
+system, or standard relevant to the candidate's field
+(e.g. Salesforce, GAAP, Epic/Cerner clinical systems,
+AutoCAD, Adobe Creative Suite).
 
 13. If a claim is ambiguous, preserve it as ambiguous.
 Do NOT upgrade its confidence.
@@ -171,6 +170,10 @@ Return ONLY structured data matching the schema.
             config=types.GenerateContentConfig(
             response_mime_type="application/json",
             response_schema=ResumeProfile,
+            temperature=0.0,
+            thinking_config=types.ThinkingConfig(
+                thinking_budget=GEMINI_STRUCTURING_THINKING_BUDGET,
+            ),
             ),
             purpose="resume_structuring",
         )

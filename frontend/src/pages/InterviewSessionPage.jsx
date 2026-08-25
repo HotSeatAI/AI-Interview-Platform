@@ -7,6 +7,7 @@ import useAuth from "../hooks/useAuth";
 import QuestionCard from "../components/interview/QuestionCard";
 import AnswerBox from "../components/interview/AnswerBox";
 import FeedbackCard from "../components/interview/FeedbackCard";
+import BrandLogo from "../components/layout/BrandLogo";
 
 function InterviewSessionPage() {
   const { sessionId } = useParams();
@@ -23,6 +24,7 @@ function InterviewSessionPage() {
   const [answeredQuestions, setAnsweredQuestions] = useState(new Set());
   const [feedbackMap, setFeedbackMap] = useState({});
   const [readyForNext, setReadyForNext] = useState(false);
+  const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
   const [nextIsFollowUp, setNextIsFollowUp] =
   useState(false);
 
@@ -210,7 +212,7 @@ return (
   <div className="workspace">
     <header className="workspace-topbar">
       <Link to="/dashboard" className="workspace-topbar__brand">
-        HotSeat
+        <BrandLogo />
       </Link>
 
       <div className="workspace-topbar__progress">
@@ -253,6 +255,7 @@ return (
         questionId={currentQuestion.id}
         disabled={answeredQuestions.has(currentQuestion.id)}
         onAnswerSubmitted={handleAnswerSubmitted}
+        onSubmittingChange={setIsSubmittingAnswer}
       />
 
       {currentFeedback && (
@@ -283,9 +286,9 @@ return (
               <button
                 className="button button--primary"
                 onClick={() => answerBoxRef.current?.submit()}
-                disabled={answeredQuestions.has(currentQuestion.id)}
+                disabled={answeredQuestions.has(currentQuestion.id) || isSubmittingAnswer}
               >
-                Submit answer
+                {isSubmittingAnswer ? "Submitting..." : "Submit answer"}
               </button>
             </>
           )
@@ -295,9 +298,9 @@ return (
               <button
                 className="button button--secondary"
                 onClick={() => answerBoxRef.current?.submit()}
-                disabled={answeredQuestions.has(currentQuestion.id)}
+                disabled={answeredQuestions.has(currentQuestion.id) || isSubmittingAnswer}
               >
-                Submit answer
+                {isSubmittingAnswer ? "Submitting..." : "Submit answer"}
               </button>
             )}
             <button className="button button--primary" onClick={handleFinishInterview}>

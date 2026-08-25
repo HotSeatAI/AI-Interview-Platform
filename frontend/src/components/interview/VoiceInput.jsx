@@ -11,6 +11,7 @@ function VoiceInput({
 
   const [supported, setSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [hasStartedOnce, setHasStartedOnce] = useState(false);
 
   useEffect(() => {
     const SpeechRecognition =
@@ -102,6 +103,8 @@ function VoiceInput({
     shouldContinueRef.current = true;
 
     recognitionRef.current.start();
+
+    setHasStartedOnce(true);
   };
 
   const stopListening = () => {
@@ -113,7 +116,7 @@ function VoiceInput({
   return (
     <div className="mode-block">
       <div className="mode-block__header">
-        <span className="mode-block__label">VOICE EXPLANATION</span>
+        <span className="mode-block__label">YOUR EXPLANATION</span>
         {isListening && (
           <span className="recording-badge">
             <span className="recording-dot" />
@@ -134,7 +137,7 @@ function VoiceInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        placeholder="Speak or edit the transcript..."
+        placeholder="Speak, or type your explanation, notes, edge cases, assumptions..."
       />
 
       <div className="voice-button-row">
@@ -148,7 +151,7 @@ function VoiceInput({
             isListening
           }
         >
-          Start recording
+          {hasStartedOnce ? "Resume recording" : "Start recording"}
         </button>
 
         <button

@@ -133,6 +133,24 @@ function SessionResultsPage() {
           </div>
         </div>
 
+        <div className="results-topics-col">
+          <div className="results-topics-label">SKIPPED QUESTIONS</div>
+          <div className="results-topic-pills">
+            {results.skipped_questions.length === 0 ? (
+              <span className="form-hint">No questions were skipped.</span>
+            ) : (
+              results.skipped_questions.map((skipped) => (
+                <span
+                  key={skipped.question_number}
+                  className="topic-pill topic-pill--skipped"
+                >
+                  Question {skipped.question_number} — {skipped.topic}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+
         {questionBreakdown.length > 0 && (
           <div className="results-questions">
             <div className="eyebrow">QUESTION-BY-QUESTION</div>

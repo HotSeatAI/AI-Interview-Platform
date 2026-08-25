@@ -18,6 +18,10 @@ from app.schemas.interview import InterviewDetailResponse
 from app.schemas.interview import InterviewHistoryItem
 
 from app.services.ai_service import AIService
+from app.services.api_key_manager import (
+    clear_gemini_context,
+    set_gemini_context,
+)
 
 
 router = APIRouter(
@@ -54,7 +58,25 @@ def generate_questions(
 
         resume_text = resume.extracted_text
 
+    # Session is created BEFORE generation (rather than after,
+    # as it previously was) so its id exists in time to tag the
+    # Gemini call for LangFuse session grouping. If generation
+    # fails, the empty session row is deleted in the except
+    # block below so a failed attempt never leaves orphaned
+    # session clutter behind.
+    session = InterviewSession(
+        user_id=current_user.id,
+        role=request.role,
+        difficulty=request.difficulty
+    )
+
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+
     ai_service = AIService()
+
+    set_gemini_context(session.id)
 
     try:
         questions = ai_service.generate_questions(
@@ -63,6 +85,8 @@ def generate_questions(
             difficulty=request.difficulty
         )
     except Exception as exc:
+        db.delete(session)
+        db.commit()
         raise HTTPException(
             status_code=503,
             detail=(
@@ -70,6 +94,8 @@ def generate_questions(
                 "unavailable. Please try again in a moment."
             ),
         ) from exc
+    finally:
+        clear_gemini_context()
 
     question_list = re.findall(
         r'^\d+\..*?(?=^\d+\.|\Z)',
@@ -84,16 +110,6 @@ def generate_questions(
 
     print("QUESTIONS FOUND:")
     print(len(question_list))
-
-    session = InterviewSession(
-        user_id=current_user.id,
-        role=request.role,
-        difficulty=request.difficulty
-    )
-
-    db.add(session)
-    db.commit()
-    db.refresh(session)
 
     for question_text in question_list:
         question = Question(
