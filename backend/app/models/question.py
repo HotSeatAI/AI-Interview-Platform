@@ -30,6 +30,11 @@ class Question(Base):
         nullable=False
     )
 
+    question_type = Column(
+        Text,
+        nullable=True
+    )
+
     is_follow_up = Column(
         Boolean,
         nullable=False,

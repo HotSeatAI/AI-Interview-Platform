@@ -38,7 +38,10 @@ from app.services.oauth_service import (
 router = APIRouter()
 
 
-@router.post("/signup")
+@router.post(
+    "/signup",
+    status_code=status.HTTP_201_CREATED
+    )
 def signup(
     user: UserCreate,
     db: Session = Depends(get_db)

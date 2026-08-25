@@ -84,7 +84,11 @@ Requirements:
     - Medium → Comparable to LeetCode Medium
     - Hard → Comparable to LeetCode Hard
 
-For EVERY coding question, return it using EXACTLY the following structure.
+For EVERY coding question, keep the question number, then on its own line write exactly:
+
+TYPE: CODING
+
+Then immediately continue with EXACTLY the following structure.
 
 Problem Statement
 
@@ -213,11 +217,17 @@ General Rules:
 - Keep every question concise while still being conversational.
 - Do NOT provide answers, hints or explanations.
 
+Question Length & Style:
+- Keep every question to at most 2-3 sentences (roughly 25-40 words).
+- State the required technical keyword(s) or concept name(s) directly (e.g. "API", "DBMS", "Consistent Hashing", "CAP Theorem") instead of explaining or describing what they mean.
+- Do NOT spend a sentence building a long scenario before asking the actual question - get to the question quickly.
+- This does NOT apply to the Coding/DSA question structure (Problem Statement / Input Format / Output Format / Constraints / Examples), which must stay exactly as specified above.
+
 Return ONLY the 10 numbered interview questions.
 
 For resume, CS fundamentals, system design and behavioral questions, return only the numbered question.
 
-For coding questions, keep the numbering and then immediately follow the required coding question structure exactly as specified above.
+For coding questions, keep the numbering, then on its own line write exactly `TYPE: CODING`, then immediately follow the required coding question structure exactly as specified above. Do NOT add a `TYPE: CODING` line to any other question.
 
 Do not include introductions, conclusions, markdown, or any additional explanatory text outside the questions.
 """
@@ -269,7 +279,11 @@ Requirements:
     - Medium → Comparable to LeetCode Medium
     - Hard → Comparable to LeetCode Hard
 
-For EVERY coding question, return it using EXACTLY the following structure.
+For EVERY coding question, keep the question number, then on its own line write exactly:
+
+TYPE: CODING
+
+Then immediately continue with EXACTLY the following structure.
 
 Problem Statement
 
@@ -394,11 +408,17 @@ General Rules:
 - Keep questions concise while still being conversational.
 - Do NOT provide answers, hints or explanations.
 
+Question Length & Style:
+- Keep every question to at most 2-3 sentences (roughly 25-40 words).
+- State the required technical keyword(s) or concept name(s) directly (e.g. "API", "DBMS", "Consistent Hashing", "CAP Theorem") instead of explaining or describing what they mean.
+- Do NOT spend a sentence building a long scenario before asking the actual question - get to the question quickly.
+- This does NOT apply to the Coding/DSA question structure (Problem Statement / Input Format / Output Format / Constraints / Examples), which must stay exactly as specified above.
+
 Return ONLY the 10 numbered interview questions.
 
 For role specific questions,CS fundamentals, system design and behavioral questions, return only the numbered question.
 
-For coding questions, keep the numbering and then immediately follow the required coding question structure exactly as specified above.
+For coding questions, keep the numbering, then on its own line write exactly `TYPE: CODING`, then immediately follow the required coding question structure exactly as specified above. Do NOT add a `TYPE: CODING` line to any other question.
 
 Do not include introductions, conclusions, markdown, or any additional explanatory text outside the questions.
 """
