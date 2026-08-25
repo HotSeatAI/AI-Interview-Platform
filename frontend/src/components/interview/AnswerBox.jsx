@@ -21,6 +21,7 @@ import {
 const AnswerBox = forwardRef(function AnswerBox(
   {
     questionId,
+    isCoding = false,
     onAnswerSubmitted,
     onSubmittingChange,
     disabled = false,
@@ -186,7 +187,9 @@ const AnswerBox = forwardRef(function AnswerBox(
       <div className="answer-card__header">
         <div className="answer-card__label">YOUR ANSWER</div>
         <div className="answer-card__sublabel">
-          Think. Explain. Write. Code. Submit — both are graded together.
+          {isCoding
+            ? "Think. Explain. Write. Code. Submit — both are graded together."
+            : "Think it through, then explain your answer."}
         </div>
       </div>
 
@@ -196,26 +199,30 @@ const AnswerBox = forwardRef(function AnswerBox(
         disabled={disabled}
       />
 
-      <CodeEditor
-        value={code}
-        onChange={setCode}
-        language={selectedLanguage}
-        disabled={disabled}
-        onRunCode={handleRunCode}
-        isRunning={executionStatus === "running"}
-        onLanguageChange={handleLanguageChange}
-      />
+      {isCoding && (
+        <>
+          <CodeEditor
+            value={code}
+            onChange={setCode}
+            language={selectedLanguage}
+            disabled={disabled}
+            onRunCode={handleRunCode}
+            isRunning={executionStatus === "running"}
+            onLanguageChange={handleLanguageChange}
+          />
 
-      <CustomInput
-        value={customInput}
-        onChange={setCustomInput}
-        disabled={disabled}
-      />
+          <CustomInput
+            value={customInput}
+            onChange={setCustomInput}
+            disabled={disabled}
+          />
 
-      <ConsoleOutput
-        output={consoleOutput}
-        status={executionStatus}
-      />
+          <ConsoleOutput
+            output={consoleOutput}
+            status={executionStatus}
+          />
+        </>
+      )}
 
       <CombinedPreview
         explanationText={explanationText}

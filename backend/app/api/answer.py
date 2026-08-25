@@ -157,6 +157,7 @@ def submit_answer(
                 follow_up = Question(
                     session_id=question.session_id,
                     question_text=follow_up_text.strip(),
+                    question_type=question.question_type,
                     is_follow_up=True,
                     parent_question_id=(
                         question.parent_question_id
@@ -186,6 +187,7 @@ def submit_answer(
                 FollowUpQuestionResponse(
                     question_id=follow_up.id,
                     question_text=follow_up.question_text,
+                    question_type=follow_up.question_type,
                     follow_up_depth=follow_up.follow_up_depth,
                 )
                 if follow_up

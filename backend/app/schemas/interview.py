@@ -13,6 +13,7 @@ class GenerateQuestionsRequest(BaseModel):
 class InterviewQuestionResponse(BaseModel):
     id: int
     question_text: str
+    question_type: str | None = None
 
     answered: bool
 

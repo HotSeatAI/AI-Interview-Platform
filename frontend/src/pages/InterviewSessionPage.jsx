@@ -140,6 +140,8 @@ function InterviewSessionPage() {
           id: response.follow_up.question_id,
           question_text:
             response.follow_up.question_text,
+          question_type:
+            response.follow_up.question_type,
           follow_up_depth:
             response.follow_up.follow_up_depth,
           is_follow_up: true,
@@ -253,6 +255,7 @@ return (
         ref={answerBoxRef}
         key={currentQuestion.id}
         questionId={currentQuestion.id}
+        isCoding={currentQuestion.question_type === "coding"}
         disabled={answeredQuestions.has(currentQuestion.id)}
         onAnswerSubmitted={handleAnswerSubmitted}
         onSubmittingChange={setIsSubmittingAnswer}
