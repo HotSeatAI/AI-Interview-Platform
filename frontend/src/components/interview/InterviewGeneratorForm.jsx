@@ -131,6 +131,14 @@ function InterviewGeneratorForm() {
 
       navigate(`/interview/${response.session_id}`);
     } catch (err) {
+      if (err?.response?.status === 402) {
+        navigate("/pricing", {
+          state: {
+            limitReachedFeature: "Interviews",
+          },
+        });
+        return;
+      }
       setError(
         err?.response?.data?.detail ||
           "Failed to generate interview."

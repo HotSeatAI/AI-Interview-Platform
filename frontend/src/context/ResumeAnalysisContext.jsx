@@ -159,6 +159,16 @@ export function ResumeAnalysisProvider({ children }) {
         errorMessage: "",
       }));
     } catch (err) {
+      if (err?.response?.status === 402) {
+        setState((prev) => ({ ...prev, status: "idle" }));
+        navigate("/pricing", {
+          state: {
+            limitReachedFeature: "Resume-JD tailorings",
+          },
+        });
+        return;
+      }
+
       setState((prev) => ({
         ...prev,
         status: "error",

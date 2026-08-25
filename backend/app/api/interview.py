@@ -22,6 +22,10 @@ from app.services.api_key_manager import (
     clear_gemini_context,
     set_gemini_context,
 )
+from app.services.quota_service import (
+    check_and_consume_quota,
+    refund_quota,
+)
 
 
 router = APIRouter(
@@ -37,6 +41,8 @@ def generate_questions(
     db: Session = Depends(get_db)
 ):
 
+    check_and_consume_quota(db, current_user, "interview")
+
     resume_text = None
 
     if request.resume_id is not None:
@@ -51,6 +57,7 @@ def generate_questions(
         )
 
         if not resume:
+            refund_quota(db, current_user, "interview")
             raise HTTPException(
                 status_code=404,
                 detail="Selected resume not found."
@@ -87,6 +94,7 @@ def generate_questions(
     except Exception as exc:
         db.delete(session)
         db.commit()
+        refund_quota(db, current_user, "interview")
         raise HTTPException(
             status_code=503,
             detail=(

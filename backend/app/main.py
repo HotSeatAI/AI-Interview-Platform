@@ -12,9 +12,13 @@ from app.api import code
 from app.api.resume_analysis import (
     router as resume_analysis_router
 )
+from app.api.billing import router as billing_router
+from app.api.admin import router as admin_router
 from app.models.resume_analysis import (
     ResumeAnalysis
 )
+from app.models.subscription import Subscription
+from app.models.usage_counter import UsageCounter
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -39,3 +43,5 @@ app.include_router(answer_router)
 app.include_router(dashboard_router)
 app.include_router(code.router)
 app.include_router(resume_analysis_router)
+app.include_router(billing_router)
+app.include_router(admin_router)

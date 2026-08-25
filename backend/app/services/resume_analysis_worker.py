@@ -8,6 +8,8 @@ from app.database.database import SessionLocal
 from app.models.resume import Resume
 from app.models.resume_analysis import ResumeAnalysis
 from app.models.jd_profile_cache import JDProfileCache
+from app.models.user import User
+from app.services.quota_service import refund_quota
 
 from app.services.job_description_parser import (
     JobDescriptionParser,
@@ -585,3 +587,16 @@ class ResumeAnalysisWorker:
         )
 
         db.commit()
+
+        # A failed analysis shouldn't cost the user their
+        # tailoring quota unit - the check happened synchronously
+        # in start_resume_analysis before this background job
+        # ever ran, so any failure in here needs its own refund.
+        user = (
+            db.query(User)
+            .filter(User.id == analysis.user_id)
+            .first()
+        )
+
+        if user:
+            refund_quota(db, user, "tailoring")
