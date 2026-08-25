@@ -105,6 +105,64 @@ Examples include:
 
 Match the difficulty.
 
+Optional Coding Question
+
+If, and only if, the selected role would realistically involve writing or running a query, script, or formula-as-code in a real interview (for example, a SQL query for a data or financial analyst role, or a Python/R snippet for a quantitative finance role), you may generate one of the two Role-Specific Technical Questions above as a coding question instead of a verbal one. Do NOT force this — most finance roles should have zero coding questions, and that is the expected default.
+
+If you do include one, keep its number, then on its own line write exactly `TYPE: CODING`, then immediately continue with EXACTLY the following structure:
+
+Problem Statement
+
+<Clearly describe the problem that the candidate has to solve.>
+
+Input Format
+
+<Describe the expected input format.>
+
+Output Format
+
+<Describe the expected output format.>
+
+Constraints
+
+<List the constraints applicable to the problem.>
+
+Example 1
+
+Input
+
+<Sample Input>
+
+Output
+
+<Expected Output>
+
+Example 2
+
+Input
+
+<Sample Input>
+
+Output
+
+<Expected Output>
+
+Example 3
+
+Input
+
+<Sample Input>
+
+Output
+
+<Expected Output>
+
+Rules:
+- Generate exactly three examples.
+- Examples must be valid.
+- Do NOT provide the solution, hints, or an explanation of the approach.
+- Never add a `TYPE: CODING` line to a question that is only meant to be explained verbally.
+
 5. Behavioral Question (1)
 
 Generate exactly 1 behavioral interview question.
@@ -148,9 +206,17 @@ General Rules
 - Keep every question concise while still being conversational.
 - Do NOT provide answers, hints or explanations.
 
+Question Length & Style:
+- Keep every question to at most 2-3 sentences (roughly 25-40 words).
+- State the required technical keyword(s) or concept name(s) directly (e.g. "DCF", "CAPM", "Working Capital") instead of explaining or describing what they mean.
+- Do NOT spend a sentence building a long scenario before asking the actual question - get to the question quickly.
+- This does NOT apply to the Coding/DSA question structure (Problem Statement / Input Format / Output Format / Constraints / Examples), which must stay exactly as specified above.
+
 Return ONLY the numbered interview questions.
 
 Do not include headings, introductions, markdown, bullet points or any text before or after the questions.
+
+If a Role-Specific Technical Question was generated as a coding question, keep its `TYPE: CODING` line exactly as specified above; do not add this line to any other question.
 """
 
     return f"""
@@ -209,6 +275,64 @@ Difficulty must match the selected level.
 
 Generate exactly 2 questions related to the selected finance role.
 
+Optional Coding Question
+
+If, and only if, the selected role would realistically involve writing or running a query, script, or formula-as-code in a real interview (for example, a SQL query for a data or financial analyst role, or a Python/R snippet for a quantitative finance role), you may generate one of the two Role-Specific Technical Questions above as a coding question instead of a verbal one. Do NOT force this — most finance roles should have zero coding questions, and that is the expected default.
+
+If you do include one, keep its number, then on its own line write exactly `TYPE: CODING`, then immediately continue with EXACTLY the following structure:
+
+Problem Statement
+
+<Clearly describe the problem that the candidate has to solve.>
+
+Input Format
+
+<Describe the expected input format.>
+
+Output Format
+
+<Describe the expected output format.>
+
+Constraints
+
+<List the constraints applicable to the problem.>
+
+Example 1
+
+Input
+
+<Sample Input>
+
+Output
+
+<Expected Output>
+
+Example 2
+
+Input
+
+<Sample Input>
+
+Output
+
+<Expected Output>
+
+Example 3
+
+Input
+
+<Sample Input>
+
+Output
+
+<Expected Output>
+
+Rules:
+- Generate exactly three examples.
+- Examples must be valid.
+- Do NOT provide the solution, hints, or an explanation of the approach.
+- Never add a `TYPE: CODING` line to a question that is only meant to be explained verbally.
+
 5. Behavioral Question (1)
 
 Generate exactly 1 behavioral interview question.
@@ -252,7 +376,15 @@ General Rules
 - Keep every question concise while still being conversational.
 - Do NOT provide answers, hints or explanations.
 
+Question Length & Style:
+- Keep every question to at most 2-3 sentences (roughly 25-40 words).
+- State the required technical keyword(s) or concept name(s) directly (e.g. "DCF", "CAPM", "Working Capital") instead of explaining or describing what they mean.
+- Do NOT spend a sentence building a long scenario before asking the actual question - get to the question quickly.
+- This does NOT apply to the Coding/DSA question structure (Problem Statement / Input Format / Output Format / Constraints / Examples), which must stay exactly as specified above.
+
 Return ONLY the numbered interview questions.
 
 Do not include headings, introductions, markdown, bullet points or any text before or after the questions.
+
+If a Role-Specific Technical Question was generated as a coding question, keep its `TYPE: CODING` line exactly as specified above; do not add this line to any other question.
 """

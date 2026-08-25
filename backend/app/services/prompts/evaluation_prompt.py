@@ -314,6 +314,11 @@ General Rules
 - Do NOT provide answers.
 - Do NOT provide explanations.
 - Do NOT include markdown.
+
+Question Length & Style:
+- Keep the question to at most 2-3 sentences (roughly 25-40 words).
+- State the required technical keyword(s) or concept name(s) directly instead of explaining or describing what they mean.
+- Do NOT spend a sentence building a long scenario before asking the actual question - get to the question quickly.
 """.strip()
 
 

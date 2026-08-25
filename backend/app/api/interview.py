@@ -111,10 +111,39 @@ def generate_questions(
     print("QUESTIONS FOUND:")
     print(len(question_list))
 
+    # Gemini is instructed to place "TYPE: CODING" immediately
+    # after the question number, but in practice sometimes writes
+    # a lead-in sentence first and puts the tag on its own line
+    # further down. Searching for the tag anywhere in the chunk
+    # (rather than anchoring to the start) tolerates that drift.
+    # The matched span is replaced with a single newline (not
+    # deleted outright) so the text on either side of the tag
+    # never gets glued together, then any resulting run of blank
+    # lines is collapsed back down.
+    coding_type_pattern = re.compile(
+        r'[ \t]*TYPE:\s*CODING[ \t]*\n*',
+        flags=re.IGNORECASE,
+    )
+
     for question_text in question_list:
+
+        match = coding_type_pattern.search(question_text)
+
+        if match:
+            question_type = "coding"
+            question_text = coding_type_pattern.sub(
+                '\n', question_text, count=1
+            )
+            question_text = re.sub(
+                r'\n{3,}', '\n\n', question_text
+            ).strip()
+        else:
+            question_type = None
+
         question = Question(
             session_id=session.id,
-            question_text=question_text
+            question_text=question_text,
+            question_type=question_type,
         )
         db.add(question)
 
@@ -191,6 +220,7 @@ def get_interview(
     questions = (
         db.query(Question)
         .filter(Question.session_id == session.id)
+        .order_by(Question.id)
         .all()
     )
 
@@ -203,6 +233,7 @@ def get_interview(
                 {
                     "id": question.id,
                     "question_text": question.question_text,
+                    "question_type": question.question_type,
                     "answered": True,
                     "score": question.answer.score,
                     "feedback": question.answer.feedback,
@@ -216,6 +247,7 @@ def get_interview(
                 {
                     "id": question.id,
                     "question_text": question.question_text,
+                    "question_type": question.question_type,
                     "answered": False,
                     "score": None,
                     "feedback": None,

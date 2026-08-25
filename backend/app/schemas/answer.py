@@ -20,6 +20,7 @@ class AnswerCreate(BaseModel):
 class FollowUpQuestionResponse(BaseModel):
     question_id: int
     question_text: str
+    question_type: Optional[str] = None
     follow_up_depth: int
 
 
