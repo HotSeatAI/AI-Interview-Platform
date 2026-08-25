@@ -1,11 +1,13 @@
 import json
 from datetime import datetime
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database.database import SessionLocal
 from app.models.resume import Resume
 from app.models.resume_analysis import ResumeAnalysis
+from app.models.jd_profile_cache import JDProfileCache
 
 from app.services.job_description_parser import (
     JobDescriptionParser,
@@ -204,25 +206,27 @@ class ResumeAnalysisWorker:
                 "Understanding job requirements",
             )
 
+            # Global cache: JD structuring is a pure function of
+            # the JD text alone (no resume/user data goes into
+            # that Gemini call), so it's cached across ALL users
+            # by jd_text_hash - not scoped to this user like the
+            # resume/analysis caching below. Any user submitting
+            # a JD whose normalized text was already structured
+            # for anyone else reuses it instead of calling Gemini
+            # again.
             cached_jd = (
-                db.query(ResumeAnalysis)
+                db.query(JDProfileCache)
                 .filter(
-                    ResumeAnalysis.user_id
-                    == analysis.user_id,
-                    ResumeAnalysis.jd_text_hash
+                    JDProfileCache.jd_text_hash
                     == analysis.jd_text_hash,
-                    ResumeAnalysis.id
-                    != analysis.id,
-                    ResumeAnalysis.jd_profile_json.isnot(
-                        None
-                    ),
-                )
-                .order_by(
-                    ResumeAnalysis.created_at.desc()
                 )
                 .first()
             )
 
+            # jd_cache_row is kept around (not just jd_profile)
+            # so Step 5 can also read/write the cached requirement
+            # embeddings on this same global row - see
+            # build_embedding_evidence_map.
             if cached_jd:
 
                 jd_profile = (
@@ -233,6 +237,14 @@ class ResumeAnalysisWorker:
                     )
                 )
 
+                cached_jd.hit_count += 1
+                cached_jd.last_used_at = (
+                    datetime.utcnow()
+                )
+                db.commit()
+
+                jd_cache_row = cached_jd
+
             else:
 
                 jd_profile = (
@@ -240,6 +252,33 @@ class ResumeAnalysisWorker:
                         jd_text
                     )
                 )
+
+                jd_cache_row = JDProfileCache(
+                    jd_text_hash=analysis.jd_text_hash,
+                    job_title=jd_profile.job_title,
+                    jd_profile_json=(
+                        jd_profile.model_dump_json()
+                    ),
+                    hit_count=1,
+                )
+                db.add(jd_cache_row)
+
+                try:
+                    db.commit()
+                except IntegrityError:
+                    # Another request structured and inserted
+                    # the same JD text concurrently - fine, just
+                    # use their row instead of erroring out.
+                    db.rollback()
+
+                    jd_cache_row = (
+                        db.query(JDProfileCache)
+                        .filter(
+                            JDProfileCache.jd_text_hash
+                            == analysis.jd_text_hash,
+                        )
+                        .first()
+                    )
 
             analysis.job_title = (
                 jd_profile.job_title
@@ -360,6 +399,7 @@ class ResumeAnalysisWorker:
                         db,
                         resume.id,
                         jd_profile.requirements,
+                        jd_cache_row=jd_cache_row,
                     )
                 )
 

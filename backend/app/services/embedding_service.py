@@ -1,5 +1,9 @@
+import json
+
 from sqlalchemy.orm import Session
 
+from app.core.config import GEMINI_EMBEDDING_MODEL
+from app.models.jd_profile_cache import JDProfileCache
 from app.models.resume_evidence_vector import ResumeEvidenceVector
 from app.schemas.resume_analysis import JDRequirement, ResumeProfile
 from app.services.api_key_manager import api_key_manager
@@ -114,6 +118,7 @@ def build_embedding_evidence_map(
     db: Session,
     resume_id: int,
     requirements: list[JDRequirement],
+    jd_cache_row: JDProfileCache | None = None,
 ) -> dict[str, list[str]]:
     """
     For each JD requirement, finds the TOP_K resume evidence lines
@@ -127,30 +132,71 @@ def build_embedding_evidence_map(
     unioned with the keyword-based evidence_map in
     RequirementMatcher._retrieve_relevant_evidence — this is a
     retrieval signal only, not a match decision.
+
+    The query vectors for `requirements` are purely a function of
+    the JD text (same requirement.name/aliases/evidence for every
+    user who submits this JD), so when jd_cache_row is given they
+    are cached on it - global across users, mirroring how
+    jd_profile_json itself is cached. A row whose embedding_model
+    doesn't match the currently configured model is treated as a
+    miss and recomputed, so an embedding-model change can never
+    silently mix vectors from two different embedding spaces.
     """
 
     if not requirements:
         return {}
 
-    query_texts = [
-        " ".join(
-            filter(
-                None,
-                [
-                    requirement.name,
-                    " ".join(requirement.aliases),
-                    " ".join(requirement.evidence),
-                ],
-            )
-        )
-        for requirement in requirements
-    ]
+    query_vectors = None
 
-    query_vectors = api_key_manager.embed_content(
-        query_texts,
-        task_type="RETRIEVAL_QUERY",
-        purpose="jd_requirement_embedding",
-    )
+    if (
+        jd_cache_row is not None
+        and jd_cache_row.requirement_embeddings_json
+        and jd_cache_row.embedding_model == GEMINI_EMBEDDING_MODEL
+    ):
+
+        try:
+            cached_vectors = json.loads(
+                jd_cache_row.requirement_embeddings_json
+            )
+        except (TypeError, ValueError):
+            cached_vectors = None
+
+        if cached_vectors is not None and len(
+            cached_vectors
+        ) == len(requirements):
+            query_vectors = cached_vectors
+
+    if query_vectors is None:
+
+        query_texts = [
+            " ".join(
+                filter(
+                    None,
+                    [
+                        requirement.name,
+                        " ".join(requirement.aliases),
+                        " ".join(requirement.evidence),
+                    ],
+                )
+            )
+            for requirement in requirements
+        ]
+
+        query_vectors = api_key_manager.embed_content(
+            query_texts,
+            task_type="RETRIEVAL_QUERY",
+            purpose="jd_requirement_embedding",
+        )
+
+        if jd_cache_row is not None:
+
+            jd_cache_row.requirement_embeddings_json = (
+                json.dumps(query_vectors)
+            )
+            jd_cache_row.embedding_model = (
+                GEMINI_EMBEDDING_MODEL
+            )
+            db.commit()
 
     embedding_evidence_map: dict[str, list[str]] = {}
 
