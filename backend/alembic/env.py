@@ -19,6 +19,8 @@ from app.models.password_reset_token import PasswordResetToken
 from app.models.resume_analysis import ResumeAnalysis
 from app.models.resume_evidence_vector import ResumeEvidenceVector
 from app.models.jd_profile_cache import JDProfileCache
+from app.models.subscription import Subscription
+from app.models.usage_counter import UsageCounter
 
 config = context.config
 

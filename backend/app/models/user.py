@@ -51,6 +51,12 @@ class User(Base):
         default=False
     )
 
+    role = Column(
+        String,
+        nullable=False,
+        default="user"
+    )
+
     resumes = relationship(
         "Resume",
         back_populates="owner",

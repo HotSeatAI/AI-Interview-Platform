@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { getDashboard } from "../api/dashboardApi";
+import { getMyBillingStatus } from "../api/billingApi";
 import useAuth from "../hooks/useAuth";
 import Navbar from "../components/layout/Navbar.jsx";
 
@@ -9,14 +10,19 @@ function DashboardPage() {
   const { token } = useAuth();
 
   const [dashboard, setDashboard] = useState(null);
+  const [billing, setBilling] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const data = await getDashboard(token);
-        setDashboard(data);
+        const [dashboardData, billingData] = await Promise.all([
+          getDashboard(token),
+          getMyBillingStatus(token),
+        ]);
+        setDashboard(dashboardData);
+        setBilling(billingData);
       } catch (err) {
         setError(
           err?.response?.data?.detail ||
@@ -62,6 +68,25 @@ function DashboardPage() {
           <h1 className="dashboard-greeting">Welcome back, {dashboard.username}</h1>
           <p className="dashboard-email">{dashboard.email}</p>
         </div>
+
+        {billing && (
+          <div className="usage-banner">
+            <span className="usage-banner__plan">
+              {billing.plan.toUpperCase()} PLAN
+            </span>
+            <span className="usage-banner__stat">
+              {billing.interviews_used}/{billing.interviews_limit}{" "}
+              interviews used
+            </span>
+            <span className="usage-banner__stat">
+              {billing.tailorings_used}/{billing.tailorings_limit}{" "}
+              resume tailorings used
+            </span>
+            <Link to="/pricing" className="usage-banner__upgrade">
+              {billing.plan === "max" ? "Manage plan" : "Upgrade →"}
+            </Link>
+          </div>
+        )}
 
         <div className="stats-strip">
           <div className="stats-strip__cell">
