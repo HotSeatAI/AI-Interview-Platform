@@ -130,13 +130,13 @@ PLAN_CATALOG = {
     },
     "starter": {
         "price_inr": 199,
-        "interview_limit": 5,
+        "interview_limit": 3,
         "tailoring_limit": 5,
         "razorpay_plan_id": os.getenv("RAZORPAY_PLAN_ID_STARTER"),
     },
     "pro": {
         "price_inr": 549,
-        "interview_limit": 15,
+        "interview_limit": 10,
         "tailoring_limit": 15,
         "razorpay_plan_id": os.getenv("RAZORPAY_PLAN_ID_PRO"),
     },
