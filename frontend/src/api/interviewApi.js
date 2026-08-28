@@ -29,3 +29,17 @@ export const getInterviewHistory = async (token) => {
 
   return response.data;
 };
+
+export const finishInterviewSession = async (sessionId, token) => {
+  const response = await apiClient.post(
+    `/interview/${sessionId}/finish`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};

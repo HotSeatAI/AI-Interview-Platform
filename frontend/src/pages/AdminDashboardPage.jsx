@@ -4,7 +4,7 @@ import { getAdminUsers, setUserPlan } from "../api/adminApi";
 import useAuth from "../hooks/useAuth";
 import Navbar from "../components/layout/Navbar.jsx";
 
-const PLANS = ["free", "starter", "pro", "max"];
+const PLANS = ["free", "starter", "pro", "max", "unlimited"];
 
 function AdminDashboardPage() {
   const { token } = useAuth();

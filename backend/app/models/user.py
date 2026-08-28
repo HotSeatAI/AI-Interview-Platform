@@ -57,6 +57,22 @@ class User(Base):
         default="user"
     )
 
+    # Aggregate weak-topic-practice counters, driving the progress
+    # circle on the Topics page. Live here (not on UserTopic) because
+    # UserTopic rows are deleted the moment a topic is resolved -
+    # these must survive that deletion. See api/topics.py.
+    weak_topics_flagged_total = Column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+
+    weak_topics_resolved_total = Column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+
     resumes = relationship(
         "Resume",
         back_populates="owner",

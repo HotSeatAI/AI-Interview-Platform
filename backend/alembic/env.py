@@ -21,6 +21,7 @@ from app.models.resume_evidence_vector import ResumeEvidenceVector
 from app.models.jd_profile_cache import JDProfileCache
 from app.models.subscription import Subscription
 from app.models.usage_counter import UsageCounter
+from app.models.user_topic import UserTopic
 
 config = context.config
 

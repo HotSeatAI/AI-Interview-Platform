@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
@@ -12,6 +14,7 @@ from app.models.user import User
 from app.models.resume import Resume
 from app.models.interview_session import InterviewSession
 from app.models.question import Question
+from app.models.user_topic import UserTopic
 
 from app.schemas.interview import GenerateQuestionsRequest
 from app.schemas.interview import InterviewDetailResponse
@@ -271,3 +274,75 @@ def get_interview(
         "created_at": session.created_at,
         "questions": question_list,
     }
+
+
+@router.post("/{session_id}/finish")
+def finish_interview(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Marks a session as finished - called when the user clicks
+    "Finish Interview". Deliberately NOT derived from answered-question
+    counts (finishing with unanswered questions left is an intentional,
+    allowed path) - see InterviewSession.finished_at. Idempotent.
+
+    If this session is a weak-topic practice round
+    (practice_topic_id set - see api/topics.py), this is also where
+    it gets resolved: pass or fail, the linked UserTopic row is
+    deleted either way; a pass additionally credits the user's
+    lifetime resolved counter (the progress circle on the Topics
+    page). Resolution only runs on the first finish (guarded by the
+    same finished_at is None check) so re-finishing never double-counts.
+    """
+
+    session = (
+        db.query(InterviewSession)
+        .filter(
+            InterviewSession.id == session_id,
+            InterviewSession.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not session:
+        raise HTTPException(
+            status_code=404,
+            detail="Interview session not found"
+        )
+
+    if session.finished_at is None:
+        session.finished_at = datetime.utcnow()
+
+        if session.practice_topic_id is not None:
+
+            questions = (
+                db.query(Question)
+                .filter(Question.session_id == session.id)
+                .all()
+            )
+
+            answers = [q.answer for q in questions if q.answer]
+
+            # Per-question, not averaged - every one of the 3 must
+            # score above 5 to pass.
+            passed = len(answers) == 3 and all(
+                answer.score > 5 for answer in answers
+            )
+
+            if passed:
+                current_user.weak_topics_resolved_total += 1
+
+            topic = (
+                db.query(UserTopic)
+                .filter(UserTopic.id == session.practice_topic_id)
+                .first()
+            )
+
+            if topic:
+                db.delete(topic)
+
+        db.commit()
+
+    return {"finished": True}

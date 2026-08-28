@@ -15,6 +15,7 @@ from app.api.resume_analysis import (
 )
 from app.api.billing import router as billing_router
 from app.api.admin import router as admin_router
+from app.api.topics import router as topics_router
 from app.models.resume_analysis import (
     ResumeAnalysis
 )
@@ -41,3 +42,4 @@ app.include_router(code.router)
 app.include_router(resume_analysis_router)
 app.include_router(billing_router)
 app.include_router(admin_router)
+app.include_router(topics_router)

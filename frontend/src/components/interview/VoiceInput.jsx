@@ -4,6 +4,7 @@ function VoiceInput({
   value,
   onChange,
   disabled = false,
+  onRecordingStateChange,
 }) {
   const recognitionRef = useRef(null);
 
@@ -90,6 +91,10 @@ function VoiceInput({
       recognition.stop();
     };
   }, [onChange, disabled]);
+
+  useEffect(() => {
+    onRecordingStateChange?.(isListening);
+  }, [isListening, onRecordingStateChange]);
 
   const startListening = () => {
     if (
