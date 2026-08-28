@@ -3,6 +3,8 @@ function FeedbackCard({
   feedback,
   strengths = [],
   improvements = [],
+  deliveryFeedback,
+  modelAnswer,
 }) {
   return (
     <article className="prev-feedback">
@@ -35,6 +37,20 @@ function FeedbackCard({
           </ul>
         </div>
       </div>
+
+      {modelAnswer && (
+        <div className="prev-feedback__model-answer">
+          <div className="prev-feedback__col-label">MODEL ANSWER</div>
+          <p className="prev-feedback__body">{modelAnswer}</p>
+        </div>
+      )}
+
+      {deliveryFeedback && (
+        <div className="prev-feedback__delivery">
+          <div className="prev-feedback__col-label">DELIVERY PATTERNS</div>
+          <p className="prev-feedback__body">{deliveryFeedback}</p>
+        </div>
+      )}
     </article>
   );
 }

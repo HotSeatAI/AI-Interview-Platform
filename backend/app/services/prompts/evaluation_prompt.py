@@ -198,6 +198,64 @@ Candidate Answer:
 {user_answer}
 """.strip()
 
+def build_model_answer_prompt(
+    question_text: str,
+    question_type: str | None,
+) -> str:
+    """
+    Build the Gemini prompt for a short, plain-language model answer
+    to an interview question - shown to the candidate when their own
+    answer scored below 7/10, so they have something concrete to learn
+    from, not just critique.
+
+    Args:
+        question_text: The interview question.
+        question_type: e.g. "coding" - used to keep coding questions
+            to a plain-language description of the approach rather
+            than a full code block.
+
+    Returns:
+        Complete model-answer prompt.
+    """
+
+    coding_note = (
+        "This is a coding question - describe the correct approach or "
+        "algorithm in plain words (do NOT write a full code block or "
+        "syntax), still within the same 5-6 line limit."
+        if question_type == "coding"
+        else ""
+    )
+
+    return f"""
+You are an expert interviewer writing a model answer to an interview
+question, for a candidate who scored below 7/10 on their own attempt.
+
+Answer the question below directly and correctly yourself.
+
+Interview Question:
+{question_text}
+
+{coding_note}
+
+Rules:
+
+- Write the answer in 5-6 short lines - no more.
+- Use simple, plain words. The candidate should be able to read it once
+  and understand it immediately - avoid dense jargon, but keep any
+  technical term names that are actually necessary to name the concept.
+- Cover the key point(s) the question is actually asking for - be
+  correct and complete within the line limit, not exhaustive.
+- Write it as a direct answer to the question, not as feedback or
+  advice about the candidate's own answer - you were not given their
+  answer and must not reference it.
+- Do NOT add a preamble like "Here's the answer:" or "Model answer:" -
+  return only the answer text itself.
+- Do NOT include markdown, headers, or bullet points - plain sentences.
+
+Return ONLY the answer text.
+""".strip()
+
+
 def build_follow_up_prompt(
     original_question: str,
     candidate_answer: str,

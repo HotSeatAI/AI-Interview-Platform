@@ -1,13 +1,20 @@
 import { useEffect, useState , useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { getInterviewSession } from "../api/interviewApi";
+import { getInterviewSession, finishInterviewSession } from "../api/interviewApi";
 import useAuth from "../hooks/useAuth";
 
 import QuestionCard from "../components/interview/QuestionCard";
 import AnswerBox from "../components/interview/AnswerBox";
 import FeedbackCard from "../components/interview/FeedbackCard";
 import BrandLogo from "../components/layout/BrandLogo";
+import DeliveryConsentModal from "../components/interview/DeliveryConsentModal";
+import DeliveryCalibrationScreen from "../components/interview/DeliveryCalibrationScreen";
+import WebcamMonitor from "../components/interview/WebcamMonitor";
+import { createAudioDeliveryAnalyzer } from "../utils/audioDeliveryAnalyzer";
+import { createVideoDeliveryAnalyzer } from "../utils/videoDeliveryAnalyzer";
+
+const CALIBRATION_MS = 3000;
 
 function InterviewSessionPage() {
   const { sessionId } = useParams();
@@ -27,6 +34,13 @@ function InterviewSessionPage() {
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
   const [nextIsFollowUp, setNextIsFollowUp] =
   useState(false);
+
+  // null = undecided (show consent modal), true/false once decided.
+  const [deliveryConsent, setDeliveryConsent] = useState(null);
+  const [calibrating, setCalibrating] = useState(false);
+  const [webcamStream, setWebcamStream] = useState(null);
+  const audioAnalyzerRef = useRef(null);
+  const videoAnalyzerRef = useRef(null);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -83,6 +97,107 @@ function InterviewSessionPage() {
     }
   }, [sessionId, token]);
 
+  useEffect(() => {
+    return () => {
+      audioAnalyzerRef.current?.stop();
+      audioAnalyzerRef.current = null;
+
+      videoAnalyzerRef.current?.stop();
+      videoAnalyzerRef.current = null;
+
+      setWebcamStream(null);
+    };
+  }, []);
+
+  // Delivery signals are scoped per-question - clear counters whenever
+  // the visible question changes (submitted, skipped, or navigated
+  // back), so one question's pauses never bleed into the next.
+  useEffect(() => {
+    audioAnalyzerRef.current?.reset();
+    videoAnalyzerRef.current?.reset();
+  }, [currentQuestionIndex]);
+
+  const handleContinueDelivery = async ({ audioEnabled, videoEnabled }) => {
+    let anyEnabled = false;
+
+    if (audioEnabled) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+
+        const analyzer = createAudioDeliveryAnalyzer();
+        await analyzer.start(stream);
+
+        audioAnalyzerRef.current = analyzer;
+        anyEnabled = true;
+      } catch (err) {
+        console.log("Delivery-analysis mic access failed:", err);
+      }
+    }
+
+    if (videoEnabled) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+
+        const analyzer = createVideoDeliveryAnalyzer();
+        await analyzer.start(stream);
+
+        videoAnalyzerRef.current = analyzer;
+        setWebcamStream(stream);
+        anyEnabled = true;
+      } catch (err) {
+        console.log("Delivery-analysis camera access failed:", err);
+      }
+    }
+
+    if (anyEnabled) {
+      setCalibrating(true);
+
+      await Promise.all(
+        [audioAnalyzerRef.current, videoAnalyzerRef.current]
+          .filter(Boolean)
+          .map((analyzer) => analyzer.calibrate(CALIBRATION_MS))
+      );
+
+      setCalibrating(false);
+    }
+
+    setDeliveryConsent(anyEnabled);
+  };
+
+  const handleDeclineDelivery = () => {
+    setDeliveryConsent(false);
+  };
+
+  const handleRecordingStateChange = (isActive) => {
+    audioAnalyzerRef.current?.setActive(isActive);
+  };
+
+  // Called once, synchronously, right as the user clicks Submit (see
+  // AnswerBox.handleSubmit) - snapshots signals for this answer, then
+  // stops audio tracking so any time spent AFTER submitting never
+  // leaks into the next question's counters. isCoding excludes audio
+  // entirely: while writing code the candidate isn't expected to be
+  // talking continuously, so pause/pitch signals would just be noise
+  // (a real gap while coding gets misread as a "long pause").
+  const getDeliverySignals = (isCoding) => {
+    if (!deliveryConsent) return null;
+
+    const audioSignals = isCoding
+      ? undefined
+      : audioAnalyzerRef.current?.getSignalsSinceReset();
+    const videoSignals = videoAnalyzerRef.current?.getSignalsSinceReset();
+
+    audioAnalyzerRef.current?.setActive(false);
+
+    if (!audioSignals && !videoSignals) return null;
+
+    return { ...audioSignals, ...videoSignals };
+  };
+
   if (loading) {
     return <div className="page-loading">Loading interview…</div>;
   }
@@ -90,6 +205,11 @@ function InterviewSessionPage() {
   if (error) {
     return <div className="page-error">{error}</div>;
   }
+
+  // True the instant the consent/calibration gate resolves either way
+  // (declined outright, or calibration finished after accepting) -
+  // questions should never be spoken aloud while that overlay is up.
+  const interviewReady = deliveryConsent !== null && !calibrating;
 
   const currentQuestion =
     session.questions[currentQuestionIndex];
@@ -120,6 +240,9 @@ function InterviewSessionPage() {
       feedback: response.feedback,
       strengths: response.strengths,
       improvements: response.improvements,
+      deliveryFeedback: response.delivery_feedback,
+      modelAnswer: response.model_answer,
+      deliverySignals: response.delivery_signals,
     },
   }));
 
@@ -184,7 +307,7 @@ const handleNext = () => {
   }
 };
 
-const handleFinishInterview = () => {
+const handleFinishInterview = async () => {
   const unanswered =
     session.questions.length -
     answeredQuestions.size;
@@ -195,6 +318,15 @@ const handleFinishInterview = () => {
     );
 
     if (!confirmFinish) return;
+  }
+
+  try {
+    await finishInterviewSession(sessionId, token);
+  } catch (err) {
+    // Fail-soft - a network hiccup here shouldn't block the user from
+    // seeing their results; worst case the results page later shows
+    // the "not finished" warning if this never actually landed.
+    console.log("Failed to mark interview as finished:", err);
   }
 
   navigate(`/results/${sessionId}`, {
@@ -212,6 +344,19 @@ const isLastQuestion = currentQuestionIndex === session.questions.length - 1;
 
 return (
   <div className="workspace">
+    {deliveryConsent === null && !calibrating && (
+      <DeliveryConsentModal
+        onContinue={handleContinueDelivery}
+        onDecline={handleDeclineDelivery}
+      />
+    )}
+
+    {calibrating && (
+      <DeliveryCalibrationScreen durationMs={CALIBRATION_MS} />
+    )}
+
+    <WebcamMonitor stream={webcamStream} />
+
     <header className="workspace-topbar">
       <Link to="/dashboard" className="workspace-topbar__brand">
         <BrandLogo />
@@ -249,6 +394,7 @@ return (
       <QuestionCard
         questionText={currentQuestion.question_text}
         isFollowUp={currentQuestion.is_follow_up}
+        ttsEnabled={interviewReady}
       />
 
       <AnswerBox
@@ -259,6 +405,8 @@ return (
         disabled={answeredQuestions.has(currentQuestion.id)}
         onAnswerSubmitted={handleAnswerSubmitted}
         onSubmittingChange={setIsSubmittingAnswer}
+        getDeliverySignals={getDeliverySignals}
+        onRecordingStateChange={handleRecordingStateChange}
       />
 
       {currentFeedback && (

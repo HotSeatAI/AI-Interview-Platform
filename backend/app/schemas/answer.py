@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import Any, Dict, List
 from typing import Optional
 
 from pydantic import BaseModel
@@ -15,6 +15,11 @@ class AnswerCreate(BaseModel):
     # column, via Alembic) once nothing relies on it.
     typed_text: Optional[str] = None
     code: Optional[str] = None
+
+    # Numeric-only delivery/body-language signals computed client-side
+    # from raw audio/video (pause counts, eye-contact %, etc) - must
+    # NEVER contain transcript text. See Answer.delivery_signals.
+    delivery_signals: Optional[Dict[str, Any]] = None
 
 
 class FollowUpQuestionResponse(BaseModel):
@@ -35,6 +40,9 @@ class AnswerResponse(BaseModel):
     has_follow_up: bool
     follow_up: Optional[FollowUpQuestionResponse] = None
 
+    delivery_feedback: Optional[str] = None
+    model_answer: Optional[str] = None
+
 
 class AnswerDetail(BaseModel):
     id: int
@@ -50,6 +58,9 @@ class AnswerDetail(BaseModel):
     feedback: str
     strengths: List[str]
     improvements: List[str]
+
+    delivery_signals: Optional[Dict[str, Any]] = None
+    delivery_feedback: Optional[str] = None
 
     created_at: datetime
 
@@ -69,3 +80,4 @@ class SessionResultsResponse(BaseModel):
     strong_topics: List[str]
     weak_topics: List[str]
     skipped_questions: List[SkippedQuestionInfo] = []
+    is_finished: bool = False

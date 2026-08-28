@@ -74,6 +74,26 @@ class Answer(Base):
         nullable=False
     )
 
+    # Delivery/body-language signals - numeric only (pause counts,
+    # eye-contact percentage, etc), computed client-side from raw
+    # audio/video characteristics. Deliberately NEVER derived from
+    # or containing transcript text - see delivery_feedback_prompt.py
+    # for why (a past bug let mis-transcribed accented speech poison
+    # technical-correctness scoring; this column and the prompt that
+    # reads it must never repeat that by mixing in transcript content).
+    delivery_signals = Column(
+        JSON,
+        nullable=True
+    )
+
+    # Plain-language coaching generated from delivery_signals alone
+    # (see ai_service.generate_delivery_feedback) - persisted here so
+    # GET /answer/{id} doesn't need to regenerate it.
+    delivery_feedback = Column(
+        Text,
+        nullable=True
+    )
+
     created_at = Column(
         DateTime,
         default=datetime.utcnow
