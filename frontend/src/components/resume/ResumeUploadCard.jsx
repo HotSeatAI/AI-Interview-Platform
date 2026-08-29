@@ -351,7 +351,9 @@ function ResumeUploadCard() {
               </p>
             )}
 
-            {analysisError && <p className="error-text">{analysisError}</p>}
+            {analysisError && (
+              <p className="error-text">{analysisError}</p>
+            )}
 
             <button
               type="button"
