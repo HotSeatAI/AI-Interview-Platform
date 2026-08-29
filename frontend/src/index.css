@@ -1535,6 +1535,148 @@ textarea::placeholder {
   align-self: stretch;
 }
 
+.activity-heatmap {
+  background: var(--char-raised);
+  border: 1px solid var(--char-border);
+  border-radius: 16px;
+  padding: 24px;
+  margin: 24px 0;
+}
+
+.activity-heatmap__title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  margin: 4px 0 18px;
+  color: var(--char-text);
+}
+
+.activity-heatmap__scroll {
+  overflow-x: auto;
+  /* overflow-x: auto forces overflow-y to auto too (per the CSS
+     overflow spec), and also clips horizontally at the scrollable
+     content's edges - this padding gives the hover tooltip room on
+     all sides without getting clipped by either. */
+  padding: 32px 70px 8px;
+  margin: -32px -70px -8px;
+}
+
+.activity-heatmap__body {
+  display: flex;
+  gap: 8px;
+  width: fit-content;
+}
+
+.activity-heatmap__day-labels {
+  display: grid;
+  grid-template-rows: repeat(7, 12px);
+  gap: 3px;
+  margin-top: 20px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--char-text-soft);
+}
+
+.activity-heatmap__main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.activity-heatmap__months {
+  display: grid;
+  grid-template-columns: repeat(53, 12px);
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--char-text-soft);
+  height: 14px;
+}
+
+/* Each week is its own 7-cell column (see .activity-heatmap__week) -
+   this just lays those 53 week-columns out side by side. It must NOT
+   be a grid itself: nesting grid-in-grid here previously fought with
+   each week's own row template and scrambled the whole layout. */
+.activity-heatmap__grid {
+  display: flex;
+  gap: 3px;
+}
+
+.activity-heatmap__week {
+  display: grid;
+  grid-template-rows: repeat(7, 12px);
+  gap: 3px;
+}
+
+.activity-heatmap__cell {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--char-elevated);
+}
+
+.activity-heatmap__cell--empty {
+  background: transparent;
+}
+
+.activity-heatmap__cell[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--char-deeper);
+  color: var(--char-text);
+  border: 1px solid var(--char-border);
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 30;
+  box-shadow: 0 4px 12px oklch(0.1 0.01 45 / 0.35);
+}
+
+.activity-heatmap__cell[data-tooltip]:hover::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--char-deeper);
+  z-index: 30;
+}
+
+.activity-heatmap__cell--1 {
+  background: var(--green-soft);
+}
+
+.activity-heatmap__cell--2 {
+  background: color-mix(in oklch, var(--green) 45%, var(--char-elevated));
+}
+
+.activity-heatmap__cell--3 {
+  background: color-mix(in oklch, var(--green) 75%, var(--char-elevated));
+}
+
+.activity-heatmap__cell--4 {
+  background: var(--green);
+}
+
+.activity-heatmap__legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--char-text-soft);
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(280px, 2fr) minmax(220px, 1fr);
@@ -2298,6 +2440,28 @@ textarea::placeholder {
   white-space: pre-wrap;
 }
 
+.question-card__header {
+  min-height: 20px;
+  margin-bottom: 4px;
+}
+
+.question-card__voice-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.question-card__voice-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--char-text-soft);
+  cursor: pointer;
+}
+
 .answer-card {
   display: flex;
   flex-direction: column;
@@ -2613,6 +2777,24 @@ textarea::placeholder {
   margin-bottom: 8px;
 }
 
+.prev-feedback__delivery {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--char-border);
+}
+
+.prev-feedback__model-answer {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-soft-strong);
+}
+
+.prev-feedback__model-answer .prev-feedback__body {
+  color: var(--char-text);
+}
+
 .prev-feedback__list {
   margin: 0;
   padding-left: 18px;
@@ -2661,6 +2843,79 @@ textarea::placeholder {
   display: flex;
   flex-direction: column;
   gap: 28px;
+}
+
+.topics-page {
+  min-height: 100vh;
+  background: var(--char);
+  color: var(--char-text);
+}
+
+.topics-container {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: clamp(28px, 4vw, 48px) clamp(20px, 4vw, 24px) 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.topics-progress {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: var(--char-raised);
+  border: 1px solid var(--char-border);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.topics-progress__circle {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topics-progress__circle-inner {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: var(--char-raised);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--char-text);
+}
+
+.topics-progress__caption {
+  font-size: 14px;
+  color: var(--char-text);
+}
+
+.topics-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--char-raised);
+  border: 1px solid var(--char-border);
+  border-radius: 8px;
+  padding: 18px 20px;
+}
+
+.topics-row__name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--char-text);
+  margin-bottom: 2px;
 }
 
 /* ============================================================
@@ -2793,6 +3048,70 @@ textarea::placeholder {
   gap: 16px;
 }
 
+.delivery-trend {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px 0;
+  border-top: 1px solid var(--char-border);
+  border-bottom: 1px solid var(--char-border);
+}
+
+.delivery-trend__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.delivery-trend__label {
+  width: 130px;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--char-text-soft);
+}
+
+.delivery-trend__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex: 1;
+}
+
+.delivery-trend__bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 36px;
+}
+
+.delivery-trend__bar-track {
+  height: 48px;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.delivery-trend__bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.2s ease;
+}
+
+.delivery-trend__bar--good {
+  background: var(--green);
+}
+
+.delivery-trend__bar--watch {
+  background: var(--accent);
+}
+
+.delivery-trend__bar-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--char-text-soft);
+}
+
 .results-question-row {
   display: flex;
   justify-content: space-between;
@@ -2847,6 +3166,26 @@ textarea::placeholder {
   color: var(--char-text-soft);
   margin: 0;
   line-height: 1.55;
+}
+
+.results-question-row__delivery {
+  font-size: 13px;
+  color: var(--char-text-soft);
+  margin: 6px 0 0;
+  padding-top: 6px;
+  border-top: 1px dashed var(--char-border);
+  line-height: 1.5;
+}
+
+.results-question-row__model-answer {
+  font-size: 13px;
+  color: var(--char-text);
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-soft-strong);
+  line-height: 1.5;
 }
 
 .results-question-row__score {
@@ -3563,4 +3902,112 @@ textarea::placeholder {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.webcam-monitor {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 160px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--char-border);
+  background: var(--char-deeper);
+  z-index: 100;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.webcam-monitor:active {
+  cursor: grabbing;
+}
+
+.webcam-monitor__video {
+  width: 100%;
+  display: block;
+  transform: scaleX(-1);
+}
+
+.webcam-monitor__badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: oklch(0.1 0.01 45 / 0.55);
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.delivery-consent-overlay {
+  position: fixed;
+  inset: 0;
+  background: oklch(0.1 0.01 45 / 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+/* Used for the "interview not finished" page (below Navbar, not a
+   full-viewport modal over other content) - a normal in-flow section
+   reusing the same card styling. */
+.delivery-consent-overlay--static {
+  position: static;
+  background: transparent;
+  min-height: 60vh;
+  padding: 60px 24px;
+}
+
+.delivery-consent-card {
+  background: var(--char-raised);
+  border: 1px solid var(--char-border);
+  border-radius: 16px;
+  max-width: 480px;
+  width: 100%;
+  padding: 32px;
+  color: var(--char-text);
+}
+
+.delivery-consent-card h2 {
+  margin: 0 0 16px;
+  font-family: var(--font-display);
+}
+
+.delivery-consent-card p {
+  color: var(--char-text-soft);
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+
+.delivery-consent-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--char-text);
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.delivery-calibration-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--char-elevated);
+  overflow: hidden;
+  margin-top: 20px;
+}
+
+.delivery-calibration-bar__fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.1s linear;
+}
+
+.delivery-consent-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  flex-wrap: wrap;
 }

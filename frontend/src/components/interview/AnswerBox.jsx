@@ -25,6 +25,8 @@ const AnswerBox = forwardRef(function AnswerBox(
     onAnswerSubmitted,
     onSubmittingChange,
     disabled = false,
+    getDeliverySignals,
+    onRecordingStateChange,
   },
   ref
 ) {
@@ -127,6 +129,8 @@ const AnswerBox = forwardRef(function AnswerBox(
       onSubmittingChange?.(true);
       setError("");
 
+      const deliverySignals = getDeliverySignals?.(isCoding) ?? null;
+
       const response = await submitAnswer(
         {
           question_id: questionId,
@@ -138,6 +142,7 @@ const AnswerBox = forwardRef(function AnswerBox(
           // ai_service.build_combined_answer), this field can be removed too.
           typed_text: "",
           code: code.trim(),
+          delivery_signals: deliverySignals,
         },
         token
       );
@@ -149,7 +154,11 @@ const AnswerBox = forwardRef(function AnswerBox(
       setExecutionStatus("idle");
       setSelectedLanguage(DEFAULT_LANGUAGE);
 
-      onAnswerSubmitted(response);
+      // The backend doesn't echo delivery_signals back - it already
+      // knows them from this same submission, so attach the numbers
+      // we just sent (not a re-fetch) for the session-level trend on
+      // the results page.
+      onAnswerSubmitted({ ...response, delivery_signals: deliverySignals });
 
     } catch (err) {
 
@@ -197,6 +206,7 @@ const AnswerBox = forwardRef(function AnswerBox(
         value={explanationText}
         onChange={setExplanationText}
         disabled={disabled}
+        onRecordingStateChange={onRecordingStateChange}
       />
 
       {isCoding && (

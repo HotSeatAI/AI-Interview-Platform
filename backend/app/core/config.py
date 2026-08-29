@@ -146,6 +146,19 @@ PLAN_CATALOG = {
         "tailoring_limit": 50,
         "razorpay_plan_id": os.getenv("RAZORPAY_PLAN_ID_MAX"),
     },
+    # Internal/comp plan - not sold, no razorpay_plan_id, so it can
+    # never be selected via the public /billing/create-subscription
+    # flow (that endpoint only accepts "starter"/"pro"/"max"). Only
+    # assignable via the admin panel's manual plan override. A very
+    # high finite cap rather than float("inf") - Infinity isn't
+    # valid JSON, so it would break the /billing/me and /admin/users
+    # responses that return these limits directly.
+    "unlimited": {
+        "price_inr": 0,
+        "interview_limit": 999999,
+        "tailoring_limit": 999999,
+        "razorpay_plan_id": None,
+    },
 }
 
 # -----------------------------

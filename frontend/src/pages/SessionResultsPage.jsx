@@ -4,6 +4,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { getSessionResults } from "../api/answerApi";
 import useAuth from "../hooks/useAuth";
 import Navbar from "../components/layout/Navbar.jsx";
+import DeliveryTrend from "../components/interview/DeliveryTrend.jsx";
 
 function SessionResultsPage() {
   const { sessionId } = useParams();
@@ -53,6 +54,35 @@ function SessionResultsPage() {
     );
   }
 
+  if (!results.is_finished) {
+    return (
+      <>
+        <Navbar />
+        <div className="delivery-consent-overlay delivery-consent-overlay--static">
+          <div className="delivery-consent-card">
+            <h2>Interview not finished yet</h2>
+            <p>
+              You haven&apos;t finished this interview yet. Finish the
+              remaining questions, or skip ahead to the last question and
+              click &quot;Finish Interview&quot;, to see your results.
+            </p>
+            <div className="delivery-consent-actions">
+              <Link className="button button--secondary" to="/dashboard">
+                Back to dashboard
+              </Link>
+              <Link
+                className="button button--primary"
+                to={`/interview/${sessionId}`}
+              >
+                Continue interview
+              </Link>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   const questionBreakdown = (navState.questions || [])
     .filter((question) => navState.feedbackMap?.[question.id])
     .map((question, index, answeredList) => {
@@ -68,8 +98,19 @@ function SessionResultsPage() {
         text: question.question_text,
         feedback: feedback.feedback,
         score: feedback.score,
+        deliveryFeedback: feedback.deliveryFeedback,
+        deliverySignals: feedback.deliverySignals,
+        modelAnswer: feedback.modelAnswer,
       };
     });
+
+  const deliveryTrendEntries = questionBreakdown
+    .filter((q) => q.deliverySignals)
+    .map((q) => ({
+      id: q.id,
+      label: q.tagLabel,
+      signals: q.deliverySignals,
+    }));
 
   return (
     <div className="results-page">
@@ -151,6 +192,10 @@ function SessionResultsPage() {
           </div>
         </div>
 
+        {deliveryTrendEntries.length > 1 && (
+          <DeliveryTrend entries={deliveryTrendEntries} />
+        )}
+
         {questionBreakdown.length > 0 && (
           <div className="results-questions">
             <div className="eyebrow">QUESTION-BY-QUESTION</div>
@@ -169,6 +214,16 @@ function SessionResultsPage() {
                     </div>
                     <p className="results-question-row__text">{q.text}</p>
                     <p className="results-question-row__feedback">{q.feedback}</p>
+                    {q.modelAnswer && (
+                      <p className="results-question-row__model-answer">
+                        {q.modelAnswer}
+                      </p>
+                    )}
+                    {q.deliveryFeedback && (
+                      <p className="results-question-row__delivery">
+                        {q.deliveryFeedback}
+                      </p>
+                    )}
                   </div>
                   <span className="results-question-row__score">{q.score}/10</span>
                 </div>

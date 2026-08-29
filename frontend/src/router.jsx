@@ -18,6 +18,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import PricingPage from "./pages/PricingPage";
+import TopicsPage from "./pages/TopicsPage";
 
 const router = createBrowserRouter([
   {
@@ -119,6 +120,15 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <SessionResultsPage />
+          </ProtectedRoute>
+        ),
+      },
+
+      {
+        path: "topics",
+        element: (
+          <ProtectedRoute>
+            <TopicsPage />
           </ProtectedRoute>
         ),
       },
