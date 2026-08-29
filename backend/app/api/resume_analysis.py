@@ -23,10 +23,6 @@ from app.models.user import User
 from app.services.job_description_parser import (
     JobDescriptionParser,
 )
-from app.services.quota_service import (
-    check_and_consume_quota,
-    refund_quota,
-)
 
 router = APIRouter(
     prefix="/resume-analysis",
@@ -92,8 +88,6 @@ async def start_resume_analysis(
     The heavy analysis runs in the background.
     """
 
-    check_and_consume_quota(db, current_user, "tailoring")
-
     # --------------------------------------------------------
     # Validate resume ownership
     # --------------------------------------------------------
@@ -109,8 +103,6 @@ async def start_resume_analysis(
 
     if not resume:
 
-        refund_quota(db, current_user, "tailoring")
-
         raise HTTPException(
             status_code=404,
             detail="Resume not found.",
@@ -124,8 +116,6 @@ async def start_resume_analysis(
         not job_description
         and not job_description_file
     ):
-
-        refund_quota(db, current_user, "tailoring")
 
         raise HTTPException(
             status_code=400,
@@ -154,8 +144,6 @@ async def start_resume_analysis(
         )
 
     except ValueError as exc:
-
-        refund_quota(db, current_user, "tailoring")
 
         raise HTTPException(
             status_code=400,

@@ -1,7 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import App from "./App";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
-import AdminRoute from "./components/layout/AdminRoute";
 
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
@@ -16,8 +15,6 @@ import SessionResultsPage from "./pages/SessionResultsPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
-import PricingPage from "./pages/PricingPage";
 import TopicsPage from "./pages/TopicsPage";
 
 const router = createBrowserRouter([
@@ -54,11 +51,6 @@ const router = createBrowserRouter([
       {
         path: "reset-password",
         element: <ResetPasswordPage />,
-      },
-
-      {
-        path: "pricing",
-        element: <PricingPage />,
       },
 
       {
@@ -130,15 +122,6 @@ const router = createBrowserRouter([
           <ProtectedRoute>
             <TopicsPage />
           </ProtectedRoute>
-        ),
-      },
-
-      {
-        path: "admin",
-        element: (
-          <AdminRoute>
-            <AdminDashboardPage />
-          </AdminRoute>
         ),
       },
     ],

@@ -7,7 +7,6 @@ const privateLinks = [
   { label: "Resume", to: "/resume" },
   { label: "Generate Interview", to: "/generate-interview" },
   { label: "History", to: "/history" },
-  { label: "Pricing", to: "/pricing" },
 ];
 
 function getInitials(name) {

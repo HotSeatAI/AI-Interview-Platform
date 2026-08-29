@@ -112,69 +112,6 @@ FRONTEND_URL = os.getenv(
 )
 
 # -----------------------------
-# Subscription plans
-# -----------------------------
-# Fixed, business-defined plans - not admin-editable yet, so a
-# hardcoded dict rather than a DB table. razorpay_plan_id values
-# come from Plans created once in the Razorpay Dashboard (recurring
-# monthly, matching price_inr) and pasted in via env vars so they
-# can differ between test/live Razorpay accounts without a code
-# change.
-
-PLAN_CATALOG = {
-    "free": {
-        "price_inr": 0,
-        "interview_limit": 1,
-        "tailoring_limit": 2,
-        "razorpay_plan_id": None,
-    },
-    "starter": {
-        "price_inr": 199,
-        "interview_limit": 3,
-        "tailoring_limit": 5,
-        "razorpay_plan_id": os.getenv("RAZORPAY_PLAN_ID_STARTER"),
-    },
-    "pro": {
-        "price_inr": 549,
-        "interview_limit": 10,
-        "tailoring_limit": 15,
-        "razorpay_plan_id": os.getenv("RAZORPAY_PLAN_ID_PRO"),
-    },
-    "max": {
-        "price_inr": 1299,
-        "interview_limit": 30,
-        "tailoring_limit": 50,
-        "razorpay_plan_id": os.getenv("RAZORPAY_PLAN_ID_MAX"),
-    },
-    # Internal/comp plan - not sold, no razorpay_plan_id, so it can
-    # never be selected via the public /billing/create-subscription
-    # flow (that endpoint only accepts "starter"/"pro"/"max"). Only
-    # assignable via the admin panel's manual plan override. A very
-    # high finite cap rather than float("inf") - Infinity isn't
-    # valid JSON, so it would break the /billing/me and /admin/users
-    # responses that return these limits directly.
-    "unlimited": {
-        "price_inr": 0,
-        "interview_limit": 999999,
-        "tailoring_limit": 999999,
-        "razorpay_plan_id": None,
-    },
-}
-
-# -----------------------------
-# Razorpay Configuration
-# -----------------------------
-# Optional at import time (like Langfuse) - billing.py checks
-# these are set before actually calling Razorpay, so a missing key
-# never blocks the rest of the app from starting.
-
-RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
-
-RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
-
-RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET")
-
-# -----------------------------
 # CORS Configuration
 # -----------------------------
 # Comma-separated list of allowed frontend origins. Defaults to

@@ -18,7 +18,6 @@ from app.services.api_key_manager import (
     clear_gemini_context,
     set_gemini_context,
 )
-from app.services.quota_service import check_and_consume_quota, refund_quota
 
 router = APIRouter(
     prefix="/topics",
@@ -83,8 +82,6 @@ def start_topic_practice(
             detail="Topic not found."
         )
 
-    check_and_consume_quota(db, current_user, "interview")
-
     # Session created before generation (same reasoning as
     # generate_questions - the id needs to exist in time to tag the
     # Gemini call, and a failed generation deletes the empty session
@@ -109,7 +106,6 @@ def start_topic_practice(
     except Exception as exc:
         db.delete(session)
         db.commit()
-        refund_quota(db, current_user, "interview")
         raise HTTPException(
             status_code=503,
             detail=(

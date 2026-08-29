@@ -126,9 +126,6 @@ function LandingPage() {
           <a href="#how-it-works" className="landing__nav-link">
             How it works
           </a>
-          <Link to="/pricing" className="landing__nav-link">
-            Pricing
-          </Link>
           <Link to="/login" className="landing__nav-link">
             Log in
           </Link>
