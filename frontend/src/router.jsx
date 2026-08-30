@@ -16,6 +16,7 @@ import VerifyEmailPage from "./pages/VerifyEmailPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import TopicsPage from "./pages/TopicsPage";
+import CompleteProfilePage from "./pages/CompleteProfilePage";
 
 const router = createBrowserRouter([
   {
@@ -51,6 +52,15 @@ const router = createBrowserRouter([
       {
         path: "reset-password",
         element: <ResetPasswordPage />,
+      },
+
+      {
+        path: "complete-profile",
+        element: (
+          <ProtectedRoute>
+            <CompleteProfilePage />
+          </ProtectedRoute>
+        ),
       },
 
       {

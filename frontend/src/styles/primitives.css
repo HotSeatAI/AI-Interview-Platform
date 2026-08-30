@@ -1,8 +1,7 @@
 /* ============================================================
    New shared UI primitives (Button, Card, Badge, ThemeToggle).
-   Prefixed "ui-" deliberately — the legacy .button/.card/.badge
-   classes elsewhere in index.css are used by out-of-scope pages
-   and reference frozen tokens; these must not collide with them.
+   Prefixed "ui-" deliberately so they don't collide with the
+   legacy .button/.card/.badge classes elsewhere in index.css.
    ============================================================ */
 
 .ui-btn {

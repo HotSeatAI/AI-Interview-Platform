@@ -76,6 +76,14 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    const savedToken = getToken();
+    if (!savedToken) return null;
+    const currentUser = await getMe(savedToken);
+    setUser(currentUser);
+    return currentUser;
+  };
+
   useEffect(() => {
     const initializeAuth = async () => {
       const savedToken = getToken();
@@ -113,6 +121,7 @@ export function AuthProvider({ children }) {
         signup,
         resendVerificationEmail,
         logout,
+        refreshUser,
       }}
     >
       {children}

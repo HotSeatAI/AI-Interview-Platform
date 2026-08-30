@@ -1,7 +1,10 @@
 from sqlalchemy import Boolean
 from sqlalchemy import Column
+from sqlalchemy import DateTime
+from sqlalchemy import Float
 from sqlalchemy import Integer
 from sqlalchemy import String
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship
 
 from app.database.database import Base
@@ -72,6 +75,29 @@ class User(Base):
         nullable=False,
         default=0
     )
+
+    # Post-login profile capture. Columns stay nullable at the DB
+    # level (existing rows have none of these); "mandatory" fields
+    # are enforced by the ProfileUpdate schema, not a DB constraint.
+    # profile_completed flips true once that schema has been
+    # satisfied once, via PUT /me/profile - it is what ProtectedRoute
+    # checks to force the complete-profile page on next login.
+    full_name = Column(String, nullable=True)
+    mobile_number = Column(String, nullable=True)
+    gender = Column(String, nullable=True)
+    institute_name = Column(String, nullable=True)
+    year_of_passout = Column(Integer, nullable=True)
+    job_domains = Column(ARRAY(String), nullable=True)
+    country = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    years_of_experience = Column(Float, nullable=True)
+    profile_completed = Column(Boolean, nullable=False, default=False)
+
+    # Terms & Conditions acceptance, gated the same way as
+    # profile_completed - required after the profile form, via
+    # PUT /me/accept-terms. See ProtectedRoute on the frontend.
+    terms_accepted = Column(Boolean, nullable=False, default=False)
+    terms_accepted_at = Column(DateTime, nullable=True)
 
     resumes = relationship(
         "Resume",

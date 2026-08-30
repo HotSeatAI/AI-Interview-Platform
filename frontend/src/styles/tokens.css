@@ -1,11 +1,11 @@
 /* ============================================================
-   Legacy tokens — frozen, unchanged from the original palette.
-   Out-of-scope pages (resume, interview, history, topics) and
-   shared primitives (.button, .section-header, .form-field,
-   .badge, etc. in index.css) reference these directly and must
-   keep rendering identically regardless of the theme toggle,
-   until those surfaces are migrated to the new token system in
-   a later phase.
+   Raw dark-palette tokens ("char") plus the raw light-palette
+   tokens ("paper") below. Nothing outside this file should
+   reference the char/paper tokens directly anymore — every
+   consumer goes through the theme-aware semantic tokens further down
+   (--bg/--surface/--text/etc.), which alias into these per
+   [data-theme]. Keep the raw values here so dark mode keeps
+   rendering byte-identical to the original app.
 
    --accent/--green/--red/--amber intentionally stay single,
    non-themed values rather than gaining a [data-theme="dark"]
@@ -48,17 +48,12 @@
 }
 
 /* ============================================================
-   New semantic tokens — theme-aware, used only by the flagship
-   surfaces being redesigned (Navbar, Landing, Auth, Dashboard)
-   plus any future migrated page. Light values alias the legacy
-   "paper/ink" palette above (already a light palette, just
-   previously only used for cards embedded in the dark app); dark
-   values alias the legacy "char" palette, so dark mode renders
-   byte-identical to today's app. --border-default exists
-   separately from legacy --border specifically because --border
-   is also referenced by out-of-scope embedded "paper" cards and
-   must NOT flip with the theme toggle — --border-default is the
-   one flagship CSS should use when a border needs to track theme.
+   Semantic tokens — theme-aware, used by every page's CSS. Light
+   values alias the "paper/ink" palette above; dark values alias
+   the "char" palette, so dark mode renders byte-identical to the
+   original app. All page CSS should reference these (--bg,
+   --surface, --text, --border-default, ...) rather than the raw
+   char/paper tokens directly.
    ============================================================ */
 :root {
   --bg: var(--paper);
@@ -101,15 +96,19 @@
   --z-modal: 40;
   --z-toast: 50;
 
-  /* Auth left brand panel — intentionally theme-invariant (no
-     [data-theme="dark"] override below). It hosts a translucent
-     preview-card overlay tuned for a dark background; flipping it
-     per-theme would break that overlay's contrast. Same category
-     of decision as BrandLogo's hardcoded white logo chip. */
-  --auth-panel-bg: oklch(0.15 0.012 45);
-  --auth-panel-text: oklch(0.95 0.006 70);
-  --auth-panel-text-soft: oklch(0.72 0.012 60);
-  --auth-panel-border: oklch(0.28 0.014 45);
+  /* Auth left brand panel — theme-aware. The preview-card overlay
+     inside it uses a currentColor-based tint (see .auth-preview-card
+     in index.css) rather than a fixed white, so it keeps working
+     against either a light or dark panel background. */
+  --auth-panel-bg: var(--surface-elevated);
+  --auth-panel-text: var(--text);
+  --auth-panel-text-soft: var(--text-soft);
+  --auth-panel-border: var(--border-default);
+
+  /* Translucent sticky-bar backdrop (interview workspace top/action
+     bars). Light value is the paper surface at matching opacity. */
+  --scrim: oklch(0.995 0.004 70 / 0.94);
+  --scrim-strong: oklch(0.995 0.004 70 / 0.95);
 }
 
 [data-theme="dark"] {
@@ -128,6 +127,14 @@
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
   --shadow-md: 0 4px 16px oklch(0 0 0 / 0.4);
   --shadow-lg: 0 16px 40px oklch(0 0 0 / 0.5);
+
+  --scrim: oklch(0.16 0.011 45 / 0.94);
+  --scrim-strong: oklch(0.16 0.011 45 / 0.95);
+
+  --auth-panel-bg: oklch(0.15 0.012 45);
+  --auth-panel-text: oklch(0.95 0.006 70);
+  --auth-panel-text-soft: oklch(0.72 0.012 60);
+  --auth-panel-border: oklch(0.28 0.014 45);
 }
 
 /* Defensive fallback: only applies before any explicit data-theme
@@ -151,5 +158,13 @@
     --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
     --shadow-md: 0 4px 16px oklch(0 0 0 / 0.4);
     --shadow-lg: 0 16px 40px oklch(0 0 0 / 0.5);
+
+    --scrim: oklch(0.16 0.011 45 / 0.94);
+    --scrim-strong: oklch(0.16 0.011 45 / 0.95);
+
+    --auth-panel-bg: oklch(0.15 0.012 45);
+    --auth-panel-text: oklch(0.95 0.006 70);
+    --auth-panel-text-soft: oklch(0.72 0.012 60);
+    --auth-panel-border: oklch(0.28 0.014 45);
   }
 }

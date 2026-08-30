@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import BrandLogo from "../components/layout/BrandLogo";
 import Button from "../components/ui/Button";
+import ThemeToggle from "../components/layout/ThemeToggle";
 
 const FEATURES = [
   {
@@ -133,6 +134,7 @@ function LandingPage() {
           <Button to="/signup" variant="primary" size="sm">
             Start practicing
           </Button>
+          <ThemeToggle />
         </nav>
       </header>
 

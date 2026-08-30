@@ -67,7 +67,7 @@ function TopicsPage() {
 
   const progressPct = data.progress_pct;
   const circleStyle = {
-    background: `conic-gradient(var(--green) ${progressPct * 3.6}deg, var(--char-elevated) 0deg)`,
+    background: `conic-gradient(var(--green) ${progressPct * 3.6}deg, var(--surface-elevated) 0deg)`,
   };
 
   return (
