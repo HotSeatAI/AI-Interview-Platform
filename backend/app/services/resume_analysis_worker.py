@@ -32,6 +32,9 @@ from app.services.embedding_service import (
 from app.services.resume_optimizer import (
     ResumeOptimizer,
 )
+from app.services.ats_scorer import (
+    ATSScorer,
+)
 from app.services.recommendation_engine import (
     RecommendationEngine,
 )
@@ -148,6 +151,14 @@ class ResumeAnalysisWorker:
 
                 analysis.overall_score = (
                     full_cache.overall_score
+                )
+
+                analysis.ats_score = (
+                    full_cache.ats_score
+                )
+
+                analysis.ats_report_json = (
+                    full_cache.ats_report_json
                 )
 
                 analysis.status = "completed"
@@ -442,6 +453,38 @@ class ResumeAnalysisWorker:
             )
 
             # =================================================
+            # STEP 6b — ATS Scoring
+            #
+            # Deterministic, LLM-free — reuses matching_report's
+            # overall_score and optimization_report's already-
+            # computed bullet_quality rather than recomputing
+            # anything via Gemini.
+            # =================================================
+
+            self._update_progress(
+                db,
+                analysis,
+                78,
+                "Scoring ATS compatibility",
+            )
+
+            ats_report = ATSScorer().score(
+                resume_text=resume.extracted_text,
+                pdf_path=resume.filepath,
+                resume_profile=resume_profile,
+                jd_match_score=matching_report.overall_score,
+                precomputed_bullet_quality=(
+                    optimization_report.bullet_quality
+                ),
+            )
+
+            analysis.ats_score = ats_report.ats_score
+
+            analysis.ats_report_json = (
+                ats_report.model_dump_json()
+            )
+
+            # =================================================
             # STEP 7 — Recommendations
             # =================================================
 
@@ -491,6 +534,10 @@ class ResumeAnalysisWorker:
 
                 "recommendation_report": (
                     recommendation_report.model_dump()
+                ),
+
+                "ats_report": (
+                    ats_report.model_dump()
                 ),
             }
 

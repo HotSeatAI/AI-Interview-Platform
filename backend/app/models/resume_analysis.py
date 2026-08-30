@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import (
     Column,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -68,6 +69,16 @@ class ResumeAnalysis(Base):
 
     overall_score = Column(
         Integer,
+        nullable=True,
+    )
+
+    ats_score = Column(
+        Float,
+        nullable=True,
+    )
+
+    ats_report_json = Column(
+        Text,
         nullable=True,
     )
 

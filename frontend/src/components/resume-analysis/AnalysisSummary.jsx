@@ -8,6 +8,7 @@ import {
 export default function AnalysisSummary({
   score,
   matchingReport,
+  atsReport,
 }) {
   const matches = matchingReport?.matches || [];
 
@@ -21,39 +22,42 @@ export default function AnalysisSummary({
       <MatchOverview
         score={score}
         matchingReport={matchingReport}
+        atsReport={atsReport}
       />
 
-      <div className="summary-panel">
+      {matchingReport && (
+        <div className="summary-panel">
 
-        <p className="summary-sentence">
-          {summarySentence}
-        </p>
+          <p className="summary-sentence">
+            {summarySentence}
+          </p>
 
-        <div className="summary-highlights">
+          <div className="summary-highlights">
 
-          <div className="summary-highlight summary-highlight--positive">
-            <span>Strongest area</span>
+            <div className="summary-highlight summary-highlight--positive">
+              <span>Strongest area</span>
 
-            <strong>
-              {strongestArea
-                ? strongestArea.requirement
-                : "Not yet established"}
-            </strong>
-          </div>
+              <strong>
+                {strongestArea
+                  ? strongestArea.requirement
+                  : "Not yet established"}
+              </strong>
+            </div>
 
-          <div className="summary-highlight summary-highlight--warning">
-            <span>Highest-priority area to review</span>
+            <div className="summary-highlight summary-highlight--warning">
+              <span>Highest-priority area to review</span>
 
-            <strong>
-              {priorityArea
-                ? priorityArea.requirement
-                : "You're in great shape — no urgent gaps found."}
-            </strong>
+              <strong>
+                {priorityArea
+                  ? priorityArea.requirement
+                  : "You're in great shape — no urgent gaps found."}
+              </strong>
+            </div>
+
           </div>
 
         </div>
-
-      </div>
+      )}
 
     </section>
   );

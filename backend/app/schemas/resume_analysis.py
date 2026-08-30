@@ -818,3 +818,117 @@ class RecommendationReport(BaseModel):
     high_priority_count: int = 0
 
     medium_priority_count: int = 0
+
+# ============================================================
+# ATS SCORE SCHEMAS
+# ============================================================
+
+class LayoutReport(BaseModel):
+    file_available: bool = True
+
+    page_count: int
+
+    multi_column: bool
+
+    has_tables: bool
+
+    content_in_header_footer: bool
+
+    was_ocr: bool
+
+    font_inconsistency: bool
+
+    narrow_margins: bool
+
+    image_heavy_content: bool
+
+    layout_score: float = Field(
+        ge=0,
+        le=100,
+    )
+
+    parseability_gate_triggered: bool
+
+    gate_reasons: list[str] = Field(
+        default_factory=list
+    )
+
+
+class StructureReport(BaseModel):
+    has_email: bool
+
+    has_phone: bool
+
+    found_sections: dict[str, bool] = Field(
+        default_factory=dict
+    )
+
+    unrecognized_headers: list[str] = Field(
+        default_factory=list
+    )
+
+    contact_score: float = Field(
+        ge=0,
+        le=100,
+    )
+
+    section_score: float = Field(
+        ge=0,
+        le=100,
+    )
+
+    completeness_score: float = Field(
+        ge=0,
+        le=100,
+    )
+
+
+class ATSFinding(BaseModel):
+    fix_type: Literal[
+        "layout",
+        "section",
+        "contact",
+        "bullet_quality",
+    ]
+
+    priority: Literal[
+        "critical",
+        "high",
+        "medium",
+        "low",
+    ]
+
+    message: str
+
+    original_text: str | None = None
+
+    suggested_text: str | None = None
+
+
+class ATSReport(BaseModel):
+    ats_score: float = Field(
+        ge=0,
+        le=100,
+    )
+
+    mode: Literal[
+        "standalone",
+        "jd_aware",
+    ]
+
+    layout_report: LayoutReport
+
+    structure_report: StructureReport
+
+    bullet_quality_avg: float = Field(
+        ge=0,
+        le=100,
+    )
+
+    jd_match_component: float | None = None
+
+    parseability_capped: bool = False
+
+    findings: list[ATSFinding] = Field(
+        default_factory=list
+    )
