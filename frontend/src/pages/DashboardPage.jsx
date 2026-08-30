@@ -5,6 +5,7 @@ import { getDashboard } from "../api/dashboardApi";
 import useAuth from "../hooks/useAuth";
 import Navbar from "../components/layout/Navbar.jsx";
 import ActivityHeatmap from "../components/dashboard/ActivityHeatmap.jsx";
+import Button from "../components/ui/Button.jsx";
 
 function DashboardPage() {
   const { token } = useAuth();
@@ -137,18 +138,16 @@ function DashboardPage() {
                   </span>
                 </div>
               </div>
-              <Link to="/history" className="button button--secondary">
+              <Button to="/history" variant="secondary">
                 View in history
-              </Link>
+              </Button>
             </div>
           ) : (
             <div className="dashboard-latest__card">
               <p className="dashboard-latest__empty">
                 No interviews yet — start your first session to see it here.
               </p>
-              <Link to="/generate-interview" className="button button--primary">
-                Generate an interview
-              </Link>
+              <Button to="/generate-interview">Generate an interview</Button>
             </div>
           )}
         </div>

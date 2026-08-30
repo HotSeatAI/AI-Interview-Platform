@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { forgotPassword } from "../../api/authApi";
+import Button from "../ui/Button";
 
 const GENERIC_SUCCESS_MESSAGE =
   "If an eligible account exists for this email, password reset instructions have been sent.";
@@ -37,9 +38,9 @@ function ForgotPasswordForm() {
       <div className="auth-form">
         <p className="success-text">{GENERIC_SUCCESS_MESSAGE}</p>
 
-        <Link to="/login" className="button button--primary button--lg button--wide">
+        <Button to="/login" fullWidth>
           Back to login
-        </Link>
+        </Button>
       </div>
     );
   }
@@ -60,13 +61,9 @@ function ForgotPasswordForm() {
 
       {error && <p className="error-text">{error}</p>}
 
-      <button
-        className="button button--primary button--lg button--wide"
-        type="submit"
-        disabled={loading}
-      >
+      <Button type="submit" fullWidth disabled={loading}>
         {loading ? "Sending..." : "Send Reset Link"}
-      </button>
+      </Button>
 
       <p className="auth-form-footer">
         Remembered your password? <Link to="/login">Log in</Link>

@@ -1,40 +1,9 @@
-/* ============================================================
-   Design tokens
-   ============================================================ */
+@import "./styles/tokens.css";
+@import "./styles/primitives.css";
 
 :root {
-  --char: oklch(0.16 0.011 45);
-  --char-raised: oklch(0.21 0.013 45);
-  --char-deeper: oklch(0.135 0.009 45);
-  --char-elevated: oklch(0.245 0.018 42);
-  --char-border: oklch(0.31 0.015 45);
-  --char-text: oklch(0.94 0.006 70);
-  --char-text-soft: oklch(0.66 0.011 60);
-
-  --paper: oklch(0.975 0.007 70);
-  --paper-raised: oklch(0.995 0.004 70);
-  --border: oklch(0.89 0.012 60);
-  --ink: oklch(0.24 0.02 50);
-  --ink-soft: oklch(0.48 0.02 55);
-
-  --accent: oklch(0.65 0.19 35);
-  --accent-dark: oklch(0.57 0.19 35);
-  --accent-soft: oklch(0.65 0.19 35 / 0.14);
-  --accent-soft-strong: oklch(0.65 0.19 35 / 0.3);
-
-  --green: oklch(0.62 0.135 150);
-  --green-soft: oklch(0.62 0.135 150 / 0.16);
-  --red: oklch(0.6 0.18 25);
-  --red-soft: oklch(0.6 0.18 25 / 0.14);
-  --amber: oklch(0.75 0.14 75);
-  --amber-soft: oklch(0.75 0.14 75 / 0.16);
-
-  --font-display: "Space Grotesk", "Inter", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
-
-  color: var(--char-text);
-  background: var(--char);
+  color: var(--text);
+  background: var(--bg);
   font-family: var(--font-body);
   font-synthesis: none;
   line-height: 1.5;
@@ -51,7 +20,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background: var(--char);
+  background: var(--bg);
 }
 
 button,
@@ -87,7 +56,7 @@ textarea::placeholder {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   font-family: var(--font-mono);
   font-size: 14px;
   letter-spacing: 0.04em;
@@ -217,7 +186,7 @@ textarea::placeholder {
   margin: 64px auto;
   padding: 28px;
   text-align: center;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   font-family: var(--font-mono);
   font-size: 14px;
 }
@@ -233,15 +202,14 @@ textarea::placeholder {
 .navbar {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: var(--z-sticky);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding: 16px clamp(20px, 5vw, 48px);
-  background: oklch(0.16 0.011 45 / 0.94);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--char-border);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .navbar__brand {
@@ -302,14 +270,14 @@ textarea::placeholder {
 .navbar__link {
   font-size: 14px;
   font-weight: 500;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   padding: 6px 2px;
   border-bottom: 2px solid transparent;
 }
 
 .navbar__link--active {
   font-weight: 600;
-  color: var(--char-text);
+  color: var(--text);
   border-bottom-color: var(--accent);
 }
 
@@ -324,29 +292,15 @@ textarea::placeholder {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--char-raised);
-  border: 1px solid var(--char-border);
-  color: var(--char-text);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  color: var(--text);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 600;
-}
-
-.navbar__logout {
-  border: 1px solid var(--char-border);
-  background: transparent;
-  color: var(--char-text);
-  font-size: 13.5px;
-  font-weight: 600;
-  padding: 7px 14px;
-  border-radius: 4px;
-}
-
-.navbar__logout:hover {
-  border-color: var(--char-text-soft);
 }
 
 @media (max-width: 760px) {
@@ -365,12 +319,12 @@ textarea::placeholder {
 }
 
 /* ============================================================
-   Landing page (public, dark "char" surface)
+   Landing page (public)
    ============================================================ */
 
 .landing {
-  background: var(--char);
-  color: var(--char-text);
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-body);
   min-height: 100vh;
 }
@@ -379,18 +333,26 @@ textarea::placeholder {
   background: oklch(0.64 0.19 35 / 0.25);
 }
 
+.landing .section-header h1,
+.landing .section-header h2 {
+  color: var(--text);
+}
+
+.landing .section-header p {
+  color: var(--text-soft);
+}
+
 .landing__nav {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: var(--z-dropdown);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding: 18px clamp(20px, 5vw, 64px);
-  background: oklch(0.16 0.011 45 / 0.86);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--char-border);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .landing__brand {
@@ -407,16 +369,7 @@ textarea::placeholder {
 .landing__nav-link {
   font-size: 14.5px;
   font-weight: 500;
-  color: var(--char-text-soft);
-}
-
-.landing__nav-cta {
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-  background: var(--accent);
-  padding: 10px 18px;
-  border-radius: 3px;
+  color: var(--text-soft);
 }
 
 .landing__hero {
@@ -442,10 +395,10 @@ textarea::placeholder {
 .landing__headline {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: clamp(36px, 5.2vw, 64px);
+  font-size: clamp(40px, 6vw, 76px);
   line-height: 1.05;
-  letter-spacing: -0.02em;
-  color: var(--char-text);
+  letter-spacing: -0.025em;
+  color: var(--text);
   margin: 0;
   text-wrap: balance;
 }
@@ -453,7 +406,7 @@ textarea::placeholder {
 .landing__sub {
   font-size: clamp(16px, 1.6vw, 18px);
   line-height: 1.6;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   max-width: 520px;
   margin: 0;
   text-wrap: pretty;
@@ -466,35 +419,16 @@ textarea::placeholder {
   margin-top: 6px;
 }
 
-.landing__cta-primary {
-  font-weight: 600;
-  font-size: 15.5px;
-  color: #fff;
-  background: var(--accent);
-  padding: 14px 26px;
-  border-radius: 3px;
-}
-
-.landing__cta-primary--large {
+.landing__cta--large {
+  height: 54px;
+  padding: 0 var(--space-8);
   font-size: 16px;
-  padding: 16px 32px;
-  margin-top: 8px;
-}
-
-.landing__cta-secondary {
-  font-weight: 600;
-  font-size: 15.5px;
-  color: var(--char-text);
-  background: transparent;
-  border: 1px solid var(--char-border);
-  padding: 13px 26px;
-  border-radius: 3px;
 }
 
 .landing__meta {
   font-family: var(--font-mono);
   font-size: 12.5px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   letter-spacing: 0.02em;
   margin-top: 4px;
 }
@@ -504,11 +438,11 @@ textarea::placeholder {
 }
 
 .mock-window {
-  background: var(--char);
-  border: 1px solid var(--char-border);
-  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  box-shadow: 0 30px 60px -20px oklch(0.2 0.02 40 / 0.35);
+  box-shadow: var(--shadow-lg);
 }
 
 .mock-topbar {
@@ -516,7 +450,7 @@ textarea::placeholder {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  border-bottom: 1px solid var(--char-border);
+  border-bottom: 1px solid var(--border-default);
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -530,14 +464,14 @@ textarea::placeholder {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--char-border);
+  background: var(--border-strong);
   display: inline-block;
 }
 
 .mock-label {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   letter-spacing: 0.05em;
 }
 
@@ -560,13 +494,13 @@ textarea::placeholder {
   font-family: var(--font-display);
   font-size: 17px;
   line-height: 1.45;
-  color: var(--char-text);
+  color: var(--text);
   margin: 0;
 }
 
 .mock-editor {
-  background: oklch(0.14 0.01 45);
-  border: 1px solid var(--char-border);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
   border-radius: 5px;
   overflow: hidden;
 }
@@ -575,13 +509,13 @@ textarea::placeholder {
   display: flex;
   justify-content: space-between;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--char-border);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .mock-editor__lang {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
 }
 
 .mock-editor__run {
@@ -594,13 +528,13 @@ textarea::placeholder {
 .mock-code-line {
   font-family: var(--font-mono);
   font-size: 12.5px;
-  color: var(--char-text);
+  color: var(--text);
   padding: 2px 12px;
   white-space: pre;
 }
 
 .mock-code-num {
-  color: var(--char-text-soft);
+  color: var(--text-soft);
 }
 
 .mock-code-accent {
@@ -618,9 +552,9 @@ textarea::placeholder {
 .mock-score-pill {
   font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--char-text);
-  background: var(--char-raised);
-  border: 1px solid var(--char-border);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-default);
   padding: 6px 12px;
   border-radius: 999px;
 }
@@ -679,7 +613,7 @@ textarea::placeholder {
 .feature-row__num {
   font-family: var(--font-mono);
   font-size: 13px;
-  color: var(--accent);
+  color: var(--border-strong);
   font-weight: 600;
   align-self: start;
   padding-top: 6px;
@@ -696,7 +630,7 @@ textarea::placeholder {
   font-family: var(--font-display);
   font-size: 24px;
   font-weight: 600;
-  color: var(--char-text);
+  color: var(--text);
   margin: 0;
   line-height: 1.25;
 }
@@ -704,7 +638,7 @@ textarea::placeholder {
 .feature-row__text p {
   font-size: 15.5px;
   line-height: 1.65;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   margin: 0;
   max-width: 440px;
   text-wrap: pretty;
@@ -715,19 +649,20 @@ textarea::placeholder {
 }
 
 .mini-card {
-  background: var(--char-raised);
-  border: 1px solid var(--char-border);
-  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   padding: 22px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  box-shadow: var(--shadow-sm);
 }
 
 .mini-card__label {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   letter-spacing: 0.06em;
 }
 
@@ -740,7 +675,7 @@ textarea::placeholder {
 .mini-tag {
   font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--char-text);
+  color: var(--text);
   background: var(--accent-soft);
   padding: 5px 10px;
   border-radius: 4px;
@@ -749,13 +684,13 @@ textarea::placeholder {
 .mini-card__arrow {
   font-family: var(--font-mono);
   font-size: 11.5px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
 }
 
 .mini-card__question {
   font-family: var(--font-display);
   font-size: 15.5px;
-  color: var(--char-text);
+  color: var(--text);
   margin: 0;
   line-height: 1.4;
 }
@@ -775,8 +710,8 @@ textarea::placeholder {
 }
 
 .follow-node--primary {
-  color: var(--char-text-soft);
-  border: 1px solid var(--char-border);
+  color: var(--text-soft);
+  border: 1px solid var(--border-default);
 }
 
 .follow-node--followup {
@@ -788,7 +723,7 @@ textarea::placeholder {
 .follow-line {
   width: 24px;
   height: 1px;
-  background: var(--char-border);
+  background: var(--border-default);
 }
 
 .mini-card__modes {
@@ -810,9 +745,9 @@ textarea::placeholder {
   display: flex;
   justify-content: space-between;
   font-size: 14px;
-  color: var(--char-text);
+  color: var(--text);
   padding: 4px 0;
-  border-bottom: 1px solid var(--char-border);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .mini-history-score {
@@ -831,13 +766,13 @@ textarea::placeholder {
   font-family: var(--font-display);
   font-size: 32px;
   font-weight: 700;
-  color: var(--char-text);
+  color: var(--text);
 }
 
 .mini-card__match-label {
   font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   letter-spacing: 0.04em;
 }
 
@@ -852,7 +787,7 @@ textarea::placeholder {
   justify-content: space-between;
   align-items: center;
   font-size: 13.5px;
-  color: var(--char-text);
+  color: var(--text);
   gap: 10px;
 }
 
@@ -876,7 +811,7 @@ textarea::placeholder {
 }
 
 .landing__how {
-  background: var(--char-deeper);
+  background: var(--surface-sunken);
   padding: clamp(56px, 7vw, 96px) clamp(20px, 5vw, 64px);
 }
 
@@ -889,7 +824,7 @@ textarea::placeholder {
   font-weight: 600;
   font-size: clamp(28px, 3.4vw, 40px);
   line-height: 1.15;
-  color: var(--char-text);
+  color: var(--text);
   margin: 0;
   text-wrap: balance;
 }
@@ -904,12 +839,13 @@ textarea::placeholder {
 
 .step-card {
   padding: 28px 24px;
-  background: var(--char-raised);
-  border: 1px solid var(--char-border);
-  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
   gap: 14px;
+  box-shadow: var(--shadow-sm);
 }
 
 .step-card__num {
@@ -924,14 +860,14 @@ textarea::placeholder {
   font-family: var(--font-display);
   font-size: 18px;
   font-weight: 600;
-  color: var(--char-text);
+  color: var(--text);
   margin: 0;
   line-height: 1.3;
 }
 
 .step-card p {
   font-size: 14.5px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   margin: 0;
   line-height: 1.55;
 }
@@ -951,16 +887,20 @@ textarea::placeholder {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: clamp(30px, 4vw, 48px);
-  color: var(--char-text);
+  color: var(--text);
   margin: 0;
   letter-spacing: -0.01em;
 }
 
 .landing__final-cta p {
   font-size: 16.5px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   margin: 0;
   max-width: 480px;
+}
+
+.landing__final-cta .landing__cta--large {
+  margin-top: 8px;
 }
 
 .landing__footer {
@@ -970,7 +910,7 @@ textarea::placeholder {
   flex-wrap: wrap;
   gap: 10px;
   padding: 28px clamp(20px, 5vw, 64px);
-  border-top: 1px solid var(--char-border);
+  border-top: 1px solid var(--border-default);
 }
 
 .landing__footer-brand {
@@ -980,7 +920,7 @@ textarea::placeholder {
 .landing__footer-copy {
   font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
 }
 
 @media (max-width: 760px) {
@@ -1062,11 +1002,11 @@ textarea::placeholder {
   display: grid;
   grid-template-columns: minmax(280px, 0.85fr) minmax(320px, 1.15fr);
   min-height: 100vh;
-  background: var(--char);
+  background: var(--bg);
 }
 
 .auth-screen__left {
-  background: var(--char-deeper);
+  background: var(--auth-panel-bg);
   padding: clamp(28px, 4vw, 56px);
   display: flex;
   flex-direction: column;
@@ -1090,7 +1030,7 @@ textarea::placeholder {
   font-weight: 700;
   font-size: clamp(28px, 3.4vw, 40px);
   line-height: 1.15;
-  color: var(--char-text);
+  color: var(--auth-panel-text);
   margin: 0;
   text-wrap: balance;
 }
@@ -1098,14 +1038,14 @@ textarea::placeholder {
 .auth-screen__body {
   font-size: 15.5px;
   line-height: 1.6;
-  color: var(--char-text-soft);
+  color: var(--auth-panel-text-soft);
   margin: 0;
 }
 
 .auth-screen__left-meta {
   font-family: var(--font-mono);
   font-size: 11.5px;
-  color: var(--char-text-soft);
+  color: var(--auth-panel-text-soft);
   letter-spacing: 0.05em;
 }
 
@@ -1113,8 +1053,8 @@ textarea::placeholder {
   margin-top: 8px;
   padding: 18px;
   border-radius: 6px;
-  background: var(--char-raised);
-  border: 1px solid var(--char-border);
+  background: oklch(1 0 0 / 0.06);
+  border: 1px solid var(--auth-panel-border);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1130,7 +1070,7 @@ textarea::placeholder {
   font-family: var(--font-display);
   font-size: 15px;
   font-weight: 600;
-  color: var(--char-text);
+  color: var(--auth-panel-text);
 }
 
 .auth-preview-card__score {
@@ -1149,7 +1089,7 @@ textarea::placeholder {
   width: 16px;
   height: 5px;
   border-radius: 3px;
-  background: var(--char-border);
+  background: var(--auth-panel-border);
   display: inline-block;
 }
 
@@ -1160,7 +1100,7 @@ textarea::placeholder {
 .auth-preview-card__meta {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--char-text-soft);
+  color: var(--auth-panel-text-soft);
   letter-spacing: 0.02em;
 }
 
@@ -1176,7 +1116,7 @@ textarea::placeholder {
   align-items: center;
   gap: 10px;
   font-size: 12.5px;
-  color: var(--char-text);
+  color: var(--auth-panel-text);
 }
 
 .auth-badge {
@@ -1198,11 +1138,18 @@ textarea::placeholder {
 }
 
 .auth-screen__right {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: clamp(28px, 5vw, 64px) clamp(20px, 4vw, 48px);
-  background: var(--char);
+  background: var(--bg);
+}
+
+.auth-screen__theme-toggle {
+  position: absolute;
+  top: clamp(16px, 3vw, 28px);
+  right: clamp(16px, 3vw, 28px);
 }
 
 .auth-form-col {
@@ -1221,14 +1168,14 @@ textarea::placeholder {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: clamp(26px, 3vw, 32px);
-  color: var(--char-text);
+  color: var(--text);
   margin: 0;
   letter-spacing: -0.01em;
 }
 
 .auth-form-col__sub {
   font-size: 15px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   margin: 8px 0 24px;
   line-height: 1.5;
 }
@@ -1237,6 +1184,23 @@ textarea::placeholder {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.auth-screen .form-field > span {
+  color: var(--text);
+}
+
+.auth-screen .form-field input,
+.auth-screen .form-field select,
+.auth-screen .form-field textarea {
+  border-color: var(--border-default);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+}
+
+.auth-screen .form-hint {
+  color: var(--text-soft);
 }
 
 .button--lg {
@@ -1253,13 +1217,13 @@ textarea::placeholder {
 .auth-divider__line {
   flex: 1;
   height: 1px;
-  background: var(--char-border);
+  background: var(--border-default);
 }
 
 .auth-divider__text {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   letter-spacing: 0.06em;
 }
 
@@ -1272,7 +1236,7 @@ textarea::placeholder {
 
 .auth-form-footer {
   font-size: 14px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   margin-top: 18px;
   text-align: center;
 }
@@ -1312,7 +1276,7 @@ textarea::placeholder {
 
 .auth-alert__text {
   font-size: 13.5px;
-  color: var(--char-text);
+  color: var(--text);
   margin: 0;
 }
 
@@ -1429,6 +1393,23 @@ textarea::placeholder {
   line-height: 1.55;
 }
 
+/* ResetPasswordForm reuses .verify-card for its invalid-link/
+   success states — scoped override so it matches the new
+   light-default auth screen instead of the frozen dark styling
+   VerifyEmailPage (out of scope this pass) still uses. */
+.auth-screen .verify-card {
+  background: var(--surface);
+  border-color: var(--border-default);
+}
+
+.auth-screen .verify-card__title {
+  color: var(--text);
+}
+
+.auth-screen .verify-card__body {
+  color: var(--text-soft);
+}
+
 /* ============================================================
    Shared authenticated page shell
    ============================================================ */
@@ -1449,8 +1430,8 @@ textarea::placeholder {
 
 .dashboard-page {
   min-height: 100vh;
-  background: var(--char);
-  color: var(--char-text);
+  background: var(--bg);
+  color: var(--text);
 }
 
 .dashboard-container {
@@ -1473,25 +1454,26 @@ textarea::placeholder {
   font-size: clamp(26px, 3.2vw, 34px);
   font-weight: 700;
   margin: 0;
-  color: var(--char-text);
+  color: var(--text);
   letter-spacing: -0.01em;
 }
 
 .dashboard-email {
   font-size: 14.5px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   margin: 0;
 }
 
 .stats-strip {
   display: flex;
   align-items: stretch;
-  background: var(--char-raised);
-  border: 1px solid var(--char-border);
-  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   padding: 18px 24px;
   flex-wrap: wrap;
   gap: 20px;
+  box-shadow: var(--shadow-sm);
 }
 
 .stats-strip__cell {
@@ -1510,7 +1492,7 @@ textarea::placeholder {
   font-family: var(--font-display);
   font-size: 28px;
   font-weight: 700;
-  color: var(--char-text);
+  color: var(--text);
 }
 
 .stats-strip__value--small {
@@ -1525,29 +1507,30 @@ textarea::placeholder {
   font-family: var(--font-mono);
   font-size: 10.5px;
   font-weight: 600;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   letter-spacing: 0.06em;
 }
 
 .stats-strip__divider {
   width: 1px;
-  background: var(--char-border);
+  background: var(--border-default);
   align-self: stretch;
 }
 
 .activity-heatmap {
-  background: var(--char-raised);
-  border: 1px solid var(--char-border);
-  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   padding: 24px;
   margin: 24px 0;
+  box-shadow: var(--shadow-sm);
 }
 
 .activity-heatmap__title {
   font-family: var(--font-display);
   font-size: 17px;
   margin: 4px 0 18px;
-  color: var(--char-text);
+  color: var(--text);
 }
 
 .activity-heatmap__scroll {
@@ -1573,7 +1556,7 @@ textarea::placeholder {
   margin-top: 20px;
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
 }
 
 .activity-heatmap__main {
@@ -1588,7 +1571,7 @@ textarea::placeholder {
   gap: 3px;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   height: 14px;
 }
 
@@ -1612,7 +1595,7 @@ textarea::placeholder {
   width: 12px;
   height: 12px;
   border-radius: 3px;
-  background: var(--char-elevated);
+  background: var(--surface-sunken);
 }
 
 .activity-heatmap__cell--empty {
@@ -1625,9 +1608,9 @@ textarea::placeholder {
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  background: var(--char-deeper);
-  color: var(--char-text);
-  border: 1px solid var(--char-border);
+  background: var(--surface-elevated);
+  color: var(--text);
+  border: 1px solid var(--border-default);
   padding: 5px 9px;
   border-radius: 6px;
   font-family: var(--font-mono);
@@ -1635,8 +1618,8 @@ textarea::placeholder {
   font-weight: 600;
   white-space: nowrap;
   pointer-events: none;
-  z-index: 30;
-  box-shadow: 0 4px 12px oklch(0.1 0.01 45 / 0.35);
+  z-index: var(--z-overlay);
+  box-shadow: var(--shadow-md);
 }
 
 .activity-heatmap__cell[data-tooltip]:hover::before {
@@ -1646,8 +1629,8 @@ textarea::placeholder {
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top-color: var(--char-deeper);
-  z-index: 30;
+  border-top-color: var(--surface-elevated);
+  z-index: var(--z-overlay);
 }
 
 .activity-heatmap__cell--1 {
@@ -1655,11 +1638,11 @@ textarea::placeholder {
 }
 
 .activity-heatmap__cell--2 {
-  background: color-mix(in oklch, var(--green) 45%, var(--char-elevated));
+  background: color-mix(in oklch, var(--green) 45%, var(--surface-sunken));
 }
 
 .activity-heatmap__cell--3 {
-  background: color-mix(in oklch, var(--green) 75%, var(--char-elevated));
+  background: color-mix(in oklch, var(--green) 75%, var(--surface-sunken));
 }
 
 .activity-heatmap__cell--4 {
@@ -1674,7 +1657,7 @@ textarea::placeholder {
   margin-top: 14px;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
 }
 
 .dashboard-grid {
@@ -1688,11 +1671,12 @@ textarea::placeholder {
   flex-direction: column;
   gap: 12px;
   align-items: flex-start;
-  background: var(--char-elevated);
+  background: var(--surface-elevated);
   border: 1px solid var(--accent-soft-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 36px;
-  color: var(--char-text);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
 }
 
 .dashboard-cta-card h2 {
@@ -1700,12 +1684,12 @@ textarea::placeholder {
   font-size: clamp(22px, 2.6vw, 30px);
   font-weight: 700;
   margin: 0;
-  color: var(--char-text);
+  color: var(--text);
 }
 
 .dashboard-cta-card p {
   font-size: 15px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   margin: 0;
   max-width: 420px;
   line-height: 1.55;
@@ -1714,12 +1698,12 @@ textarea::placeholder {
 .dashboard-cta-card__button {
   margin-top: 10px;
   display: inline-flex;
-  height: 44px;
+  height: 46px;
   align-items: center;
-  padding: 0 22px;
-  border-radius: 4px;
-  background: var(--accent);
-  color: #fff;
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-full);
+  background: var(--inverse);
+  color: var(--on-inverse);
   font-weight: 600;
   font-size: 14.5px;
 }
@@ -1734,19 +1718,26 @@ textarea::placeholder {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: var(--char-raised);
-  border: 1px solid var(--char-border);
-  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   padding: 20px;
   flex: 1;
   justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.dashboard-side-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .dashboard-side-card__label {
   font-family: var(--font-mono);
   font-size: 10.5px;
   font-weight: 600;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   letter-spacing: 0.06em;
 }
 
@@ -1754,7 +1745,7 @@ textarea::placeholder {
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 600;
-  color: var(--char-text);
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1778,10 +1769,11 @@ textarea::placeholder {
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  background: var(--char-raised);
-  border: 1px solid var(--char-border);
-  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   padding: 24px;
+  box-shadow: var(--shadow-sm);
 }
 
 .dashboard-latest__info {
@@ -1794,7 +1786,7 @@ textarea::placeholder {
   font-family: var(--font-display);
   font-size: 19px;
   font-weight: 600;
-  color: var(--char-text);
+  color: var(--text);
   margin: 0;
 }
 
@@ -1808,11 +1800,11 @@ textarea::placeholder {
 .dashboard-latest__date {
   font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--char-text-soft);
+  color: var(--text-soft);
 }
 
 .dashboard-latest__empty {
-  color: var(--char-text-soft);
+  color: var(--text-soft);
   font-size: 14.5px;
   margin: 0;
 }
@@ -3209,12 +3201,20 @@ textarea::placeholder {
 
 .resume-analysis-page {
   width: min(1120px, calc(100% - 32px));
+  min-height: 100vh;
   margin: 0 auto;
   padding: 40px 0 64px;
   display: grid;
   gap: 24px;
   background: var(--char);
   color: var(--char-text);
+  /* Full-bleed dark background trick: this container itself is
+     width-constrained, but the page must still cover edge-to-edge
+     regardless of viewport width now that body's background is
+     theme-aware (light by default) rather than always matching
+     --char like before. */
+  box-shadow: 0 0 0 100vmax var(--char);
+  clip-path: inset(0 -100vmax);
 }
 
 .analysis-header span {

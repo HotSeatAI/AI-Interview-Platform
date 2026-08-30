@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import GoogleLoginButton from "./GoogleLoginButton";
+import Button from "../ui/Button";
 function LoginForm() {
   const navigate = useNavigate();
   const {
@@ -116,9 +117,9 @@ function LoginForm() {
 
       {error && <p className="error-text">{error}</p>}
 
-      <button className="button button--primary button--lg button--wide" type="submit">
+      <Button type="submit" fullWidth>
         Log in
-      </button>
+      </Button>
 
       <div className="auth-divider">
         <span className="auth-divider__line" />

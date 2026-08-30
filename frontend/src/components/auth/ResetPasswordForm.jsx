@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { resetPassword } from "../../api/authApi";
+import Button from "../ui/Button";
 
 function ResetPasswordForm() {
   const [searchParams] = useSearchParams();
@@ -23,9 +24,9 @@ function ResetPasswordForm() {
         <p className="verify-card__body">
           This password reset link is missing or malformed.
         </p>
-        <Link to="/forgot-password" className="button button--secondary">
+        <Button to="/forgot-password" variant="secondary">
           Request a new link
-        </Link>
+        </Button>
       </div>
     );
   }
@@ -39,9 +40,7 @@ function ResetPasswordForm() {
         <p className="verify-card__body">
           You can now log in with your new password.
         </p>
-        <Link to="/login" className="button button--primary">
-          Go to login
-        </Link>
+        <Button to="/login">Go to login</Button>
       </div>
     );
   }
@@ -109,13 +108,9 @@ function ResetPasswordForm() {
 
       {error && <p className="error-text">{error}</p>}
 
-      <button
-        className="button button--primary button--lg button--wide"
-        type="submit"
-        disabled={loading}
-      >
+      <Button type="submit" fullWidth disabled={loading}>
         {loading ? "Resetting..." : "Reset Password"}
-      </button>
+      </Button>
 
       {tokenError && (
         <p className="auth-form-footer">

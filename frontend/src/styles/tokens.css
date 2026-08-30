@@ -1,0 +1,155 @@
+/* ============================================================
+   Legacy tokens — frozen, unchanged from the original palette.
+   Out-of-scope pages (resume, interview, history, topics) and
+   shared primitives (.button, .section-header, .form-field,
+   .badge, etc. in index.css) reference these directly and must
+   keep rendering identically regardless of the theme toggle,
+   until those surfaces are migrated to the new token system in
+   a later phase.
+
+   --accent/--green/--red/--amber intentionally stay single,
+   non-themed values rather than gaining a [data-theme="dark"]
+   override — they're used by shared classes far beyond the
+   flagship pages (buttons, eyebrows, badges, links), and their
+   light/dark variants would only have differed cosmetically, so
+   keeping one value avoids any color drift on out-of-scope pages
+   while still satisfying "one restrained accent" everywhere.
+   ============================================================ */
+:root {
+  --char: oklch(0.16 0.011 45);
+  --char-raised: oklch(0.21 0.013 45);
+  --char-deeper: oklch(0.135 0.009 45);
+  --char-elevated: oklch(0.245 0.018 42);
+  --char-border: oklch(0.31 0.015 45);
+  --char-text: oklch(0.94 0.006 70);
+  --char-text-soft: oklch(0.66 0.011 60);
+
+  --paper: oklch(0.975 0.007 70);
+  --paper-raised: oklch(0.995 0.004 70);
+  --border: oklch(0.89 0.012 60);
+  --ink: oklch(0.24 0.02 50);
+  --ink-soft: oklch(0.48 0.02 55);
+
+  --accent: oklch(0.65 0.19 35);
+  --accent-dark: oklch(0.57 0.19 35);
+  --accent-soft: oklch(0.65 0.19 35 / 0.14);
+  --accent-soft-strong: oklch(0.65 0.19 35 / 0.3);
+
+  --green: oklch(0.62 0.135 150);
+  --green-soft: oklch(0.62 0.135 150 / 0.16);
+  --red: oklch(0.6 0.18 25);
+  --red-soft: oklch(0.6 0.18 25 / 0.14);
+  --amber: oklch(0.75 0.14 75);
+  --amber-soft: oklch(0.75 0.14 75 / 0.16);
+
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* ============================================================
+   New semantic tokens — theme-aware, used only by the flagship
+   surfaces being redesigned (Navbar, Landing, Auth, Dashboard)
+   plus any future migrated page. Light values alias the legacy
+   "paper/ink" palette above (already a light palette, just
+   previously only used for cards embedded in the dark app); dark
+   values alias the legacy "char" palette, so dark mode renders
+   byte-identical to today's app. --border-default exists
+   separately from legacy --border specifically because --border
+   is also referenced by out-of-scope embedded "paper" cards and
+   must NOT flip with the theme toggle — --border-default is the
+   one flagship CSS should use when a border needs to track theme.
+   ============================================================ */
+:root {
+  --bg: var(--paper);
+  --surface: var(--paper-raised);
+  --surface-sunken: oklch(0.955 0.008 65);
+  --surface-elevated: var(--paper-raised);
+  --text: var(--ink);
+  --text-soft: var(--ink-soft);
+  --border-default: var(--border);
+  --border-strong: oklch(0.8 0.015 60);
+
+  --inverse: oklch(0.16 0.015 50);
+  --on-inverse: oklch(0.99 0.003 70);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+  --space-11: 80px;
+  --space-12: 96px;
+
+  --shadow-sm: 0 1px 2px oklch(0.2 0.02 50 / 0.06), 0 1px 1px oklch(0.2 0.02 50 / 0.04);
+  --shadow-md: 0 4px 12px oklch(0.2 0.02 50 / 0.08), 0 2px 4px oklch(0.2 0.02 50 / 0.04);
+  --shadow-lg: 0 12px 32px oklch(0.2 0.02 50 / 0.12), 0 4px 8px oklch(0.2 0.02 50 / 0.06);
+
+  --z-sticky: 10;
+  --z-dropdown: 20;
+  --z-overlay: 30;
+  --z-modal: 40;
+  --z-toast: 50;
+
+  /* Auth left brand panel — intentionally theme-invariant (no
+     [data-theme="dark"] override below). It hosts a translucent
+     preview-card overlay tuned for a dark background; flipping it
+     per-theme would break that overlay's contrast. Same category
+     of decision as BrandLogo's hardcoded white logo chip. */
+  --auth-panel-bg: oklch(0.15 0.012 45);
+  --auth-panel-text: oklch(0.95 0.006 70);
+  --auth-panel-text-soft: oklch(0.72 0.012 60);
+  --auth-panel-border: oklch(0.28 0.014 45);
+}
+
+[data-theme="dark"] {
+  --bg: var(--char);
+  --surface: var(--char-raised);
+  --surface-sunken: var(--char-deeper);
+  --surface-elevated: var(--char-elevated);
+  --text: var(--char-text);
+  --text-soft: var(--char-text-soft);
+  --border-default: var(--char-border);
+  --border-strong: oklch(0.4 0.02 45);
+
+  --inverse: var(--char-text);
+  --on-inverse: var(--char);
+
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-md: 0 4px 16px oklch(0 0 0 / 0.4);
+  --shadow-lg: 0 16px 40px oklch(0 0 0 / 0.5);
+}
+
+/* Defensive fallback: only applies before any explicit data-theme
+   attribute exists (the index.html bootstrap script normally sets
+   one before first paint, so this mainly covers JS-disabled edge
+   cases). Mirrors the [data-theme="dark"] block above. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: var(--char);
+    --surface: var(--char-raised);
+    --surface-sunken: var(--char-deeper);
+    --surface-elevated: var(--char-elevated);
+    --text: var(--char-text);
+    --text-soft: var(--char-text-soft);
+    --border-default: var(--char-border);
+    --border-strong: oklch(0.4 0.02 45);
+
+    --inverse: var(--char-text);
+    --on-inverse: var(--char);
+
+    --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
+    --shadow-md: 0 4px 16px oklch(0 0 0 / 0.4);
+    --shadow-lg: 0 16px 40px oklch(0 0 0 / 0.5);
+  }
+}

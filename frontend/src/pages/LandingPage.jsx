@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import BrandLogo from "../components/layout/BrandLogo";
+import Button from "../components/ui/Button";
 
 const FEATURES = [
   {
@@ -129,9 +130,9 @@ function LandingPage() {
           <Link to="/login" className="landing__nav-link">
             Log in
           </Link>
-          <Link to="/signup" className="landing__nav-cta">
+          <Button to="/signup" variant="primary" size="sm">
             Start practicing
-          </Link>
+          </Button>
         </nav>
       </header>
 
@@ -139,20 +140,21 @@ function LandingPage() {
         <div className="landing__hero-grid">
           <div className="landing__hero-copy">
             <div className="eyebrow">AI INTERVIEW PREPARATION</div>
-            <h1 className="landing__headline">Walk in already having been there.</h1>
+            <h1 className="landing__headline">
+              The interview platform built from your actual resume.
+            </h1>
             <p className="landing__sub">
-              HotSeat turns your resume into a real technical interview — questions
-              tailored to your background, follow-ups that probe deeper when you're
-              vague, and a live coding environment that grades the work, not just the
-              words.
+              Real questions on your projects and stack, follow-ups that probe when
+              you're vague, and a live coding editor that grades the work — not just
+              the words.
             </p>
             <div className="landing__actions">
-              <Link to="/signup" className="landing__cta-primary">
+              <Button to="/signup" variant="primary">
                 Start practicing free
-              </Link>
-              <a href="#how-it-works" className="landing__cta-secondary">
+              </Button>
+              <Button href="#how-it-works" variant="secondary">
                 See how it works
-              </a>
+              </Button>
             </div>
             <div className="landing__meta">
               Resume-tailored · Voice, text &amp; code · Adaptive follow-ups
@@ -212,7 +214,7 @@ function LandingPage() {
       <section id="features" className="landing__features">
         <div className="section-header">
           <div className="eyebrow">THE INTERVIEW LOOP</div>
-          <h2>One platform, five ways the interview adapts to you.</h2>
+          <h2>Five ways the interview adapts to you.</h2>
         </div>
 
         {FEATURES.map((feature, index) => (
@@ -250,9 +252,9 @@ function LandingPage() {
         <div className="eyebrow">READY WHEN YOU ARE</div>
         <h2>Your next interview starts here.</h2>
         <p>Upload a resume, pick a role, and take a full interview in the next ten minutes.</p>
-        <Link to="/signup" className="landing__cta-primary landing__cta-primary--large">
+        <Button to="/signup" variant="primary" className="landing__cta--large">
           Enter the HotSeat
-        </Link>
+        </Button>
       </section>
 
       <footer className="landing__footer">
