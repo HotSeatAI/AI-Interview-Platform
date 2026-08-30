@@ -11,6 +11,13 @@ from app.services.prompts.evaluation_prompt import (
     build_evaluation_prompt,
     build_follow_up_prompt,
     build_skipped_topics_prompt,
+    build_model_answer_prompt,
+)
+from app.services.prompts.delivery_feedback_prompt import (
+    build_delivery_feedback_prompt,
+)
+from app.services.prompts.topic_practice_prompt import (
+    build_topic_practice_prompt,
 )
 
 class AIService:
@@ -93,6 +100,30 @@ class AIService:
         print(response)
 
         return response.text
+
+    def generate_topic_questions(
+        self,
+        topic: str,
+    ) -> str:
+        """
+        Generates a 3-question Easy/Medium/Medium practice round on a
+        single named weak topic. Returns the same raw numbered-list
+        text format generate_questions returns, so callers parse it
+        with the exact same regex (see api/interview.py).
+        """
+
+        prompt = build_topic_practice_prompt(topic)
+
+        response = self.key_manager.generate_content(
+            prompt,
+            purpose="topic_practice_generation",
+        )
+
+        print("\n===== GEMINI TOPIC PRACTICE RESPONSE =====\n")
+        print(response)
+
+        return response.text
+
     def build_combined_answer(
         self,
         voice_text: str | None,
@@ -307,3 +338,127 @@ class AIService:
                 "Review This Topic"
                 for _ in question_texts
             ]
+
+    # Below these, a modality's sample is too thin to say anything
+    # reliable about - e.g. a one-second answer barely has any audio
+    # to judge pausing from. Gemini would still happily narrate a
+    # confident-sounding pattern from near-empty data if we let it,
+    # which is worse than saying nothing.
+    MIN_AUDIO_ELAPSED_MS = 4000
+    MIN_VIDEO_FRAMES_SAMPLED = 30
+
+    # Shown instead of silently returning nothing when the sample is
+    # too thin - a static string, not a Gemini call, so there is
+    # nothing for a model to hallucinate about near-empty data.
+    INSUFFICIENT_DATA_MESSAGE = (
+        "Not quite enough voice/camera signal captured on this answer to "
+        "spot a delivery pattern - a slightly longer, natural-paced answer "
+        "gives more to go on next time."
+    )
+
+    def _has_sufficient_delivery_data(self, delivery_signals: dict) -> bool:
+
+        audio_present = "elapsed_ms" in delivery_signals
+        video_present = "frames_sampled" in delivery_signals
+
+        audio_sufficient = (
+            audio_present
+            and delivery_signals.get("elapsed_ms", 0) >= self.MIN_AUDIO_ELAPSED_MS
+        )
+
+        video_sufficient = (
+            video_present
+            and delivery_signals.get("frames_sampled", 0)
+            >= self.MIN_VIDEO_FRAMES_SAMPLED
+        )
+
+        return audio_sufficient or video_sufficient
+
+    def generate_model_answer(
+        self,
+        question_text: str,
+        question_type: str | None = None,
+    ) -> str | None:
+        """
+        Short, plain-language model answer to the interview question -
+        shown when the candidate's own answer scored below 7/10. Fails
+        soft (returns None) since this is a bonus and must never block
+        answer submission.
+        """
+
+        prompt = build_model_answer_prompt(
+            question_text=question_text,
+            question_type=question_type,
+        )
+
+        try:
+
+            response = self.key_manager.generate_content(
+                prompt,
+                purpose="model_answer_generation",
+            )
+
+            print("\n===== GEMINI MODEL ANSWER =====\n")
+            print(response.text)
+
+            answer = response.text.strip()
+
+            return answer if answer else None
+
+        except Exception as exc:
+
+            print(
+                "\n===== MODEL ANSWER GENERATION FAILED =====\n"
+                f"{exc}"
+            )
+
+            return None
+
+    def generate_delivery_feedback(
+        self,
+        delivery_signals: dict,
+        question_type: str | None = None,
+        difficulty: str | None = None,
+    ) -> str | None:
+        """
+        Plain-language delivery/body-language coaching from numeric
+        signals only. Deliberately takes no transcript text - see
+        delivery_feedback_prompt.py for why. Returns None (instead of
+        raising) on any failure, since delivery coaching is a bonus
+        and must never block answer submission.
+        """
+
+        if not delivery_signals:
+            return None
+
+        if not self._has_sufficient_delivery_data(delivery_signals):
+            return self.INSUFFICIENT_DATA_MESSAGE
+
+        prompt = build_delivery_feedback_prompt(
+            delivery_signals=delivery_signals,
+            question_type=question_type,
+            difficulty=difficulty,
+        )
+
+        try:
+
+            response = self.key_manager.generate_content(
+                prompt,
+                purpose="delivery_feedback_generation",
+            )
+
+            print("\n===== GEMINI DELIVERY FEEDBACK =====\n")
+            print(response.text)
+
+            feedback = response.text.strip()
+
+            return feedback if feedback else None
+
+        except Exception as exc:
+
+            print(
+                "\n===== DELIVERY FEEDBACK GENERATION FAILED =====\n"
+                f"{exc}"
+            )
+
+            return None

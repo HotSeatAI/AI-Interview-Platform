@@ -1,6 +1,7 @@
 export default function MatchOverview({
   score,
   matchingReport,
+  atsReport,
 }) {
   const summary =
     matchingReport?.summary;
@@ -12,73 +13,107 @@ export default function MatchOverview({
   return (
     <div className="match-overview">
 
-      <div className="score-card">
-        <span>
-          JD Match Score
-        </span>
+      {matchingReport && (
+        <div className="score-card">
+          <span>
+            JD Match Score
+          </span>
 
-        <strong>
-          {score ?? 0}
-        </strong>
+          <strong>
+            {score ?? 0}
+          </strong>
 
-        <small>
-          / 100
-        </small>
-      </div>
+          <small>
+            / 100
+          </small>
+        </div>
+      )}
 
-      <div className="match-stat match-stat--positive">
-        <strong>
-          {summary?.strong_matches ?? 0}
-        </strong>
+      {atsReport && (
+        <div
+          className={
+            atsReport.parseability_capped
+              ? "score-card score-card--capped"
+              : "score-card"
+          }
+        >
+          <span>
+            ATS Score
+          </span>
 
-        <span>
-          Strong matches
-        </span>
-      </div>
+          <strong>
+            {Math.round(atsReport.ats_score ?? 0)}
+          </strong>
 
-      <div className="match-stat match-stat--info">
-        <strong>
-          {summary?.partial_matches ?? 0}
-        </strong>
+          <small>
+            / 100
+          </small>
 
-        <span>
-          Partial matches
-        </span>
-      </div>
+          {atsReport.parseability_capped && (
+            <span className="score-card__warning">
+              Capped — parseability issue
+            </span>
+          )}
+        </div>
+      )}
 
-      <div className="match-stat match-stat--warning">
-        <strong>
-          {missingAndReview}
-        </strong>
+      {matchingReport && (
+        <>
+          <div className="match-stat match-stat--positive">
+            <strong>
+              {summary?.strong_matches ?? 0}
+            </strong>
 
-        <span>
-          Missing / needs review
-        </span>
-      </div>
+            <span>
+              Strong matches
+            </span>
+          </div>
 
-      <div className="match-stat">
-        <strong>
-          {summary?.required_matched ?? 0}
-          /
-          {summary?.required_requirements ?? 0}
-        </strong>
+          <div className="match-stat match-stat--info">
+            <strong>
+              {summary?.partial_matches ?? 0}
+            </strong>
 
-        <span>
-          Required matched
-        </span>
-      </div>
+            <span>
+              Partial matches
+            </span>
+          </div>
 
-      <div className="match-stat">
-        <strong>
-          {summary?.preferred_matched ?? 0}
-          /
-          {summary?.preferred_requirements ?? 0}
-        </strong>
+          <div className="match-stat match-stat--warning">
+            <strong>
+              {missingAndReview}
+            </strong>
 
-        <span>
-          Preferred matched
-        </span>
-      </div>
+            <span>
+              Missing / needs review
+            </span>
+          </div>
+
+          <div className="match-stat">
+            <strong>
+              {summary?.required_matched ?? 0}
+              /
+              {summary?.required_requirements ?? 0}
+            </strong>
+
+            <span>
+              Required matched
+            </span>
+          </div>
+
+          <div className="match-stat">
+            <strong>
+              {summary?.preferred_matched ?? 0}
+              /
+              {summary?.preferred_requirements ?? 0}
+            </strong>
+
+            <span>
+              Preferred matched
+            </span>
+          </div>
+        </>
+      )}
 
     </div>
   );

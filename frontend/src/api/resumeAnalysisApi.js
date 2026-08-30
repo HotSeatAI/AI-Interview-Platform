@@ -90,6 +90,34 @@ export async function getResumeAnalysisResult(
 
 
 /**
+ * Standalone ATS-compatibility check — no job description
+ * required. Runs synchronously (deterministic, no Gemini call),
+ * so unlike startResumeAnalysis this resolves with the finished
+ * result directly, no polling needed.
+ */
+export async function getAtsScore({ resumeId, token }) {
+  const formData = new FormData();
+
+  formData.append(
+    "resume_id",
+    String(resumeId)
+  );
+
+  const response = await apiClient.post(
+    "/resume-analysis/ats-score",
+    formData,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+
+/**
  * Get the current user's past resume ↔ JD analyses,
  * most recent first.
  */

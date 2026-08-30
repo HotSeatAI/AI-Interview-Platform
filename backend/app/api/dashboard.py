@@ -1,4 +1,8 @@
+from collections import defaultdict
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, Depends
+from sqlalchemy import cast, Date, func
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
@@ -8,6 +12,9 @@ from app.models.user import User
 from app.models.resume import Resume
 from app.models.interview_session import InterviewSession
 from app.models.question import Question
+from app.models.resume_analysis import ResumeAnalysis
+
+ACTIVITY_WINDOW_DAYS = 371  # 53 full weeks, for a clean heatmap grid
 
 router = APIRouter(
     prefix="/dashboard",
@@ -71,6 +78,50 @@ def get_dashboard(
             "created_at": sessions[0].created_at,
         }
 
+    cutoff = datetime.utcnow() - timedelta(days=ACTIVITY_WINDOW_DAYS)
+
+    interview_counts = (
+        db.query(
+            cast(InterviewSession.created_at, Date).label("day"),
+            func.count(),
+        )
+        .filter(
+            InterviewSession.user_id == current_user.id,
+            InterviewSession.created_at >= cutoff,
+        )
+        .group_by("day")
+        .all()
+    )
+
+    tailoring_counts = (
+        db.query(
+            cast(ResumeAnalysis.created_at, Date).label("day"),
+            func.count(),
+        )
+        .filter(
+            ResumeAnalysis.user_id == current_user.id,
+            ResumeAnalysis.created_at >= cutoff,
+        )
+        .group_by("day")
+        .all()
+    )
+
+    # "Activity" is deliberately just these two actions (generating an
+    # interview, running a resume-JD tailoring) - not every possible
+    # user action (e.g. answering individual questions).
+    activity_by_day = defaultdict(int)
+
+    for day, count in interview_counts:
+        activity_by_day[day] += count
+
+    for day, count in tailoring_counts:
+        activity_by_day[day] += count
+
+    activity = [
+        {"date": day.isoformat(), "count": count}
+        for day, count in sorted(activity_by_day.items())
+    ]
+
     return {
         "username": current_user.username,
         "email": current_user.email,
@@ -79,4 +130,5 @@ def get_dashboard(
         "completed_interviews": completed,
         "in_progress_interviews": in_progress,
         "latest_interview": latest_interview,
+        "activity": activity,
     }

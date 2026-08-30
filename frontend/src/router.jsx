@@ -15,6 +15,7 @@ import SessionResultsPage from "./pages/SessionResultsPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import TopicsPage from "./pages/TopicsPage";
 
 const router = createBrowserRouter([
   {
@@ -111,6 +112,15 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <SessionResultsPage />
+          </ProtectedRoute>
+        ),
+      },
+
+      {
+        path: "topics",
+        element: (
+          <ProtectedRoute>
+            <TopicsPage />
           </ProtectedRoute>
         ),
       },

@@ -43,6 +43,23 @@ GEMINI_MODEL = os.getenv(
     "gemini-3.6-flash",
 )
 
+GEMINI_EMBEDDING_MODEL = os.getenv(
+    "GEMINI_EMBEDDING_MODEL",
+    "gemini-embedding-001",
+)
+
+# Structuring calls (JD -> JDProfile, resume -> ResumeProfile) are
+# schema-constrained extraction, not the multi-step judgment calls
+# semantic verification/recommendations are — capping the model's
+# hidden "thinking" budget here cuts a large chunk of billed-but-
+# invisible output tokens with no observed completeness/quality
+# loss (verified via full field-level diff against default
+# thinking on a real JD). gemini-3.6-flash requires a minimum of
+# 1 — 0 is rejected outright as an invalid argument.
+GEMINI_STRUCTURING_THINKING_BUDGET = int(
+    os.getenv("GEMINI_STRUCTURING_THINKING_BUDGET", 128)
+)
+
 raw_keys = os.getenv("GEMINI_API_KEYS")
 
 GEMINI_API_KEYS = [
@@ -93,3 +110,34 @@ FRONTEND_URL = os.getenv(
     "FRONTEND_URL",
     "http://localhost:3000"
 )
+
+# -----------------------------
+# CORS Configuration
+# -----------------------------
+# Comma-separated list of allowed frontend origins. Defaults to
+# every origin this app has ever needed (local dev servers, the
+# Vercel deploy, the custom domain) so nothing breaks if this is
+# left unset - but each deployment should override it with only
+# the origins that actually apply there. In particular, the real
+# production backend (Render) should set this to just the real
+# domains, with no localhost entries, once the custom domain is
+# live - trusting localhost in CORS is a normal dev convenience,
+# not something a production deployment needs.
+_DEFAULT_CORS_ORIGINS = (
+    "http://localhost:3000,"
+    "http://localhost:5173,"
+    "http://127.0.0.1:5173,"
+    "https://hotseatai.vercel.app,"
+    "https://hotseatai.in,"
+    "https://www.hotseatai.in"
+)
+
+_raw_cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in (
+        _raw_cors_origins if _raw_cors_origins else _DEFAULT_CORS_ORIGINS
+    ).split(",")
+    if origin.strip()
+]

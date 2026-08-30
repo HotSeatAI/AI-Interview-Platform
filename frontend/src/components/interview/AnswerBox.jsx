@@ -21,9 +21,12 @@ import {
 const AnswerBox = forwardRef(function AnswerBox(
   {
     questionId,
+    isCoding = false,
     onAnswerSubmitted,
     onSubmittingChange,
     disabled = false,
+    getDeliverySignals,
+    onRecordingStateChange,
   },
   ref
 ) {
@@ -126,6 +129,8 @@ const AnswerBox = forwardRef(function AnswerBox(
       onSubmittingChange?.(true);
       setError("");
 
+      const deliverySignals = getDeliverySignals?.(isCoding) ?? null;
+
       const response = await submitAnswer(
         {
           question_id: questionId,
@@ -137,6 +142,7 @@ const AnswerBox = forwardRef(function AnswerBox(
           // ai_service.build_combined_answer), this field can be removed too.
           typed_text: "",
           code: code.trim(),
+          delivery_signals: deliverySignals,
         },
         token
       );
@@ -148,7 +154,11 @@ const AnswerBox = forwardRef(function AnswerBox(
       setExecutionStatus("idle");
       setSelectedLanguage(DEFAULT_LANGUAGE);
 
-      onAnswerSubmitted(response);
+      // The backend doesn't echo delivery_signals back - it already
+      // knows them from this same submission, so attach the numbers
+      // we just sent (not a re-fetch) for the session-level trend on
+      // the results page.
+      onAnswerSubmitted({ ...response, delivery_signals: deliverySignals });
 
     } catch (err) {
 
@@ -186,7 +196,9 @@ const AnswerBox = forwardRef(function AnswerBox(
       <div className="answer-card__header">
         <div className="answer-card__label">YOUR ANSWER</div>
         <div className="answer-card__sublabel">
-          Think. Explain. Write. Code. Submit — both are graded together.
+          {isCoding
+            ? "Think. Explain. Write. Code. Submit — both are graded together."
+            : "Think it through, then explain your answer."}
         </div>
       </div>
 
@@ -194,28 +206,33 @@ const AnswerBox = forwardRef(function AnswerBox(
         value={explanationText}
         onChange={setExplanationText}
         disabled={disabled}
+        onRecordingStateChange={onRecordingStateChange}
       />
 
-      <CodeEditor
-        value={code}
-        onChange={setCode}
-        language={selectedLanguage}
-        disabled={disabled}
-        onRunCode={handleRunCode}
-        isRunning={executionStatus === "running"}
-        onLanguageChange={handleLanguageChange}
-      />
+      {isCoding && (
+        <>
+          <CodeEditor
+            value={code}
+            onChange={setCode}
+            language={selectedLanguage}
+            disabled={disabled}
+            onRunCode={handleRunCode}
+            isRunning={executionStatus === "running"}
+            onLanguageChange={handleLanguageChange}
+          />
 
-      <CustomInput
-        value={customInput}
-        onChange={setCustomInput}
-        disabled={disabled}
-      />
+          <CustomInput
+            value={customInput}
+            onChange={setCustomInput}
+            disabled={disabled}
+          />
 
-      <ConsoleOutput
-        output={consoleOutput}
-        status={executionStatus}
-      />
+          <ConsoleOutput
+            output={consoleOutput}
+            status={executionStatus}
+          />
+        </>
+      )}
 
       <CombinedPreview
         explanationText={explanationText}

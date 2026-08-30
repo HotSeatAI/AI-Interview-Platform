@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { FaTrash } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   getResumes,
   uploadResume,
   deleteResume,
 } from "../../api/resumeApi";
+import { getAtsScore } from "../../api/resumeAnalysisApi";
 
 import useAuth from "../../hooks/useAuth";
 import useResumeAnalysis from "../../hooks/useResumeAnalysis";
@@ -13,8 +14,13 @@ import useResumeAnalysis from "../../hooks/useResumeAnalysis";
 import AnalysisProgress from "../resume-analysis/AnalysisProgress";
 function ResumeUploadCard() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const jdFileInputRef = useRef(null);
+
+  const [atsResumeId, setAtsResumeId] = useState("");
+  const [atsChecking, setAtsChecking] = useState(false);
+  const [atsError, setAtsError] = useState("");
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [resumes, setResumes] = useState([]);
@@ -177,6 +183,31 @@ function ResumeUploadCard() {
     }
   };
 
+  const handleCheckAtsScore = async () => {
+    if (!atsResumeId) {
+      return;
+    }
+
+    try {
+      setAtsChecking(true);
+      setAtsError("");
+
+      const result = await getAtsScore({
+        resumeId: atsResumeId,
+        token,
+      });
+
+      navigate(`/resume-analysis/${result.analysis_id}`);
+    } catch (err) {
+      setAtsError(
+        err?.response?.data?.detail ||
+          "Failed to check ATS score."
+      );
+    } finally {
+      setAtsChecking(false);
+    }
+  };
+
   const latestResumeId = resumes.length
     ? resumes.reduce((latest, resume) =>
         new Date(resume.created_at) > new Date(latest.created_at) ? resume : latest
@@ -261,6 +292,48 @@ function ResumeUploadCard() {
               </div>
             ))
           )}
+        </div>
+      </section>
+
+      <section className="resume-section">
+        <div className="section-header">
+          <div className="eyebrow">ATS CHECK</div>
+          <h2>Check your ATS score</h2>
+          <p>
+            See how well an ATS can parse and rank your resume —
+            no job description needed.
+          </p>
+        </div>
+
+        <div className="analysis-form-card">
+          <label className="form-field">
+            <span>Resume to check</span>
+            <select
+              value={atsResumeId}
+              onChange={(event) =>
+                setAtsResumeId(event.target.value)
+              }
+              disabled={fetchingResumes || resumes.length === 0}
+            >
+              <option value="">Select a resume</option>
+              {resumes.map((resume) => (
+                <option key={resume.id} value={resume.id}>
+                  {resume.original_filename}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {atsError && <p className="error-text">{atsError}</p>}
+
+          <button
+            type="button"
+            className="button button--primary button--lg button--wide"
+            onClick={handleCheckAtsScore}
+            disabled={!atsResumeId || atsChecking}
+          >
+            {atsChecking ? "Checking..." : "Check ATS score"}
+          </button>
         </div>
       </section>
 
@@ -351,7 +424,9 @@ function ResumeUploadCard() {
               </p>
             )}
 
-            {analysisError && <p className="error-text">{analysisError}</p>}
+            {analysisError && (
+              <p className="error-text">{analysisError}</p>
+            )}
 
             <button
               type="button"

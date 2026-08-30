@@ -16,6 +16,10 @@ from app.models.question import Question
 from app.models.answer import Answer
 from app.models.email_verification_token import EmailVerificationToken
 from app.models.password_reset_token import PasswordResetToken
+from app.models.resume_analysis import ResumeAnalysis
+from app.models.resume_evidence_vector import ResumeEvidenceVector
+from app.models.jd_profile_cache import JDProfileCache
+from app.models.user_topic import UserTopic
 
 config = context.config
 

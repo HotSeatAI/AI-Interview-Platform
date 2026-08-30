@@ -1,11 +1,13 @@
 import json
 from datetime import datetime
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database.database import SessionLocal
 from app.models.resume import Resume
 from app.models.resume_analysis import ResumeAnalysis
+from app.models.jd_profile_cache import JDProfileCache
 
 from app.services.job_description_parser import (
     JobDescriptionParser,
@@ -23,8 +25,15 @@ from app.services.evidence_validator import (
 from app.services.requirement_matcher import (
     RequirementMatcher,
 )
+from app.services.embedding_service import (
+    build_embedding_evidence_map,
+    ensure_resume_evidence_vectors,
+)
 from app.services.resume_optimizer import (
     ResumeOptimizer,
+)
+from app.services.ats_scorer import (
+    ATSScorer,
 )
 from app.services.recommendation_engine import (
     RecommendationEngine,
@@ -144,6 +153,14 @@ class ResumeAnalysisWorker:
                     full_cache.overall_score
                 )
 
+                analysis.ats_score = (
+                    full_cache.ats_score
+                )
+
+                analysis.ats_report_json = (
+                    full_cache.ats_report_json
+                )
+
                 analysis.status = "completed"
 
                 analysis.progress = 100
@@ -200,25 +217,27 @@ class ResumeAnalysisWorker:
                 "Understanding job requirements",
             )
 
+            # Global cache: JD structuring is a pure function of
+            # the JD text alone (no resume/user data goes into
+            # that Gemini call), so it's cached across ALL users
+            # by jd_text_hash - not scoped to this user like the
+            # resume/analysis caching below. Any user submitting
+            # a JD whose normalized text was already structured
+            # for anyone else reuses it instead of calling Gemini
+            # again.
             cached_jd = (
-                db.query(ResumeAnalysis)
+                db.query(JDProfileCache)
                 .filter(
-                    ResumeAnalysis.user_id
-                    == analysis.user_id,
-                    ResumeAnalysis.jd_text_hash
+                    JDProfileCache.jd_text_hash
                     == analysis.jd_text_hash,
-                    ResumeAnalysis.id
-                    != analysis.id,
-                    ResumeAnalysis.jd_profile_json.isnot(
-                        None
-                    ),
-                )
-                .order_by(
-                    ResumeAnalysis.created_at.desc()
                 )
                 .first()
             )
 
+            # jd_cache_row is kept around (not just jd_profile)
+            # so Step 5 can also read/write the cached requirement
+            # embeddings on this same global row - see
+            # build_embedding_evidence_map.
             if cached_jd:
 
                 jd_profile = (
@@ -229,6 +248,14 @@ class ResumeAnalysisWorker:
                     )
                 )
 
+                cached_jd.hit_count += 1
+                cached_jd.last_used_at = (
+                    datetime.utcnow()
+                )
+                db.commit()
+
+                jd_cache_row = cached_jd
+
             else:
 
                 jd_profile = (
@@ -236,6 +263,33 @@ class ResumeAnalysisWorker:
                         jd_text
                     )
                 )
+
+                jd_cache_row = JDProfileCache(
+                    jd_text_hash=analysis.jd_text_hash,
+                    job_title=jd_profile.job_title,
+                    jd_profile_json=(
+                        jd_profile.model_dump_json()
+                    ),
+                    hit_count=1,
+                )
+                db.add(jd_cache_row)
+
+                try:
+                    db.commit()
+                except IntegrityError:
+                    # Another request structured and inserted
+                    # the same JD text concurrently - fine, just
+                    # use their row instead of erroring out.
+                    db.rollback()
+
+                    jd_cache_row = (
+                        db.query(JDProfileCache)
+                        .filter(
+                            JDProfileCache.jd_text_hash
+                            == analysis.jd_text_hash,
+                        )
+                        .first()
+                    )
 
             analysis.job_title = (
                 jd_profile.job_title
@@ -332,12 +386,51 @@ class ResumeAnalysisWorker:
                 "Matching resume against requirements",
             )
 
+            # RAG retrieval: meaning-based evidence candidates,
+            # unioned into the deterministic matcher's own
+            # keyword-based retrieval — never replacing it. Best-
+            # effort: embedding vectors are cached once per resume
+            # (like resume_profile_json), and any failure here
+            # (embedding API hiccup, pgvector unavailable) simply
+            # falls back to keyword-only retrieval rather than
+            # failing the whole analysis.
+
+            embedding_evidence_map = {}
+
+            try:
+
+                ensure_resume_evidence_vectors(
+                    db,
+                    resume.id,
+                    resume_profile,
+                )
+
+                embedding_evidence_map = (
+                    build_embedding_evidence_map(
+                        db,
+                        resume.id,
+                        jd_profile.requirements,
+                        jd_cache_row=jd_cache_row,
+                    )
+                )
+
+            except Exception as exc:
+
+                db.rollback()
+
+                print(
+                    "\n===== RAG EVIDENCE RETRIEVAL FAILED "
+                    "(falling back to keyword-only) =====",
+                )
+                print(exc)
+
             matcher = RequirementMatcher()
 
             matching_report = matcher.match(
                 jd_profile=jd_profile,
                 resume_profile=resume_profile,
                 resume_text=resume.extracted_text,
+                embedding_evidence_map=embedding_evidence_map,
             )
 
             # =================================================
@@ -357,6 +450,38 @@ class ResumeAnalysisWorker:
                 jd_profile=jd_profile,
                 resume_profile=resume_profile,
                 matching_report=matching_report,
+            )
+
+            # =================================================
+            # STEP 6b — ATS Scoring
+            #
+            # Deterministic, LLM-free — reuses matching_report's
+            # overall_score and optimization_report's already-
+            # computed bullet_quality rather than recomputing
+            # anything via Gemini.
+            # =================================================
+
+            self._update_progress(
+                db,
+                analysis,
+                78,
+                "Scoring ATS compatibility",
+            )
+
+            ats_report = ATSScorer().score(
+                resume_text=resume.extracted_text,
+                pdf_path=resume.filepath,
+                resume_profile=resume_profile,
+                jd_match_score=matching_report.overall_score,
+                precomputed_bullet_quality=(
+                    optimization_report.bullet_quality
+                ),
+            )
+
+            analysis.ats_score = ats_report.ats_score
+
+            analysis.ats_report_json = (
+                ats_report.model_dump_json()
             )
 
             # =================================================
@@ -409,6 +534,10 @@ class ResumeAnalysisWorker:
 
                 "recommendation_report": (
                     recommendation_report.model_dump()
+                ),
+
+                "ats_report": (
+                    ats_report.model_dump()
                 ),
             }
 

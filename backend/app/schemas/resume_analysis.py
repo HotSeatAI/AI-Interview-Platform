@@ -440,7 +440,14 @@ class SemanticVerification(BaseModel):
         le=1,
     )
 
-    reasoning: str
+    reasoning: str = Field(
+        description=(
+            "1-2 concise, complete sentences stating the "
+            "verdict and why. Do not restate the requirement "
+            "name or the cited evidence verbatim before "
+            "explaining — say the judgment once, plainly."
+        ),
+    )
 
     supporting_evidence: list[str] = Field(
         default_factory=list
@@ -609,7 +616,14 @@ class RecommendationDraft(BaseModel):
 
     jd_requirement: str | None = None
 
-    reason: str
+    reason: str = Field(
+        description=(
+            "1-2 concise, complete sentences on why this "
+            "rewrite helps. State the point once, plainly — "
+            "do not repeat the original/suggested text back "
+            "or over-explain."
+        ),
+    )
 
     evidence_used: list[str] = Field(
         default_factory=list
@@ -725,7 +739,13 @@ class PartialMatchGuidanceDraft(BaseModel):
 
     requirement: str
 
-    how_to_strengthen: str
+    how_to_strengthen: str = Field(
+        description=(
+            "1-2 concise, complete sentences of actionable "
+            "guidance. State it once, plainly — no repeated "
+            "framing or restated evidence."
+        ),
+    )
 
     example_wording: list[str] = Field(
         default_factory=list
@@ -798,3 +818,117 @@ class RecommendationReport(BaseModel):
     high_priority_count: int = 0
 
     medium_priority_count: int = 0
+
+# ============================================================
+# ATS SCORE SCHEMAS
+# ============================================================
+
+class LayoutReport(BaseModel):
+    file_available: bool = True
+
+    page_count: int
+
+    multi_column: bool
+
+    has_tables: bool
+
+    content_in_header_footer: bool
+
+    was_ocr: bool
+
+    font_inconsistency: bool
+
+    narrow_margins: bool
+
+    image_heavy_content: bool
+
+    layout_score: float = Field(
+        ge=0,
+        le=100,
+    )
+
+    parseability_gate_triggered: bool
+
+    gate_reasons: list[str] = Field(
+        default_factory=list
+    )
+
+
+class StructureReport(BaseModel):
+    has_email: bool
+
+    has_phone: bool
+
+    found_sections: dict[str, bool] = Field(
+        default_factory=dict
+    )
+
+    unrecognized_headers: list[str] = Field(
+        default_factory=list
+    )
+
+    contact_score: float = Field(
+        ge=0,
+        le=100,
+    )
+
+    section_score: float = Field(
+        ge=0,
+        le=100,
+    )
+
+    completeness_score: float = Field(
+        ge=0,
+        le=100,
+    )
+
+
+class ATSFinding(BaseModel):
+    fix_type: Literal[
+        "layout",
+        "section",
+        "contact",
+        "bullet_quality",
+    ]
+
+    priority: Literal[
+        "critical",
+        "high",
+        "medium",
+        "low",
+    ]
+
+    message: str
+
+    original_text: str | None = None
+
+    suggested_text: str | None = None
+
+
+class ATSReport(BaseModel):
+    ats_score: float = Field(
+        ge=0,
+        le=100,
+    )
+
+    mode: Literal[
+        "standalone",
+        "jd_aware",
+    ]
+
+    layout_report: LayoutReport
+
+    structure_report: StructureReport
+
+    bullet_quality_avg: float = Field(
+        ge=0,
+        le=100,
+    )
+
+    jd_match_component: float | None = None
+
+    parseability_capped: bool = False
+
+    findings: list[ATSFinding] = Field(
+        default_factory=list
+    )

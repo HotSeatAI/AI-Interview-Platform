@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { getDashboard } from "../api/dashboardApi";
 import useAuth from "../hooks/useAuth";
 import Navbar from "../components/layout/Navbar.jsx";
+import ActivityHeatmap from "../components/dashboard/ActivityHeatmap.jsx";
 
 function DashboardPage() {
   const { token } = useAuth();
@@ -15,8 +16,8 @@ function DashboardPage() {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const data = await getDashboard(token);
-        setDashboard(data);
+        const dashboardData = await getDashboard(token);
+        setDashboard(dashboardData);
       } catch (err) {
         setError(
           err?.response?.data?.detail ||
@@ -87,6 +88,8 @@ function DashboardPage() {
           </div>
         </div>
 
+        <ActivityHeatmap activity={dashboard.activity} />
+
         <div className="dashboard-grid">
           <Link to="/generate-interview" className="dashboard-cta-card">
             <div className="eyebrow">READY WHEN YOU ARE</div>
@@ -112,6 +115,11 @@ function DashboardPage() {
                 {dashboard.total_interviews} past sessions
               </div>
               <div className="dashboard-side-card__meta">Review scores &amp; feedback →</div>
+            </Link>
+            <Link to="/topics" className="dashboard-side-card">
+              <div className="dashboard-side-card__label">STUDY PLAN</div>
+              <div className="dashboard-side-card__title">Weak topics</div>
+              <div className="dashboard-side-card__meta">Practice and track progress →</div>
             </Link>
           </div>
         </div>

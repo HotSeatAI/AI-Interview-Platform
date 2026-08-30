@@ -10,6 +10,7 @@ from app.models.answer import Answer
 from app.models.question import Question
 from app.models.interview_session import InterviewSession
 from app.models.user import User
+from app.models.user_topic import UserTopic
 
 from app.schemas.answer import (
     AnswerCreate,
@@ -109,6 +110,42 @@ def submit_answer(
                 ),
             ) from exc
 
+        try:
+            _flag_weak_topics(db, current_user, evaluation["improvements"])
+        except Exception as exc:
+
+            print("\n===== WEAK TOPIC FLAGGING FAILED =====")
+            print(exc)
+
+        delivery_feedback = None
+
+        if payload.delivery_signals:
+
+            try:
+                delivery_feedback = ai_service.generate_delivery_feedback(
+                    delivery_signals=payload.delivery_signals,
+                    question_type=question.question_type,
+                    difficulty=question.session.difficulty,
+                )
+            except Exception as exc:
+
+                print("\n===== DELIVERY FEEDBACK GENERATION FAILED =====")
+                print(exc)
+
+        model_answer = None
+
+        if evaluation["score"] < 7:
+
+            try:
+                model_answer = ai_service.generate_model_answer(
+                    question_text=question.question_text,
+                    question_type=question.question_type,
+                )
+            except Exception as exc:
+
+                print("\n===== MODEL ANSWER GENERATION FAILED =====")
+                print(exc)
+
         answer = Answer(
             question_id=question.id,
 
@@ -121,6 +158,9 @@ def submit_answer(
             feedback=evaluation["feedback"],
             strengths=evaluation["strengths"],
             improvements=evaluation["improvements"],
+
+            delivery_signals=payload.delivery_signals,
+            delivery_feedback=delivery_feedback,
         )
 
         db.add(answer)
@@ -157,6 +197,7 @@ def submit_answer(
                 follow_up = Question(
                     session_id=question.session_id,
                     question_text=follow_up_text.strip(),
+                    question_type=question.question_type,
                     is_follow_up=True,
                     parent_question_id=(
                         question.parent_question_id
@@ -186,11 +227,14 @@ def submit_answer(
                 FollowUpQuestionResponse(
                     question_id=follow_up.id,
                     question_text=follow_up.question_text,
+                    question_type=follow_up.question_type,
                     follow_up_depth=follow_up.follow_up_depth,
                 )
                 if follow_up
                 else None
             ),
+            delivery_feedback=answer.delivery_feedback,
+            model_answer=model_answer,
         )
 
     finally:
@@ -301,6 +345,7 @@ def get_session_results(
             strong_topics=[],
             weak_topics=[],
             skipped_questions=skipped_questions,
+            is_finished=session.finished_at is not None,
         )
 
     total_score = 0
@@ -375,6 +420,7 @@ def get_session_results(
         strong_topics=strong_topics,
         weak_topics=weak_topics,
         skipped_questions=skipped_questions,
+        is_finished=session.finished_at is not None,
     )
 
 
@@ -460,6 +506,57 @@ def _looks_like_concept(raw_concept: str) -> bool:
         return False
 
     return True
+
+
+def _flag_weak_topics(
+    db: Session,
+    user: User,
+    improvements: list,
+) -> None:
+    """
+    Upserts each improvement concept into UserTopic for this user -
+    reuses the same normalization/filtering as _track_concept so
+    "BCNF" and "bcnf" merge into one active row instead of two.
+
+    Existing active row -> times_flagged += 1 (display-only counter).
+    New topic -> new row, plus bump the user's lifetime flagged
+    counter - that counter never decrements, even when the row is
+    later deleted on resolution (see interview.py's finish_interview),
+    so it (together with weak_topics_resolved_total) is what the
+    progress circle on the Topics page is computed from.
+    """
+
+    existing_topics = (
+        db.query(UserTopic)
+        .filter(UserTopic.user_id == user.id)
+        .all()
+    )
+
+    existing_by_key = {
+        " ".join(row.topic.strip().split()).lower(): row
+        for row in existing_topics
+    }
+
+    for raw_concept in (improvements or []):
+
+        if not raw_concept or not _looks_like_concept(raw_concept):
+            continue
+
+        key = " ".join(raw_concept.strip().split()).lower()
+
+        if key in existing_by_key:
+            existing_by_key[key].times_flagged += 1
+        else:
+            new_topic = UserTopic(
+                user_id=user.id,
+                topic=raw_concept.strip(),
+                times_flagged=1,
+            )
+            db.add(new_topic)
+            existing_by_key[key] = new_topic
+            user.weak_topics_flagged_total += 1
+
+    db.commit()
 
 
 def _track_concept(
