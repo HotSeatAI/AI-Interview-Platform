@@ -1,0 +1,154 @@
+/* ============================================================
+   New shared UI primitives (Button, Card, Badge, ThemeToggle).
+   Prefixed "ui-" deliberately — the legacy .button/.card/.badge
+   classes elsewhere in index.css are used by out-of-scope pages
+   and reference frozen tokens; these must not collide with them.
+   ============================================================ */
+
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 var(--space-6);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14.5px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 120ms ease, border-color 120ms ease, background 120ms ease, transform 120ms ease;
+}
+
+.ui-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ui-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ui-btn--primary {
+  background: var(--inverse);
+  color: var(--on-inverse);
+}
+
+.ui-btn--primary:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.ui-btn--secondary {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.ui-btn--secondary:hover:not(:disabled) {
+  background: var(--surface-sunken);
+}
+
+.ui-btn--ghost {
+  background: transparent;
+  color: var(--text-soft);
+  border-color: transparent;
+}
+
+.ui-btn--ghost:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface-sunken);
+}
+
+.ui-btn--sm {
+  height: 38px;
+  padding: 0 var(--space-4);
+  font-size: 13.5px;
+}
+
+.ui-btn--full {
+  width: 100%;
+}
+
+.ui-card {
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-card--raised {
+  box-shadow: var(--shadow-md);
+}
+
+.ui-card--interactive {
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.ui-card--interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+}
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.ui-badge--accent {
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+}
+
+.ui-badge--positive {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.ui-badge--warning {
+  color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.ui-badge--critical {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.ui-badge--neutral {
+  color: var(--text-soft);
+  background: var(--surface-sunken);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-default);
+  background: var(--surface-sunken);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--border-strong);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

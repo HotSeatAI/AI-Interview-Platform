@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import BrandLogo from "../layout/BrandLogo";
+import ThemeToggle from "../layout/ThemeToggle";
 
 function AuthLayout({ eyebrow, headline, body, preview, children }) {
   return (
@@ -20,6 +21,7 @@ function AuthLayout({ eyebrow, headline, body, preview, children }) {
       </div>
 
       <div className="auth-screen__right">
+        <ThemeToggle className="auth-screen__theme-toggle" />
         <div className="auth-form-col">{children}</div>
       </div>
     </div>

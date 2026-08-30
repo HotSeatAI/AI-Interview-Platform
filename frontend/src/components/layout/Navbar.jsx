@@ -1,6 +1,8 @@
 import { NavLink } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import BrandLogo from "./BrandLogo";
+import ThemeToggle from "./ThemeToggle";
+import Button from "../ui/Button";
 
 const privateLinks = [
   { label: "Dashboard", to: "/dashboard" },
@@ -41,9 +43,10 @@ function Navbar() {
 
       <div className="navbar__user">
         <span className="navbar__avatar">{getInitials(user?.username)}</span>
-        <button className="navbar__logout" type="button" onClick={logout}>
+        <ThemeToggle />
+        <Button variant="ghost" size="sm" onClick={logout}>
           Log out
-        </button>
+        </Button>
       </div>
     </header>
   );
