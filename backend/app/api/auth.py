@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import status
@@ -9,6 +11,7 @@ from app.services.email_service import EmailService
 from app.schemas.user import (
     UserCreate,
     UserResponse,
+    ProfileUpdate,
     GoogleLoginRequest
 )
 from app.services.email_verification_service import (
@@ -305,4 +308,47 @@ def read_me(
         get_current_user
     )
 ):
+    return current_user
+
+
+@router.put(
+    "/me/profile",
+    response_model=UserResponse
+)
+def update_profile(
+    profile: ProfileUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    current_user.full_name = profile.full_name
+    current_user.gender = profile.gender
+    current_user.job_domains = profile.job_domains
+    current_user.years_of_experience = profile.years_of_experience
+    current_user.mobile_number = profile.mobile_number
+    current_user.institute_name = profile.institute_name
+    current_user.year_of_passout = profile.year_of_passout
+    current_user.country = profile.country
+    current_user.city = profile.city
+    current_user.profile_completed = True
+
+    db.commit()
+    db.refresh(current_user)
+
+    return current_user
+
+
+@router.put(
+    "/me/accept-terms",
+    response_model=UserResponse
+)
+def accept_terms(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    current_user.terms_accepted = True
+    current_user.terms_accepted_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(current_user)
+
     return current_user

@@ -8,6 +8,7 @@ import QuestionCard from "../components/interview/QuestionCard";
 import AnswerBox from "../components/interview/AnswerBox";
 import FeedbackCard from "../components/interview/FeedbackCard";
 import BrandLogo from "../components/layout/BrandLogo";
+import ThemeToggle from "../components/layout/ThemeToggle";
 import DeliveryConsentModal from "../components/interview/DeliveryConsentModal";
 import DeliveryCalibrationScreen from "../components/interview/DeliveryCalibrationScreen";
 import WebcamMonitor from "../components/interview/WebcamMonitor";
@@ -385,9 +386,12 @@ return (
         </div>
       </div>
 
-      <Link to="/dashboard" className="workspace-topbar__exit">
-        Exit interview
-      </Link>
+      <div className="workspace-topbar__actions">
+        <ThemeToggle />
+        <Link to="/dashboard" className="workspace-topbar__exit">
+          Exit interview
+        </Link>
+      </div>
     </header>
 
     <main className="workspace-main">
