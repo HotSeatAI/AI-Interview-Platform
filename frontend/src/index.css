@@ -1393,6 +1393,23 @@ textarea::placeholder {
   line-height: 1.55;
 }
 
+/* ResetPasswordForm reuses .verify-card for its invalid-link/
+   success states — scoped override so it matches the new
+   light-default auth screen instead of the frozen dark styling
+   VerifyEmailPage (out of scope this pass) still uses. */
+.auth-screen .verify-card {
+  background: var(--surface);
+  border-color: var(--border-default);
+}
+
+.auth-screen .verify-card__title {
+  color: var(--text);
+}
+
+.auth-screen .verify-card__body {
+  color: var(--text-soft);
+}
+
 /* ============================================================
    Shared authenticated page shell
    ============================================================ */
