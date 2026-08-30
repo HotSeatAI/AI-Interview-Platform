@@ -59,6 +59,21 @@ class ResumeOptimizer:
         "validated",
     }
 
+    FOUNDATIONAL_VERBS = {
+        "founded",
+        "architected",
+        "led",
+        "partnered",
+        "mentored",
+        "oversaw",
+        "spearheaded",
+        "established",
+        "directed",
+        "supervised",
+        "pioneered",
+        "launched",
+    }
+
     IMPACT_TERMS = {
         "improved",
         "increased",
@@ -267,6 +282,44 @@ class ResumeOptimizer:
     # Bullet Analysis
     # ========================================================
 
+    def score_content_quality(
+        self,
+        bullet: ResumeBullet,
+        section: str,
+    ) -> dict:
+        """
+        The 4 bullet-quality sub-scores that do NOT require a job
+        description — action-verb strength, quantification,
+        impact language, specificity. Pulled out of
+        _analyze_bullet() as the single source of truth so the
+        standalone (no-JD) ATS scoring path can reuse the exact
+        same verb lists/regexes instead of duplicating them.
+        """
+
+        text = bullet.text.strip()
+
+        action_score = self._action_score(text)
+        quantification_score = self._quantification_score(bullet)
+        impact_score = self._impact_score(text)
+        specificity_score = self._specificity_score(text)
+
+        content_quality_score = (
+            action_score
+            + quantification_score
+            + impact_score
+            + specificity_score
+        ) / 4
+
+        return {
+            "text": text,
+            "section": section,
+            "action_score": action_score,
+            "quantification_score": quantification_score,
+            "impact_score": impact_score,
+            "specificity_score": specificity_score,
+            "content_quality_score": content_quality_score,
+        }
+
     def _analyze_bullet(
         self,
         bullet: ResumeBullet,
@@ -274,25 +327,18 @@ class ResumeOptimizer:
         jd_profile: JDProfile,
     ) -> BulletQuality:
 
-        text = bullet.text.strip()
-
-        action_score = (
-            self._action_score(text)
+        content_quality = self.score_content_quality(
+            bullet,
+            section,
         )
 
+        text = content_quality["text"]
+        action_score = content_quality["action_score"]
         quantification_score = (
-            self._quantification_score(
-                bullet
-            )
+            content_quality["quantification_score"]
         )
-
-        impact_score = (
-            self._impact_score(text)
-        )
-
-        specificity_score = (
-            self._specificity_score(text)
-        )
+        impact_score = content_quality["impact_score"]
+        specificity_score = content_quality["specificity_score"]
 
         jd_relevance_score = (
             self._jd_relevance_score(
@@ -370,6 +416,21 @@ class ResumeOptimizer:
             return 75
 
         return 55
+
+    def is_foundational_bullet(
+        self,
+        text: str,
+    ) -> bool:
+
+        words = re.findall(
+            r"\b[a-zA-Z]+\b",
+            text.lower(),
+        )
+
+        return any(
+            word in self.FOUNDATIONAL_VERBS
+            for word in words[:5]
+        )
 
     # ========================================================
     # Quantification

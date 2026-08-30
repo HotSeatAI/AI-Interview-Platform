@@ -1,6 +1,7 @@
 import hashlib
 import json
 import re
+from datetime import datetime
 
 from fastapi import (
     APIRouter,
@@ -20,6 +21,8 @@ from app.database.database import get_db
 from app.models.resume import Resume
 from app.models.resume_analysis import ResumeAnalysis
 from app.models.user import User
+from app.schemas.resume_analysis import ResumeProfile
+from app.services.ats_scorer import ATSScorer
 from app.services.job_description_parser import (
     JobDescriptionParser,
 )
@@ -210,6 +213,117 @@ async def start_resume_analysis(
         ),
     }
 
+@router.post("/ats-score")
+def get_ats_score(
+    resume_id: int = Form(...),
+
+    db: Session = Depends(get_db),
+
+    current_user: User = Depends(
+        get_current_user
+    ),
+):
+    """
+    Standalone ATS-compatibility check for a resume — no job
+    description required. Deterministic and fast (layout/
+    structure/bullet-quality checks only, no Gemini call), so it
+    runs synchronously instead of going through the background-
+    task + polling flow used by /start.
+    """
+
+    resume = (
+        db.query(Resume)
+        .filter(
+            Resume.id == resume_id,
+            Resume.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not resume:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Resume not found.",
+        )
+
+    cached_analysis = (
+        db.query(ResumeAnalysis)
+        .filter(
+            ResumeAnalysis.resume_id == resume.id,
+            ResumeAnalysis.resume_profile_json.isnot(
+                None
+            ),
+        )
+        .order_by(
+            ResumeAnalysis.created_at.desc()
+        )
+        .first()
+    )
+
+    resume_profile = None
+
+    if cached_analysis:
+
+        resume_profile = (
+            ResumeProfile.model_validate(
+                json.loads(
+                    cached_analysis.resume_profile_json
+                )
+            )
+        )
+
+    ats_report = ATSScorer().score(
+        resume_text=resume.extracted_text or "",
+        pdf_path=resume.filepath,
+        resume_profile=resume_profile,
+        jd_match_score=None,
+    )
+
+    analysis = ResumeAnalysis(
+        user_id=current_user.id,
+
+        resume_id=resume.id,
+
+        job_description_text=None,
+
+        job_title=None,
+
+        ats_score=ats_report.ats_score,
+
+        ats_report_json=ats_report.model_dump_json(),
+
+        analysis_result_json=json.dumps(
+            {"ats_report": ats_report.model_dump()}
+        ),
+
+        status="completed",
+
+        progress=100,
+
+        current_stage="ATS check complete",
+
+        completed_at=datetime.utcnow(),
+    )
+
+    db.add(analysis)
+
+    db.commit()
+
+    db.refresh(analysis)
+
+    return {
+        "analysis_id": analysis.id,
+
+        "resume_id": analysis.resume_id,
+
+        "ats_score": analysis.ats_score,
+
+        "mode": ats_report.mode,
+
+        "report": ats_report.model_dump(),
+    }
+
 @router.get("/history")
 def get_analysis_history(
     db: Session = Depends(get_db),
@@ -274,6 +388,14 @@ def get_analysis_history(
 
             "overall_score": (
                 analysis.overall_score
+            ),
+
+            "ats_score": analysis.ats_score,
+
+            "mode": (
+                "standalone"
+                if analysis.job_description_text is None
+                else "jd_aware"
             ),
 
             "status": analysis.status,
@@ -422,6 +544,12 @@ def get_analysis_result(
             ),
         ) from exc
 
+    ats_report = (
+        json.loads(analysis.ats_report_json)
+        if analysis.ats_report_json
+        else None
+    )
+
     return {
         "analysis_id": analysis.id,
 
@@ -429,6 +557,16 @@ def get_analysis_result(
 
         "overall_score": (
             analysis.overall_score
+        ),
+
+        "ats_score": analysis.ats_score,
+
+        "ats_report": ats_report,
+
+        "mode": (
+            "standalone"
+            if analysis.job_description_text is None
+            else "jd_aware"
         ),
 
         "job_title": analysis.job_title,

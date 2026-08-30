@@ -12,12 +12,18 @@ import AnalysisSummary from "../components/resume-analysis/AnalysisSummary";
 import RequirementTable from "../components/resume-analysis/RequirementTable";
 import ImprovementTable from "../components/resume-analysis/ImprovementTable";
 import ReviewAreasTable from "../components/resume-analysis/ReviewAreasTable";
+import AtsFindingsTable from "../components/resume-analysis/AtsFindingsTable";
 
-const TABS = [
+const JD_AWARE_TABS = [
   { id: "overview", label: "Overview" },
   { id: "requirements", label: "Requirements" },
   { id: "improvements", label: "Improvements" },
   { id: "review", label: "Review Areas" },
+];
+
+const STANDALONE_TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "findings", label: "Findings" },
 ];
 
 export default function ResumeAnalysisPage() {
@@ -103,17 +109,26 @@ export default function ResumeAnalysisPage() {
   const result =
     analysis.result;
 
+  const isStandalone = analysis.mode
+    ? analysis.mode === "standalone"
+    : !analysis.job_title;
+
   const matchingReport =
     result.matching_report;
 
   const recommendationReport =
     result.recommendation_report;
 
+  const atsReport =
+    analysis.ats_report;
+
   const missingAndReviewCount =
     (matchingReport?.summary?.missing_matches ?? 0) +
     (matchingReport?.summary?.ambiguous_matches ?? 0);
 
-  const tabs = TABS.map((tab) => {
+  const baseTabs = isStandalone ? STANDALONE_TABS : JD_AWARE_TABS;
+
+  const tabs = baseTabs.map((tab) => {
 
     if (tab.id === "requirements") {
       return {
@@ -136,6 +151,13 @@ export default function ResumeAnalysisPage() {
       };
     }
 
+    if (tab.id === "findings") {
+      return {
+        ...tab,
+        count: atsReport?.findings?.length ?? 0,
+      };
+    }
+
     return tab;
   });
 
@@ -152,12 +174,15 @@ export default function ResumeAnalysisPage() {
 
           <h1>
             {analysis.job_title ||
-              "Resume Analysis"}
+              (isStandalone
+                ? "ATS Compatibility Check"
+                : "Resume Analysis")}
           </h1>
 
           <p>
-            Evidence-backed analysis of your
-            resume against this job description.
+            {isStandalone
+              ? "How well an ATS can parse and rank this resume, plus what to fix to raise the score."
+              : "Evidence-backed analysis of your resume against this job description."}
           </p>
         </div>
       </section>
@@ -172,6 +197,13 @@ export default function ResumeAnalysisPage() {
         <AnalysisSummary
           score={analysis.overall_score}
           matchingReport={matchingReport}
+          atsReport={atsReport}
+        />
+      )}
+
+      {activeTab === "findings" && (
+        <AtsFindingsTable
+          findings={atsReport?.findings}
         />
       )}
 

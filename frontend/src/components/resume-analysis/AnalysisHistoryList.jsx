@@ -17,6 +17,7 @@ function getStatusBadge(status) {
 
 function AnalysisHistoryItem({ analysis }) {
   const badge = getStatusBadge(analysis.status);
+  const isStandalone = analysis.mode === "standalone";
 
   const createdDate = new Date(
     analysis.created_at
@@ -25,7 +26,9 @@ function AnalysisHistoryItem({ analysis }) {
   return (
     <article className="list-row">
       <div className="list-row__info">
-        <div className="list-row__title">{analysis.job_title || "Untitled role"}</div>
+        <div className="list-row__title">
+          {isStandalone ? "ATS Check" : analysis.job_title || "Untitled role"}
+        </div>
         <div className="list-row__meta">
           <span>{analysis.resume_filename || "Unknown resume"}</span>
           <span>·</span>
@@ -38,7 +41,10 @@ function AnalysisHistoryItem({ analysis }) {
 
         {analysis.status === "completed" && (
           <>
-            <span className="list-row__score">{analysis.overall_score ?? "—"}/100</span>
+            <span className="list-row__score">{analysis.ats_score ?? "—"}/100 ATS</span>
+            {!isStandalone && (
+              <span className="list-row__score">{analysis.overall_score ?? "—"}/100 Match</span>
+            )}
             <Link className="button button--primary button--sm" to={`/resume-analysis/${analysis.analysis_id}`}>
               View results
             </Link>

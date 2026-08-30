@@ -3354,8 +3354,19 @@ textarea::placeholder {
 
 .match-overview {
   display: grid;
-  grid-template-columns: 1.1fr repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 14px;
+}
+
+.score-card--capped {
+  position: relative;
+}
+
+.score-card__warning {
+  margin-top: 6px;
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .score-card {
