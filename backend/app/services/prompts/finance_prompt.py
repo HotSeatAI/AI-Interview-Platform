@@ -2,6 +2,100 @@
 Finance interview prompt builder.
 """
 
+from app.services.role_classifier import classify_finance_subrole
+
+
+_FUNDAMENTALS_BY_SUBROLE = {
+    "generic": """Easy
+- Accounting
+- Financial Statements
+- Ratio Analysis
+
+Medium
+- DCF
+- Valuation
+- CAPM
+- NPV
+- IRR
+
+Hard
+- Derivatives
+- Portfolio Theory
+- Financial Modeling
+- Advanced Valuation
+- Risk Management""",
+    "investment_banking_pe": """Easy
+- Accounting
+- Financial Statements
+- Enterprise vs Equity Value
+
+Medium
+- DCF
+- Comparable Company Analysis
+- Precedent Transactions
+
+Hard
+- LBO Modeling
+- Deal Structuring
+- Synergies & Accretion/Dilution""",
+    "equity_research": """Easy
+- Financial Statements
+- Ratio Analysis
+- Industry Basics
+
+Medium
+- DCF
+- Comparable Company Analysis
+- Earnings Models
+
+Hard
+- Advanced Valuation
+- Portfolio Theory
+- CAPM""",
+    "corporate_finance_treasury": """Easy
+- Accounting
+- Financial Statements
+- Working Capital Basics
+
+Medium
+- Capital Budgeting
+- Cost of Capital
+- Cash Flow Forecasting
+
+Hard
+- Capital Structure Decisions
+- Liquidity & Cash Management
+- Financial Risk Hedging""",
+    "risk_management": """Easy
+- Risk Types (Market/Credit/Operational)
+- Financial Statements
+- Basic Ratio Analysis
+
+Medium
+- Value at Risk (VaR)
+- Hedging Strategies
+- Credit Risk Assessment
+
+Hard
+- Derivatives
+- Stress Testing
+- Regulatory Capital (Basel)""",
+    "venture_capital": """Easy
+- Startup Basics
+- Cap Tables
+- Financial Statements
+
+Medium
+- Startup Valuation Methods (VC Method)
+- Market Sizing (TAM/SAM/SOM)
+- Term Sheets
+
+Hard
+- Due Diligence for Early-Stage Deals
+- Follow-on Investment Strategy
+- Exit Strategies""",
+}
+
 
 def build_finance_prompt(
     role: str,
@@ -19,6 +113,9 @@ def build_finance_prompt(
     Returns:
         Prompt string for Gemini.
     """
+
+    subrole = classify_finance_subrole(role)
+    fundamentals_block = _FUNDAMENTALS_BY_SUBROLE[subrole]
 
     if resume_text:
 
@@ -51,24 +148,7 @@ Generate exactly 3 questions.
 
 Difficulty Guidelines:
 
-Easy
-- Accounting
-- Financial Statements
-- Ratio Analysis
-
-Medium
-- DCF
-- Valuation
-- CAPM
-- NPV
-- IRR
-
-Hard
-- Derivatives
-- Portfolio Theory
-- Financial Modeling
-- Advanced Valuation
-- Risk Management
+{fundamentals_block}
 
 Questions must match the selected difficulty.
 
@@ -246,24 +326,7 @@ Generate exactly 3 questions.
 
 Difficulty Guidelines:
 
-Easy
-- Accounting
-- Financial Statements
-- Ratio Analysis
-
-Medium
-- DCF
-- Valuation
-- CAPM
-- NPV
-- IRR
-
-Hard
-- Derivatives
-- Portfolio Theory
-- Financial Modeling
-- Advanced Valuation
-- Risk Management
+{fundamentals_block}
 
 3. Finance Case Studies (2)
 

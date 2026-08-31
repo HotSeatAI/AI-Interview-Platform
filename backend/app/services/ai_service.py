@@ -7,6 +7,11 @@ from app.services.prompts.finance_prompt import build_finance_prompt
 from app.services.prompts.consulting_prompt import build_consulting_prompt
 from app.services.prompts.sales_prompt import build_sales_prompt
 from app.services.prompts.marketing_prompt import build_marketing_prompt
+from app.services.prompts.digital_design_prompt import build_digital_design_prompt
+from app.services.prompts.analog_design_prompt import build_analog_design_prompt
+from app.services.prompts.embedded_systems_prompt import build_embedded_systems_prompt
+from app.services.prompts.vlsi_prompt import build_vlsi_prompt
+from app.services.prompts.product_management import build_product_management_prompt
 from app.services.prompts.evaluation_prompt import (
     build_evaluation_prompt,
     build_follow_up_prompt,
@@ -72,6 +77,46 @@ class AIService:
         elif category == "marketing":
 
             prompt = build_marketing_prompt(
+                role=role,
+                difficulty=difficulty,
+                resume_text=resume_text,
+            )
+
+        elif category == "digital_design":
+
+            prompt = build_digital_design_prompt(
+                role=role,
+                difficulty=difficulty,
+                resume_text=resume_text,
+            )
+
+        elif category == "analog_design":
+
+            prompt = build_analog_design_prompt(
+                role=role,
+                difficulty=difficulty,
+                resume_text=resume_text,
+            )
+
+        elif category == "embedded_systems":
+
+            prompt = build_embedded_systems_prompt(
+                role=role,
+                difficulty=difficulty,
+                resume_text=resume_text,
+            )
+
+        elif category == "vlsi":
+
+            prompt = build_vlsi_prompt(
+                role=role,
+                difficulty=difficulty,
+                resume_text=resume_text,
+            )
+
+        elif category == "product_management":
+
+            prompt = build_product_management_prompt(
                 role=role,
                 difficulty=difficulty,
                 resume_text=resume_text,

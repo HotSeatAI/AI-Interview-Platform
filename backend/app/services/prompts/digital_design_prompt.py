@@ -2,6 +2,101 @@
 Digital Design interview prompt builder.
 """
 
+from app.services.role_classifier import classify_digital_design_subrole
+
+
+_COMPUTER_ARCHITECTURE_TOPICS = """Easy
+- CPU Basics
+- Memory Hierarchy
+- Cache Basics
+- Instruction Cycle
+
+Medium
+- Pipelining
+- Hazards
+- Cache Mapping
+- Virtual Memory
+
+Hard
+- Branch Prediction
+- Out-of-Order Execution
+- Superscalar Architecture
+- Cache Coherency
+- Performance Trade-offs"""
+
+_FPGA_TOPICS = """Easy
+- FPGA Basics
+- LUTs & CLBs
+- I/O Blocks
+
+Medium
+- FPGA Timing Constraints
+- Resource Utilization
+- Clock Management (PLLs/MMCMs)
+
+Hard
+- FPGA Tool Flow (Synthesis/Place & Route)
+- Partial Reconfiguration
+- FPGA Power Optimization"""
+
+# Resume branch: "Topics may include:" is followed directly by the
+# tiered list.
+_COMPUTER_ARCH_BLOCK_BY_SUBROLE = {
+    "generic": _COMPUTER_ARCHITECTURE_TOPICS,
+    "fpga": _FPGA_TOPICS,
+}
+
+# No-resume branch originally had no topic list at all for this
+# section ("Difficulty must match the selected level." only) -
+# preserved for "generic"; the fpga bucket adds a tiered list before
+# that same closing line.
+_COMPUTER_ARCH_TAIL_BY_SUBROLE = {
+    "generic": "Difficulty must match the selected level.",
+    "fpga": f"""Topics include:
+
+{_FPGA_TOPICS}
+
+Difficulty must match the selected level.""",
+}
+
+_RTL_VERIFICATION_TOPICS = """- Verilog
+- SystemVerilog
+- Blocking vs Non-blocking Assignments
+- Synchronous vs Asynchronous Reset
+- Testbench Basics
+- Assertions
+- Functional Verification
+- Code Optimization
+- Synthesizable RTL
+- Linting Concepts"""
+
+_RTL_VERIFICATION_TOPICS_NO_RESUME = """- Verilog
+- SystemVerilog
+- Blocking vs Non-blocking
+- Reset Design
+- Testbench
+- Assertions
+- Verification"""
+
+_VERIFICATION_DV_TOPICS = """- UVM (Universal Verification Methodology)
+- Testbench Architecture
+- Functional Coverage
+- SystemVerilog Assertions (SVA)
+- Formal Verification
+- Constrained Random Verification
+- Scoreboard & Checkers
+- Verification Planning"""
+
+_RTL_VERIFICATION_BLOCK_BY_SUBROLE = {
+    "generic": _RTL_VERIFICATION_TOPICS,
+    "verification_dv": _VERIFICATION_DV_TOPICS,
+}
+
+_RTL_VERIFICATION_BLOCK_BY_SUBROLE_NO_RESUME = {
+    "generic": _RTL_VERIFICATION_TOPICS_NO_RESUME,
+    "verification_dv": _VERIFICATION_DV_TOPICS,
+}
+
 
 def build_digital_design_prompt(
     role: str,
@@ -19,6 +114,20 @@ def build_digital_design_prompt(
     Returns:
         Prompt string for Gemini.
     """
+
+    subrole = classify_digital_design_subrole(role)
+    computer_arch_block = _COMPUTER_ARCH_BLOCK_BY_SUBROLE.get(
+        subrole, _COMPUTER_ARCHITECTURE_TOPICS
+    )
+    computer_arch_tail = _COMPUTER_ARCH_TAIL_BY_SUBROLE.get(
+        subrole, _COMPUTER_ARCH_TAIL_BY_SUBROLE["generic"]
+    )
+    rtl_verification_block = _RTL_VERIFICATION_BLOCK_BY_SUBROLE.get(
+        subrole, _RTL_VERIFICATION_TOPICS
+    )
+    rtl_verification_block_no_resume = _RTL_VERIFICATION_BLOCK_BY_SUBROLE_NO_RESUME.get(
+        subrole, _RTL_VERIFICATION_TOPICS_NO_RESUME
+    )
 
     if resume_text:
 
@@ -84,24 +193,7 @@ Generate exactly 2 questions.
 
 Topics may include:
 
-Easy
-- CPU Basics
-- Memory Hierarchy
-- Cache Basics
-- Instruction Cycle
-
-Medium
-- Pipelining
-- Hazards
-- Cache Mapping
-- Virtual Memory
-
-Hard
-- Branch Prediction
-- Out-of-Order Execution
-- Superscalar Architecture
-- Cache Coherency
-- Performance Trade-offs
+{computer_arch_block}
 
 4. RTL Design & Verification (3)
 
@@ -109,16 +201,7 @@ Generate exactly 3 questions.
 
 Topics include:
 
-- Verilog
-- SystemVerilog
-- Blocking vs Non-blocking Assignments
-- Synchronous vs Asynchronous Reset
-- Testbench Basics
-- Assertions
-- Functional Verification
-- Code Optimization
-- Synthesizable RTL
-- Linting Concepts
+{rtl_verification_block}
 
 Adjust complexity according to the selected difficulty.
 
@@ -221,7 +304,7 @@ Hard
 
 Generate exactly 2 questions.
 
-Difficulty must match the selected level.
+{computer_arch_tail}
 
 4. RTL Design & Verification (3)
 
@@ -229,13 +312,7 @@ Generate exactly 3 questions.
 
 Topics include:
 
-- Verilog
-- SystemVerilog
-- Blocking vs Non-blocking
-- Reset Design
-- Testbench
-- Assertions
-- Verification
+{rtl_verification_block_no_resume}
 
 5. Behavioral Question (1)
 

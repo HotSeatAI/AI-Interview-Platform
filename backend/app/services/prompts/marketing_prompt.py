@@ -2,6 +2,90 @@
 Marketing interview prompt builder.
 """
 
+from app.services.role_classifier import classify_marketing_subrole
+
+
+_FUNDAMENTALS_BY_SUBROLE = {
+    "generic": """Easy
+- Branding
+- Marketing Mix (4Ps)
+- SEO
+- Consumer Behaviour
+- Market Segmentation
+
+Medium
+- SEM
+- Campaign Optimization
+- Marketing Analytics
+- Customer Journey
+- Content Strategy
+
+Hard
+- Growth Marketing
+- Attribution Models
+- Customer Acquisition Cost (CAC)
+- Lifetime Value (LTV)
+- Marketing Automation
+- Performance Marketing
+- Omnichannel Strategy""",
+    "brand_management": """Easy
+- Branding
+- Brand Positioning
+- Consumer Behaviour
+
+Medium
+- Brand Equity
+- Brand Architecture
+- Brand Tracking & Perception Studies
+
+Hard
+- Brand Portfolio Strategy
+- Rebranding & Repositioning
+- Long-term Brand Value Building""",
+    "seo": """Easy
+- SEO Basics
+- Keyword Research
+- On-page Optimization
+
+Medium
+- Technical SEO
+- Link Building
+- Search Algorithm Fundamentals
+
+Hard
+- Large-scale SEO Strategy
+- Core Web Vitals & Technical Performance
+- SEO for Competitive Markets""",
+    "content_marketing": """Easy
+- Content Basics
+- Content Formats
+- Editorial Planning
+
+Medium
+- Content Strategy
+- Storytelling
+- Content Distribution
+
+Hard
+- Content-led Growth
+- SEO for Content
+- Content Performance & ROI""",
+    "product_marketing": """Easy
+- Positioning Basics
+- Messaging
+- Market Basics
+
+Medium
+- Go-to-Market Strategy
+- Competitive Analysis
+- Sales Enablement
+
+Hard
+- Multi-product Positioning
+- Launch Strategy at Scale
+- Cross-functional GTM Leadership""",
+}
+
 
 def build_marketing_prompt(
     role: str,
@@ -19,6 +103,9 @@ def build_marketing_prompt(
     Returns:
         Prompt string for Gemini.
     """
+
+    subrole = classify_marketing_subrole(role)
+    fundamentals_block = _FUNDAMENTALS_BY_SUBROLE[subrole]
 
     if resume_text:
 
@@ -52,28 +139,7 @@ Generate exactly 3 questions.
 
 Difficulty Guidelines:
 
-Easy
-- Branding
-- Marketing Mix (4Ps)
-- SEO
-- Consumer Behaviour
-- Market Segmentation
-
-Medium
-- SEM
-- Campaign Optimization
-- Marketing Analytics
-- Customer Journey
-- Content Strategy
-
-Hard
-- Growth Marketing
-- Attribution Models
-- Customer Acquisition Cost (CAC)
-- Lifetime Value (LTV)
-- Marketing Automation
-- Performance Marketing
-- Omnichannel Strategy
+{fundamentals_block}
 
 Questions must strictly match the selected difficulty.
 
@@ -257,28 +323,7 @@ Generate exactly 3 questions.
 
 Difficulty Guidelines:
 
-Easy
-- Branding
-- Marketing Mix (4Ps)
-- SEO
-- Consumer Behaviour
-- Market Segmentation
-
-Medium
-- SEM
-- Campaign Optimization
-- Marketing Analytics
-- Customer Journey
-- Content Strategy
-
-Hard
-- Growth Marketing
-- Attribution Models
-- Customer Acquisition Cost (CAC)
-- Lifetime Value (LTV)
-- Marketing Automation
-- Performance Marketing
-- Omnichannel Strategy
+{fundamentals_block}
 
 3. Campaign Case Studies (2)
 

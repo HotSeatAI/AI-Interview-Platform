@@ -2,6 +2,170 @@
 Product Management interview prompt builder.
 """
 
+from app.services.role_classifier import classify_product_management_subrole
+
+
+_PRODUCT_SENSE_TOPICS = """Easy
+
+- User Personas
+- MVP
+- Product Lifecycle
+- User Research
+- Feature Ideas
+
+Medium
+
+- Product Design
+- Feature Prioritization
+- User Experience
+- Customer Journey
+- Product Roadmaps
+
+Hard
+
+- Platform Strategy
+- Marketplace Products
+- Ecosystem Design
+- Product Trade-offs
+- Long-term Vision"""
+
+_PRODUCT_SENSE_TOPICS_NO_RESUME = """Easy
+
+- User Personas
+- MVP
+- Product Lifecycle
+
+Medium
+
+- Product Design
+- Feature Prioritization
+- Product Roadmaps
+
+Hard
+
+- Platform Strategy
+- Product Trade-offs
+- Ecosystem Design"""
+
+_TECHNICAL_PM_TOPICS = """Easy
+
+- Technical Basics for PMs
+- APIs 101
+- System Components Overview
+
+Medium
+
+- System Architecture Trade-offs
+- API Design as Product
+- Technical Feasibility Assessment
+
+Hard
+
+- Engineering Collaboration at Scale
+- Technical Debt vs Feature Trade-offs
+- Platform & Infrastructure Decisions"""
+
+_PRODUCT_SENSE_BLOCK_BY_SUBROLE = {
+    "generic": _PRODUCT_SENSE_TOPICS,
+    "technical_pm": _TECHNICAL_PM_TOPICS,
+}
+
+_PRODUCT_SENSE_BLOCK_BY_SUBROLE_NO_RESUME = {
+    "generic": _PRODUCT_SENSE_TOPICS_NO_RESUME,
+    "technical_pm": _TECHNICAL_PM_TOPICS,
+}
+
+_PRODUCT_STRATEGY_TOPICS = """Easy
+
+- Business Goals
+- Product Vision
+
+Medium
+
+- Market Entry
+- Growth Strategy
+- Competitive Analysis
+- Monetization
+
+Hard
+
+- Pricing Strategy
+- Network Effects
+- Platform Economics
+- Go-to-Market Strategy
+- Business Trade-offs"""
+
+_PRODUCT_STRATEGY_TOPICS_NO_RESUME = """- Growth Strategy
+- Monetization
+- Competitive Analysis
+- Pricing
+- Go-to-Market Strategy"""
+
+_GROWTH_PM_TOPICS = """Easy
+
+- Growth Basics
+- User Acquisition Channels
+
+Medium
+
+- AARRR Framework (Pirate Metrics)
+- Growth Loops
+- Referral & Virality Mechanics
+
+Hard
+
+- Growth Experimentation at Scale
+- Retention & Engagement Levers
+- Compounding Growth Strategy"""
+
+_PRODUCT_STRATEGY_BLOCK_BY_SUBROLE = {
+    "generic": _PRODUCT_STRATEGY_TOPICS,
+    "growth_pm": _GROWTH_PM_TOPICS,
+}
+
+_PRODUCT_STRATEGY_BLOCK_BY_SUBROLE_NO_RESUME = {
+    "generic": _PRODUCT_STRATEGY_TOPICS_NO_RESUME,
+    "growth_pm": _GROWTH_PM_TOPICS,
+}
+
+_PRODUCT_ANALYTICS_TOPICS = """- North Star Metrics
+- DAU / MAU
+- Funnel Analysis
+- Retention
+- Churn
+- A/B Testing
+- Feature Success Metrics
+- Prioritization Frameworks
+- Product Execution
+- Stakeholder Management
+- Cross-functional Collaboration"""
+
+_PRODUCT_ANALYTICS_TOPICS_NO_RESUME = """- Product Metrics
+- Funnel Analysis
+- A/B Testing
+- Retention
+- Churn
+- Prioritization
+- Product Execution
+- Stakeholder Management"""
+
+_PRODUCT_ANALYST_TOPICS = """- Metrics Design & North Star Frameworks
+- Cohort Analysis
+- Funnel Analysis
+- Experimentation Design (A/B Testing Rigor)
+- Data-Informed Prioritization
+- Statistical Significance in Product Experiments"""
+
+_PRODUCT_ANALYTICS_BLOCK_BY_SUBROLE = {
+    "generic": _PRODUCT_ANALYTICS_TOPICS,
+    "product_analyst": _PRODUCT_ANALYST_TOPICS,
+}
+
+_PRODUCT_ANALYTICS_BLOCK_BY_SUBROLE_NO_RESUME = {
+    "generic": _PRODUCT_ANALYTICS_TOPICS_NO_RESUME,
+    "product_analyst": _PRODUCT_ANALYST_TOPICS,
+}
+
 
 def build_product_management_prompt(
     role: str,
@@ -19,6 +183,20 @@ def build_product_management_prompt(
     Returns:
         Prompt string for Gemini.
     """
+
+    subrole = classify_product_management_subrole(role)
+    product_sense_block = _PRODUCT_SENSE_BLOCK_BY_SUBROLE.get(subrole, _PRODUCT_SENSE_TOPICS)
+    product_sense_block_no_resume = _PRODUCT_SENSE_BLOCK_BY_SUBROLE_NO_RESUME.get(
+        subrole, _PRODUCT_SENSE_TOPICS_NO_RESUME
+    )
+    product_strategy_block = _PRODUCT_STRATEGY_BLOCK_BY_SUBROLE.get(subrole, _PRODUCT_STRATEGY_TOPICS)
+    product_strategy_block_no_resume = _PRODUCT_STRATEGY_BLOCK_BY_SUBROLE_NO_RESUME.get(
+        subrole, _PRODUCT_STRATEGY_TOPICS_NO_RESUME
+    )
+    product_analytics_block = _PRODUCT_ANALYTICS_BLOCK_BY_SUBROLE.get(subrole, _PRODUCT_ANALYTICS_TOPICS)
+    product_analytics_block_no_resume = _PRODUCT_ANALYTICS_BLOCK_BY_SUBROLE_NO_RESUME.get(
+        subrole, _PRODUCT_ANALYTICS_TOPICS_NO_RESUME
+    )
 
     if resume_text:
 
@@ -51,29 +229,7 @@ Generate exactly 2 questions.
 
 Difficulty Guidelines
 
-Easy
-
-- User Personas
-- MVP
-- Product Lifecycle
-- User Research
-- Feature Ideas
-
-Medium
-
-- Product Design
-- Feature Prioritization
-- User Experience
-- Customer Journey
-- Product Roadmaps
-
-Hard
-
-- Platform Strategy
-- Marketplace Products
-- Ecosystem Design
-- Product Trade-offs
-- Long-term Vision
+{product_sense_block}
 
 Questions must strictly match the selected difficulty.
 
@@ -83,25 +239,7 @@ Generate exactly 2 questions.
 
 Topics include:
 
-Easy
-
-- Business Goals
-- Product Vision
-
-Medium
-
-- Market Entry
-- Growth Strategy
-- Competitive Analysis
-- Monetization
-
-Hard
-
-- Pricing Strategy
-- Network Effects
-- Platform Economics
-- Go-to-Market Strategy
-- Business Trade-offs
+{product_strategy_block}
 
 4. Product Analytics & Execution (3)
 
@@ -109,17 +247,7 @@ Generate exactly 3 questions.
 
 Topics include:
 
-- North Star Metrics
-- DAU / MAU
-- Funnel Analysis
-- Retention
-- Churn
-- A/B Testing
-- Feature Success Metrics
-- Prioritization Frameworks
-- Product Execution
-- Stakeholder Management
-- Cross-functional Collaboration
+{product_analytics_block}
 
 Adjust complexity according to the selected difficulty.
 
@@ -208,23 +336,7 @@ Generate exactly 2 questions.
 
 Topics include:
 
-Easy
-
-- User Personas
-- MVP
-- Product Lifecycle
-
-Medium
-
-- Product Design
-- Feature Prioritization
-- Product Roadmaps
-
-Hard
-
-- Platform Strategy
-- Product Trade-offs
-- Ecosystem Design
+{product_sense_block_no_resume}
 
 3. Product Strategy & Business Thinking (2)
 
@@ -232,11 +344,7 @@ Generate exactly 2 questions.
 
 Topics include:
 
-- Growth Strategy
-- Monetization
-- Competitive Analysis
-- Pricing
-- Go-to-Market Strategy
+{product_strategy_block_no_resume}
 
 4. Product Analytics & Execution (3)
 
@@ -244,14 +352,7 @@ Generate exactly 3 questions.
 
 Topics include:
 
-- Product Metrics
-- Funnel Analysis
-- A/B Testing
-- Retention
-- Churn
-- Prioritization
-- Product Execution
-- Stakeholder Management
+{product_analytics_block_no_resume}
 
 5. Behavioral Question (1)
 
