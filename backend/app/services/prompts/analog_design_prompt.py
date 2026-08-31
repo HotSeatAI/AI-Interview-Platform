@@ -2,6 +2,39 @@
 Analog Design interview prompt builder.
 """
 
+from app.services.role_classifier import classify_analog_subrole
+
+
+_IC_DESIGN_CONCEPTS_BY_SUBROLE = {
+    "generic": """- ADC
+- DAC
+- PLL
+- Bandgap Reference
+- LDO
+- Voltage Regulators
+- Comparators
+- Oscillators
+- Sample and Hold Circuits
+- Switched Capacitor Circuits""",
+    "mixed_signal": """- ADC Architectures (SAR/Pipeline/Delta-Sigma)
+- DAC Architectures
+- Data Converter Specifications (SNR/ENOB/SFDR)
+- Digital-Analog Interfacing
+- Clock & Timing Generation for Mixed-Signal Systems
+- Sampling & Aliasing""",
+}
+
+_IC_DESIGN_CONCEPTS_BY_SUBROLE_NO_RESUME = {
+    "generic": """- ADC
+- DAC
+- PLL
+- LDO
+- Bandgap Reference
+- Comparators
+- Oscillators""",
+    "mixed_signal": _IC_DESIGN_CONCEPTS_BY_SUBROLE["mixed_signal"],
+}
+
 
 def build_analog_design_prompt(
     role: str,
@@ -19,6 +52,10 @@ def build_analog_design_prompt(
     Returns:
         Prompt string for Gemini.
     """
+
+    subrole = classify_analog_subrole(role)
+    ic_design_block = _IC_DESIGN_CONCEPTS_BY_SUBROLE[subrole]
+    ic_design_block_no_resume = _IC_DESIGN_CONCEPTS_BY_SUBROLE_NO_RESUME[subrole]
 
     if resume_text:
 
@@ -109,16 +146,7 @@ Generate exactly 3 questions.
 
 Topics include:
 
-- ADC
-- DAC
-- PLL
-- Bandgap Reference
-- LDO
-- Voltage Regulators
-- Comparators
-- Oscillators
-- Sample and Hold Circuits
-- Switched Capacitor Circuits
+{ic_design_block}
 
 Adjust complexity according to the selected difficulty.
 
@@ -237,13 +265,7 @@ Generate exactly 3 questions.
 
 Topics include:
 
-- ADC
-- DAC
-- PLL
-- LDO
-- Bandgap Reference
-- Comparators
-- Oscillators
+{ic_design_block_no_resume}
 
 5. Behavioral Question (1)
 

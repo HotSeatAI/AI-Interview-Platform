@@ -2,6 +2,123 @@
 Embedded Systems interview prompt builder.
 """
 
+from app.services.role_classifier import classify_embedded_subrole
+
+
+_PROTOCOLS_TOPICS = """Easy
+- GPIO
+- Timers
+- UART
+
+Medium
+- SPI
+- I2C
+- CAN
+- ADC
+- DAC
+- PWM
+
+Hard
+- DMA
+- Interrupt Priorities
+- Nested Interrupts
+- Peripheral Configuration
+- Power Management"""
+
+_PROTOCOLS_TOPICS_NO_RESUME = """- GPIO
+- UART
+- SPI
+- I2C
+- CAN
+- Timers
+- Interrupts"""
+
+_EMBEDDED_LINUX_PROTOCOLS_TOPICS = """- Device Tree
+- Character & Block Devices
+- Boot Process (Bootloader/U-Boot)
+- Cross-Compilation"""
+
+_IOT_PROTOCOLS_TOPICS = """- Wireless Protocols (BLE, Zigbee, LoRaWAN)
+- MQTT/CoAP
+- Sensor Interfacing
+- Low-Power Design"""
+
+_AUTOMOTIVE_PROTOCOLS_TOPICS = """- CAN Protocol
+- LIN Protocol
+- FlexRay
+- Automotive Sensors & Actuators"""
+
+_PROTOCOLS_BLOCK_BY_SUBROLE = {
+    "generic": _PROTOCOLS_TOPICS,
+    "embedded_linux": _EMBEDDED_LINUX_PROTOCOLS_TOPICS,
+    "iot": _IOT_PROTOCOLS_TOPICS,
+    "automotive_embedded": _AUTOMOTIVE_PROTOCOLS_TOPICS,
+}
+
+_PROTOCOLS_BLOCK_BY_SUBROLE_NO_RESUME = {
+    "generic": _PROTOCOLS_TOPICS_NO_RESUME,
+    "embedded_linux": _EMBEDDED_LINUX_PROTOCOLS_TOPICS,
+    "iot": _IOT_PROTOCOLS_TOPICS,
+    "automotive_embedded": _AUTOMOTIVE_PROTOCOLS_TOPICS,
+}
+
+_RTOS_DEBUGGING_TOPICS = """- RTOS Basics
+- Tasks
+- Scheduling
+- Semaphores
+- Mutex
+- Queues
+- Interrupts
+- Deadlocks
+- Priority Inversion
+- Bootloader
+- Device Drivers
+- Debugging Techniques"""
+
+_RTOS_DEBUGGING_TOPICS_NO_RESUME = """- RTOS
+- Scheduling
+- Semaphores
+- Mutex
+- Queues
+- Device Drivers
+- Bootloader
+- Debugging"""
+
+_EMBEDDED_LINUX_RTOS_TOPICS = """- Linux Kernel Internals
+- Kernel Modules
+- Kernel Memory Management
+- System Calls
+- Linux Device Drivers
+- Debugging with GDB/Kernel Debuggers"""
+
+_IOT_RTOS_TOPICS = """- IoT Power Management & Sleep Modes
+- Cloud Connectivity
+- Over-the-Air (OTA) Updates
+- IoT Security
+- Edge Computing Basics
+- Device Provisioning"""
+
+_AUTOMOTIVE_RTOS_TOPICS = """- AUTOSAR Architecture
+- Functional Safety (ISO 26262)
+- Diagnostics (UDS/OBD-II)
+- Real-Time Constraints in Automotive Systems
+- ECU Communication
+- Automotive Debugging Tools"""
+
+_RTOS_BLOCK_BY_SUBROLE = {
+    "generic": _RTOS_DEBUGGING_TOPICS,
+    "embedded_linux": _EMBEDDED_LINUX_RTOS_TOPICS,
+    "iot": _IOT_RTOS_TOPICS,
+    "automotive_embedded": _AUTOMOTIVE_RTOS_TOPICS,
+}
+
+_RTOS_BLOCK_BY_SUBROLE_NO_RESUME = {
+    "generic": _RTOS_DEBUGGING_TOPICS_NO_RESUME,
+    "embedded_linux": _EMBEDDED_LINUX_RTOS_TOPICS,
+    "iot": _IOT_RTOS_TOPICS,
+    "automotive_embedded": _AUTOMOTIVE_RTOS_TOPICS,
+}
+
 
 def build_embedded_systems_prompt(
     role: str,
@@ -19,6 +136,12 @@ def build_embedded_systems_prompt(
     Returns:
         Prompt string for Gemini.
     """
+
+    subrole = classify_embedded_subrole(role)
+    protocols_block = _PROTOCOLS_BLOCK_BY_SUBROLE[subrole]
+    protocols_block_no_resume = _PROTOCOLS_BLOCK_BY_SUBROLE_NO_RESUME[subrole]
+    rtos_block = _RTOS_BLOCK_BY_SUBROLE[subrole]
+    rtos_block_no_resume = _RTOS_BLOCK_BY_SUBROLE_NO_RESUME[subrole]
 
     if resume_text:
 
@@ -81,25 +204,7 @@ Generate exactly 2 questions.
 
 Topics may include:
 
-Easy
-- GPIO
-- Timers
-- UART
-
-Medium
-- SPI
-- I2C
-- CAN
-- ADC
-- DAC
-- PWM
-
-Hard
-- DMA
-- Interrupt Priorities
-- Nested Interrupts
-- Peripheral Configuration
-- Power Management
+{protocols_block}
 
 4. RTOS & Debugging (3)
 
@@ -107,18 +212,7 @@ Generate exactly 3 questions.
 
 Topics include:
 
-- RTOS Basics
-- Tasks
-- Scheduling
-- Semaphores
-- Mutex
-- Queues
-- Interrupts
-- Deadlocks
-- Priority Inversion
-- Bootloader
-- Device Drivers
-- Debugging Techniques
+{rtos_block}
 
 Adjust complexity according to the selected difficulty.
 
@@ -221,13 +315,7 @@ Generate exactly 2 questions.
 
 Topics include:
 
-- GPIO
-- UART
-- SPI
-- I2C
-- CAN
-- Timers
-- Interrupts
+{protocols_block_no_resume}
 
 4. RTOS & Debugging (3)
 
@@ -235,14 +323,7 @@ Generate exactly 3 questions.
 
 Topics include:
 
-- RTOS
-- Scheduling
-- Semaphores
-- Mutex
-- Queues
-- Device Drivers
-- Bootloader
-- Debugging
+{rtos_block_no_resume}
 
 5. Behavioral Question (1)
 

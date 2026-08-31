@@ -2,6 +2,57 @@
 VLSI interview prompt builder.
 """
 
+from app.services.role_classifier import classify_vlsi_subrole
+
+
+_STA_CONCEPTS_BY_SUBROLE = {
+    "generic": """- Setup Time
+- Hold Time
+- Clock Skew
+- Clock Jitter
+- Timing Paths
+- STA
+- DRC
+- LVS
+- Power Optimization
+- Multi-Corner Multi-Mode (MCMM)
+- Process Variations""",
+    "physical_design": """- Floorplanning Strategies
+- Placement & Routing Trade-offs
+- Clock Tree Synthesis (CTS)
+- Timing Closure
+- IR Drop & EM Analysis
+- Physical Verification (DRC/LVS)""",
+    "dft": """- Scan Insertion
+- ATPG (Automatic Test Pattern Generation)
+- Test Compression
+- Built-In Self-Test (BIST)
+- Boundary Scan (JTAG)
+- Fault Coverage""",
+    "sta_timing": """- Setup & Hold Time Analysis
+- Clock Skew & Jitter
+- Timing Paths & Exceptions
+- Multi-Corner Multi-Mode (MCMM) Analysis
+- Timing Closure Techniques
+- Statistical Static Timing Analysis (SSTA)""",
+}
+
+# No-resume branch originally used a shorter "generic" topic list than
+# the resume branch - preserved here so that fallback stays byte-
+# identical to before for unmatched roles. New buckets reuse the same
+# tailored content as the resume branch.
+_STA_CONCEPTS_BY_SUBROLE_NO_RESUME = {
+    **_STA_CONCEPTS_BY_SUBROLE,
+    "generic": """- STA
+- Setup/Hold
+- Clock Skew
+- Timing Closure
+- DRC
+- LVS
+- MCMM
+- Power Optimization""",
+}
+
 
 def build_vlsi_prompt(
     role: str,
@@ -19,6 +70,10 @@ def build_vlsi_prompt(
     Returns:
         Prompt string for Gemini.
     """
+
+    subrole = classify_vlsi_subrole(role)
+    sta_concepts_block = _STA_CONCEPTS_BY_SUBROLE[subrole]
+    sta_concepts_block_no_resume = _STA_CONCEPTS_BY_SUBROLE_NO_RESUME[subrole]
 
     if resume_text:
 
@@ -108,17 +163,7 @@ Generate exactly 3 questions.
 
 Topics include:
 
-- Setup Time
-- Hold Time
-- Clock Skew
-- Clock Jitter
-- Timing Paths
-- STA
-- DRC
-- LVS
-- Power Optimization
-- Multi-Corner Multi-Mode (MCMM)
-- Process Variations
+{sta_concepts_block}
 
 Adjust complexity according to the selected difficulty.
 
@@ -236,14 +281,7 @@ Generate exactly 3 questions.
 
 Topics include:
 
-- STA
-- Setup/Hold
-- Clock Skew
-- Timing Closure
-- DRC
-- LVS
-- MCMM
-- Power Optimization
+{sta_concepts_block_no_resume}
 
 5. Behavioral Question (1)
 
