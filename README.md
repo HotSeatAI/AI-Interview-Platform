@@ -36,13 +36,13 @@ An AI-powered interview preparation platform that simulates real interviews usin
 
 ## 📖 Overview
 
-Hot Seat behaves like an intelligent interviewer — generating role-specific interviews, asking adaptive follow-up questions, and evaluating responses with Generative AI — across **Software Engineering, Finance, Consulting, Sales, and Marketing**.
+Hot Seat behaves like an intelligent interviewer — generating role-specific interviews, asking adaptive follow-up questions, and evaluating responses with Generative AI — across **10 domains**: Software Engineering, Finance, Consulting, Sales, Marketing, VLSI, Digital Design, Analog Design, Embedded Systems, and Product Management. Within each domain, the specific role typed in (e.g. "ML Engineer" vs. "Frontend Developer", or "Physical Design Engineer" vs. "DFT Engineer") further tailors which fundamentals and system-design topics actually get asked, instead of every role in a domain getting the same fixed question set.
 
 ---
 
 ## ✨ Features
 
-**Authentication** — JWT + Google OAuth, email verification, forgot/reset password, smart account linking.
+**Authentication & Onboarding** — JWT + Google OAuth with smart account linking, email verification, forgot/reset password. Every account (new or existing) must complete a short profile — full name, gender, job domain(s) interested in, and years of experience are mandatory; mobile number, institute, graduation year, country, and city are optional — and accept the Terms & Conditions before reaching the dashboard.
 
 **Resume Management** — PDF upload with layout-aware parsing (correct reading order across multi-column resumes), hidden-text/prompt-injection filtering, hyperlink extraction.
 
@@ -53,14 +53,24 @@ Hot Seat behaves like an intelligent interviewer — generating role-specific in
 - Adjacency-aware scoring (e.g. Azure vs. AWS) and domain-general matching (not just tech roles).
 - Truth-safe AI resume recommendations — never suggests unverifiable claims.
 - JD input via text, PDF, or image (OCR).
+- Result caching — an unchanged resume/JD pair reuses the prior analysis instead of re-running it.
+- **ATS Resume Score** — a separate formatting/parseability report (section detection, structure, keyword hygiene) alongside the requirement-match score.
 
-**AI Interview Engine** — multi-domain generation, difficulty selection, context-aware follow-up questions when an answer scores low.
+**AI Interview Engine** — role-aware question generation across all 10 domains, adaptive follow-up questions (up to 2 levels deep) when an answer scores low, and Easy/Medium/Hard difficulty selection.
+
+**Delivery Analysis (Voice & Body Language)** — opt-in webcam/mic analysis during an interview (pause count, pacing, eye contact, fidgeting), computed entirely client-side from numeric signals — raw audio/video is never uploaded, only derived summary metrics are sent for feedback. Fully optional and can be declined without affecting the rest of the interview.
 
 **Coding Environment** — Monaco editor, compile & run, sample + hidden test cases, AI code evaluation. Supports C, C++, Java, Python, JavaScript, Verilog.
 
 **Hybrid Answers** — combine voice, text, and code into one AI-evaluated response.
 
-**Interview History** — revisit past questions, answers, scores, and feedback.
+**Weak Topic Practice** — concepts a candidate struggles with are automatically flagged from evaluation feedback; a dedicated Topics page lets them run a focused 3-question practice round per topic, with pass/fail resolution and a progress tracker.
+
+**Interview History & Session Results** — revisit past sessions, per-question feedback, follow-up chains, delivery trend charts, and study topics for any skipped questions.
+
+**Dashboard** — GitHub-style activity heatmap, stats strip, latest session, and quick links into the rest of the app.
+
+**Dynamic Theme** — light/dark mode across every page, toggle-controlled and persisted.
 
 ---
 
@@ -152,12 +162,14 @@ alembic downgrade -1                                    # rollback
 
 | Resource | Endpoints |
 |---|---|
-| Auth | `POST /signup` · `POST /login` · `POST /auth/google` · `GET /auth/verify-email` · `POST /auth/resend-verification` · `POST /auth/forgot-password` · `POST /auth/reset-password` · `GET /me` |
+| Auth | `POST /signup` · `POST /login` · `POST /auth/google` · `GET /auth/verify-email` · `POST /auth/resend-verification` · `POST /auth/forgot-password` · `POST /auth/reset-password` · `GET /me` · `PUT /me/profile` · `PUT /me/accept-terms` |
 | Resume | `POST /resume/upload` · `GET /resume` · `DELETE /resume/{id}` |
-| Resume ↔ JD Matching | `POST /resume-analysis/start` · `GET /resume-analysis/history` · `GET /resume-analysis/{id}/status` · `GET /resume-analysis/{id}/result` |
-| Interview | `POST /interview/generate-questions` · `GET /interview/history` |
-| Answers | `POST /answer` · `GET /answer/session/{id}/results` |
+| Resume ↔ JD Matching | `POST /resume-analysis/start` · `POST /resume-analysis/ats-score` · `GET /resume-analysis/history` · `GET /resume-analysis/{id}/status` · `GET /resume-analysis/{id}/result` |
+| Interview | `POST /interview/generate-questions` · `GET /interview/history` · `GET /interview/{session_id}` · `POST /interview/{session_id}/finish` |
+| Answers | `POST /answer` · `GET /answer/{answer_id}` · `GET /answer/session/{id}/results` |
+| Weak Topics | `GET /topics` · `POST /topics/{topic_id}/practice` |
 | Code | `POST /code/run` |
+| Dashboard | `GET /dashboard` |
 
 Full interactive docs: `/docs` (Swagger) or `/openapi.json`.
 
@@ -173,12 +185,12 @@ Full interactive docs: `/docs` (Swagger) or `/openapi.json`.
 
 ## 🛣️ Roadmap
 
-- [ ] Resume ↔ JD analysis caching (idempotent re-runs on unchanged input)
 - [ ] Per-analysis model/prompt version tracking
 - [ ] AI code review
-- [ ] Skill dashboard & performance trends
+- [ ] Skill/performance trends over time (beyond the current activity heatmap)
 - [ ] Company-specific interview packs
 - [ ] Recruiter / institute dashboards
+- [ ] Domain selection UI (currently inferred from the free-text role title)
 
 ---
 
