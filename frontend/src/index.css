@@ -4210,3 +4210,68 @@ textarea::placeholder {
   color: var(--red);
   background: var(--red-soft);
 }
+
+/* ============================================================
+   Floating help/support button (rendered globally from App.jsx,
+   hidden only on the live interview page)
+   ============================================================ */
+
+.help-button-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: var(--z-overlay);
+}
+
+.help-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border-default);
+  background: var(--surface-sunken);
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.help-button:hover {
+  border-color: var(--border-strong);
+}
+
+.help-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.help-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: max-content;
+  max-width: 260px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.help-popover__text {
+  font-size: 13.5px;
+  color: var(--text-soft);
+  margin: 0;
+}
+
+.help-popover__link {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  word-break: break-all;
+}
