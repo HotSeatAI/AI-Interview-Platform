@@ -55,6 +55,6 @@ export const TERMS_SECTIONS = [
   },
   {
     heading: "14. Contact",
-    body: "Questions about these Terms? Contact us at harshal05shah@gmail.com.",
+    body: "Questions about these Terms? Contact us at hotseat.hello@gmail.com.",
   },
 ];

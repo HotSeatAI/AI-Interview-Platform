@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FiHelpCircle } from "react-icons/fi";
 
-const SUPPORT_EMAIL = "harshal05shah@gmail.com";
+const SUPPORT_EMAIL = "hotseat.hello@gmail.com";
 
 function HelpButton() {
   const [open, setOpen] = useState(false);
