@@ -39,7 +39,7 @@ def _sandbox_env() -> dict:
 class CodeExecutionService:
     TIMEOUT_SECONDS = 2
 
-    async def run_code(
+    def run_code(
         self,
         request: CodeRunRequest,
     ) -> CodeRunResponse:

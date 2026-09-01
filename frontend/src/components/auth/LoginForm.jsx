@@ -40,6 +40,7 @@ function LoginForm() {
     } catch (err) {
 
       const message =
+        err.friendlyMessage ||
         err.response?.data?.detail ||
         "Login failed.";
 

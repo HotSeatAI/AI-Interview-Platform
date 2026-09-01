@@ -16,6 +16,15 @@ ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(
     os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 180)
 )
+
+# Rate limiter storage backend (see app/core/rate_limiter.py). Defaults
+# to slowapi's in-process memory store - correct for a single backend
+# instance. Only needs to become a redis://... URL if this ever runs
+# as multiple instances at once, so limits stay shared across them.
+RATE_LIMIT_STORAGE_URI = os.getenv(
+    "RATE_LIMIT_STORAGE_URI", "memory://"
+)
+
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
 if not GOOGLE_CLIENT_ID:

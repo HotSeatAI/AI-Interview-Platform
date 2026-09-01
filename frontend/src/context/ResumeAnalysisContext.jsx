@@ -162,7 +162,7 @@ export function ResumeAnalysisProvider({ children }) {
       setState((prev) => ({
         ...prev,
         status: "error",
-        errorMessage: err?.response?.data?.detail || "Failed to start resume analysis.",
+        errorMessage: err?.friendlyMessage || err?.response?.data?.detail || "Failed to start resume analysis.",
       }));
     } finally {
       setStarting(false);

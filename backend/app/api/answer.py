@@ -3,8 +3,11 @@ import re
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from fastapi import Request
+from fastapi import Response
 from sqlalchemy.orm import Session
 
+from app.core.rate_limiter import limiter
 from app.database.database import get_db
 from app.models.answer import Answer
 from app.models.question import Question
@@ -42,7 +45,10 @@ router = APIRouter(
     "",
     response_model=AnswerResponse
 )
+@limiter.limit("15/minute")
 def submit_answer(
+    request: Request,
+    response: Response,
     payload: AnswerCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)

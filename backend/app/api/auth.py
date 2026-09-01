@@ -1,10 +1,11 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import status
 from sqlalchemy.orm import Session
 from fastapi import Query
+from app.core.rate_limiter import limiter
 from app.database.database import get_db
 from app.models.user import User
 from app.services.email_service import EmailService
@@ -45,7 +46,10 @@ router = APIRouter()
     "/signup",
     status_code=status.HTTP_201_CREATED
     )
+@limiter.limit("5/minute")
 def signup(
+    request: Request,
+    response: Response,
     user: UserCreate,
     db: Session = Depends(get_db)
 ):
@@ -96,7 +100,10 @@ def signup(
 
 
 @router.post("/login")
+@limiter.limit("5/minute")
 def login(
+    request: Request,
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
@@ -150,12 +157,15 @@ def login(
 
 
 @router.post("/auth/google")
+@limiter.limit("10/minute")
 def google_auth(
-    request: GoogleLoginRequest,
+    request: Request,
+    response: Response,
+    payload: GoogleLoginRequest,
     db: Session = Depends(get_db)
 ):
     return authenticate_google_user(
-        request.id_token,
+        payload.id_token,
         db
     )
 @router.get("/auth/verify-email")
@@ -174,14 +184,17 @@ def verify_email(
         "email": user.email,
     }
 @router.post("/auth/resend-verification")
+@limiter.limit("5/minute")
 def resend_verification_email(
-    request: ResendVerificationRequest,
+    request: Request,
+    response: Response,
+    payload: ResendVerificationRequest,
     db: Session = Depends(get_db),
 ):
 
     user = (
         db.query(User)
-        .filter(User.email == request.email)
+        .filter(User.email == payload.email)
         .first()
     )
 
@@ -218,8 +231,11 @@ def resend_verification_email(
         )
     }
 @router.post("/auth/forgot-password")
+@limiter.limit("5/minute")
 def forgot_password(
-    request: ForgotPasswordRequest,
+    request: Request,
+    response: Response,
+    payload: ForgotPasswordRequest,
     db: Session = Depends(get_db),
 ):
     """
@@ -247,7 +263,7 @@ def forgot_password(
 
     user = (
         db.query(User)
-        .filter(User.email == request.email)
+        .filter(User.email == payload.email)
         .first()
     )
 
@@ -271,20 +287,23 @@ def forgot_password(
 
 
 @router.post("/auth/reset-password")
+@limiter.limit("5/minute")
 def reset_password(
-    request: ResetPasswordRequest,
+    request: Request,
+    response: Response,
+    payload: ResetPasswordRequest,
     db: Session = Depends(get_db),
 ):
 
     user, reset_record = (
         PasswordResetService.verify_reset_token(
             db=db,
-            token=request.token,
+            token=payload.token,
         )
     )
 
     user.hashed_password = hash_password(
-        request.new_password
+        payload.new_password
     )
 
     db.delete(reset_record)
