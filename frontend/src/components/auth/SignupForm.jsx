@@ -39,6 +39,7 @@ function SignupForm() {
   } catch (err) {
 
       setError(
+        err.friendlyMessage ||
         err.response?.data?.detail ||
         "Signup failed."
     );

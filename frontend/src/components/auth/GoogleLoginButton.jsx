@@ -24,6 +24,7 @@ function GoogleLoginButton() {
     );
 
     alert(
+      error.friendlyMessage ||
       error.response?.data?.detail ||
       error.message ||
       "Google authentication failed."

@@ -132,7 +132,8 @@ function InterviewGeneratorForm() {
       navigate(`/interview/${response.session_id}`);
     } catch (err) {
       setError(
-        err?.response?.data?.detail ||
+        err?.friendlyMessage ||
+          err?.response?.data?.detail ||
           "Failed to generate interview."
       );
     } finally {

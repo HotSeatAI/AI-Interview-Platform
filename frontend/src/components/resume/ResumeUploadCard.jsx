@@ -200,7 +200,8 @@ function ResumeUploadCard() {
       navigate(`/resume-analysis/${result.analysis_id}`);
     } catch (err) {
       setAtsError(
-        err?.response?.data?.detail ||
+        err?.friendlyMessage ||
+          err?.response?.data?.detail ||
           "Failed to check ATS score."
       );
     } finally {
