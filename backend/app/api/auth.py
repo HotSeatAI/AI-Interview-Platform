@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from fastapi import Query
 from app.core.rate_limiter import limiter
 from app.database.database import get_db
@@ -21,6 +22,9 @@ from app.services.email_verification_service import (
 from app.services.password_reset_service import (
     PasswordResetService,
 )
+from app.services.email_change_service import (
+    EmailChangeService,
+)
 from app.utils.security import (
     hash_password,
     verify_password
@@ -29,6 +33,8 @@ from app.schemas.user import (
     ResendVerificationRequest,
     ForgotPasswordRequest,
     ResetPasswordRequest,
+    EmailChangeRequest,
+    PasswordChangeRequest,
 )
 from app.utils.jwt_handler import (
     create_access_token,
@@ -322,7 +328,9 @@ def reset_password(
     "/me",
     response_model=UserResponse
 )
+@limiter.limit("15/minute")
 def read_me(
+    request: Request,
     current_user: User = Depends(
         get_current_user
     )
@@ -334,7 +342,9 @@ def read_me(
     "/me/profile",
     response_model=UserResponse
 )
+@limiter.limit("15/minute")
 def update_profile(
+    request: Request,
     profile: ProfileUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -371,3 +381,161 @@ def accept_terms(
     db.refresh(current_user)
 
     return current_user
+
+
+@router.post("/me/email-change/request")
+@limiter.limit("5/minute")
+def request_email_change(
+    request: Request,
+    response: Response,
+    payload: EmailChangeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Starts an email change for a local account. Never writes
+    users.email directly - only sends a confirmation link to the
+    new address. The DB column only changes once that link is
+    used (GET /me/email-change/confirm), which is what keeps this
+    from being abusable as an account-takeover vector via Google's
+    email-matched account linking (see oauth_service.py).
+    """
+
+    if current_user.auth_provider != "local":
+        raise HTTPException(
+            status_code=403,
+            detail="Email is managed by your Google account and can't be changed here.",
+        )
+
+    if not verify_password(
+        payload.current_password,
+        current_user.hashed_password,
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect password.",
+        )
+
+    if payload.new_email == current_user.email:
+        raise HTTPException(
+            status_code=400,
+            detail="That's already your current email address.",
+        )
+
+    change_token = EmailChangeService.request_email_change(
+        db=db,
+        user=current_user,
+        new_email=payload.new_email,
+    )
+
+    EmailService().send_email_change_confirmation(
+        recipient_email=payload.new_email,
+        recipient_name=current_user.username,
+        change_token=change_token,
+    )
+
+    EmailService().send_email_change_notice(
+        recipient_email=current_user.email,
+        recipient_name=current_user.username,
+        new_email=payload.new_email,
+    )
+
+    return {
+        "message": (
+            "Check your new email address for a link to confirm "
+            "the change."
+        )
+    }
+
+
+@router.get("/me/email-change/confirm")
+@limiter.limit("5/minute")
+def confirm_email_change(
+    request: Request,
+    token: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    """
+    No auth dependency - the token itself is the proof, since the
+    link may be opened from a different session/device than the
+    one that requested the change (same reasoning as verify-email).
+    """
+
+    user, change_record = (
+        EmailChangeService.verify_email_change_token(
+            db=db,
+            token=token,
+        )
+    )
+
+    new_email = change_record.new_email
+
+    try:
+        user.email = new_email
+        user.email_verified = True
+
+        db.delete(change_record)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="That email address is already in use.",
+        )
+
+    return {
+        "message": (
+            "Your email has been updated. Please log in again "
+            "with your new email address."
+        ),
+        "email": new_email,
+    }
+
+
+@router.post("/me/change-password")
+@limiter.limit("5/minute")
+def change_password(
+    request: Request,
+    response: Response,
+    payload: PasswordChangeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.auth_provider != "local":
+        raise HTTPException(
+            status_code=403,
+            detail="This account signs in with Google and has no password to change.",
+        )
+
+    if not verify_password(
+        payload.current_password,
+        current_user.hashed_password,
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect password.",
+        )
+
+    if verify_password(
+        payload.new_password,
+        current_user.hashed_password,
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="New password must be different from your current password.",
+        )
+
+    current_user.hashed_password = hash_password(
+        payload.new_password
+    )
+
+    db.commit()
+
+    EmailService().send_password_changed_notice(
+        recipient_email=current_user.email,
+        recipient_name=current_user.username,
+    )
+
+    return {
+        "message": "Password changed successfully."
+    }
