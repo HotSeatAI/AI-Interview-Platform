@@ -122,3 +122,9 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+
+    email_change_tokens = relationship(
+        "EmailChangeToken",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
