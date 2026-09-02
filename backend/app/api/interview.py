@@ -3,9 +3,12 @@ from datetime import datetime
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from fastapi import Request
+from fastapi import Response
 import re
 from sqlalchemy.orm import Session
 
+from app.core.rate_limiter import limiter
 from app.database.database import get_db
 
 from app.api.auth import get_current_user
@@ -34,20 +37,23 @@ router = APIRouter(
 
 
 @router.post("/generate-questions")
+@limiter.limit("15/minute")
 def generate_questions(
-    request: GenerateQuestionsRequest,
+    request: Request,
+    response: Response,
+    payload: GenerateQuestionsRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
 
     resume_text = None
 
-    if request.resume_id is not None:
+    if payload.resume_id is not None:
 
         resume = (
             db.query(Resume)
             .filter(
-                Resume.id == request.resume_id,
+                Resume.id == payload.resume_id,
                 Resume.user_id == current_user.id
             )
             .first()
@@ -69,8 +75,8 @@ def generate_questions(
     # session clutter behind.
     session = InterviewSession(
         user_id=current_user.id,
-        role=request.role,
-        difficulty=request.difficulty
+        role=payload.role,
+        difficulty=payload.difficulty
     )
 
     db.add(session)
@@ -84,8 +90,8 @@ def generate_questions(
     try:
         questions = ai_service.generate_questions(
             resume_text=resume_text,
-            role=request.role,
-            difficulty=request.difficulty
+            role=payload.role,
+            difficulty=payload.difficulty
         )
     except Exception as exc:
         db.delete(session)

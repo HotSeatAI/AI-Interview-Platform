@@ -25,6 +25,7 @@ function ForgotPasswordForm() {
       // The backend never signals whether the account exists -
       // this only fires for genuine network/server failures.
       setError(
+        err.friendlyMessage ||
         err.response?.data?.detail ||
         "Something went wrong. Please try again."
       );
