@@ -37,6 +37,7 @@ from app.services.role_classifier import (
     classify_sales_subrole,
     classify_marketing_subrole,
     classify_vlsi_subrole,
+    classify_digital_design_subrole,
 )
 from app.services.prompts.software_rounds import (
     get_rounds_for_subrole as get_software_rounds_for_subrole,
@@ -55,6 +56,9 @@ from app.services.prompts.marketing_rounds import (
 )
 from app.services.prompts.vlsi_rounds import (
     get_rounds_for_subrole as get_vlsi_rounds_for_subrole,
+)
+from app.services.prompts.digital_design_rounds import (
+    get_rounds_for_subrole as get_digital_design_rounds_for_subrole,
 )
 
 
@@ -215,8 +219,8 @@ def get_interview_rounds(
     Given a free-text role, returns the interview rounds a candidate
     can choose from - only for domains that have round support
     (currently Software Engineering, Finance, Consulting, Sales,
-    Marketing, and VLSI). Every other domain returns an empty rounds
-    list.
+    Marketing, VLSI, and Digital Design). Every other domain returns
+    an empty rounds list.
     """
 
     domain = RoleClassifier().classify_role(role)
@@ -267,6 +271,14 @@ def get_interview_rounds(
             "domain": domain,
             "subrole": subrole,
             "rounds": get_vlsi_rounds_for_subrole(subrole),
+        }
+
+    if domain == "digital_design":
+        subrole = classify_digital_design_subrole(role)
+        return {
+            "domain": domain,
+            "subrole": subrole,
+            "rounds": get_digital_design_rounds_for_subrole(subrole),
         }
 
     return {"domain": domain, "subrole": None, "rounds": []}

@@ -16,6 +16,7 @@ from app.services.prompts.sales_rounds import build_sales_round_prompt
 from app.services.prompts.marketing_prompt import build_marketing_prompt
 from app.services.prompts.marketing_rounds import build_marketing_round_prompt
 from app.services.prompts.digital_design_prompt import build_digital_design_prompt
+from app.services.prompts.digital_design_rounds import build_digital_design_round_prompt
 from app.services.prompts.analog_design_prompt import build_analog_design_prompt
 from app.services.prompts.embedded_systems_prompt import build_embedded_systems_prompt
 from app.services.prompts.vlsi_prompt import build_vlsi_prompt
@@ -140,11 +141,20 @@ class AIService:
 
         elif category == "digital_design":
 
-            prompt = build_digital_design_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_digital_design_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_digital_design_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         elif category == "analog_design":
 
