@@ -73,7 +73,7 @@ function InterviewGeneratorForm() {
 
         const data = await getInterviewRounds(role, token);
 
-        setRounds(data.domain === "software" ? data.rounds : []);
+        setRounds(data.rounds || []);
         setSelectedRound("");
       } catch {
         // Fail soft - falls back to the no-round-picker flow rather

@@ -29,8 +29,17 @@ from app.services.api_key_manager import (
     clear_gemini_context,
     set_gemini_context,
 )
-from app.services.role_classifier import RoleClassifier, classify_software_subrole
-from app.services.prompts.software_rounds import get_rounds_for_subrole
+from app.services.role_classifier import (
+    RoleClassifier,
+    classify_software_subrole,
+    classify_finance_subrole,
+)
+from app.services.prompts.software_rounds import (
+    get_rounds_for_subrole as get_software_rounds_for_subrole,
+)
+from app.services.prompts.finance_rounds import (
+    get_rounds_for_subrole as get_finance_rounds_for_subrole,
+)
 
 
 router = APIRouter(
@@ -188,23 +197,30 @@ def get_interview_rounds(
 ):
     """
     Given a free-text role, returns the interview rounds a candidate
-    can choose from - only when the role resolves to the Software
-    Engineering domain. Every other domain returns an empty rounds
-    list, since round-based interviews are software-only for now.
+    can choose from - only for domains that have round support
+    (currently Software Engineering and Finance). Every other domain
+    returns an empty rounds list.
     """
 
     domain = RoleClassifier().classify_role(role)
 
-    if domain != "software":
-        return {"domain": domain, "subrole": None, "rounds": []}
+    if domain == "software":
+        subrole = classify_software_subrole(role)
+        return {
+            "domain": domain,
+            "subrole": subrole,
+            "rounds": get_software_rounds_for_subrole(subrole),
+        }
 
-    subrole = classify_software_subrole(role)
+    if domain == "finance":
+        subrole = classify_finance_subrole(role)
+        return {
+            "domain": domain,
+            "subrole": subrole,
+            "rounds": get_finance_rounds_for_subrole(subrole),
+        }
 
-    return {
-        "domain": domain,
-        "subrole": subrole,
-        "rounds": get_rounds_for_subrole(subrole),
-    }
+    return {"domain": domain, "subrole": None, "rounds": []}
 
 
 @router.get(
