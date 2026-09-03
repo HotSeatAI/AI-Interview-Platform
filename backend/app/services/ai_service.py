@@ -3,6 +3,10 @@ import json
 from app.services.role_classifier import RoleClassifier
 from app.services.api_key_manager import api_key_manager
 from app.services.prompts.software_prompt import build_software_prompt
+from app.services.prompts.software_rounds import (
+    ROUND_KEYS,
+    build_software_round_prompt,
+)
 from app.services.prompts.finance_prompt import build_finance_prompt
 from app.services.prompts.consulting_prompt import build_consulting_prompt
 from app.services.prompts.sales_prompt import build_sales_prompt
@@ -38,17 +42,28 @@ class AIService:
         resume_text: str | None,
         role: str,
         difficulty: str,
+        round: str | None = None,
     ):
 
         category = self.role_classifier.classify_role(role)
+        applied_round = "full"
 
         if category == "software":
 
-            prompt = build_software_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_software_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_software_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         elif category == "finance":
 
@@ -144,7 +159,7 @@ class AIService:
         print("\n===== GEMINI QUESTION RESPONSE =====\n")
         print(response)
 
-        return response.text
+        return response.text, applied_round
 
     def generate_topic_questions(
         self,

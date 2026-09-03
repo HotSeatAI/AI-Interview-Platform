@@ -22,12 +22,15 @@ from app.models.user_topic import UserTopic
 from app.schemas.interview import GenerateQuestionsRequest
 from app.schemas.interview import InterviewDetailResponse
 from app.schemas.interview import InterviewHistoryItem
+from app.schemas.interview import RoundDiscoveryResponse
 
 from app.services.ai_service import AIService
 from app.services.api_key_manager import (
     clear_gemini_context,
     set_gemini_context,
 )
+from app.services.role_classifier import RoleClassifier, classify_software_subrole
+from app.services.prompts.software_rounds import get_rounds_for_subrole
 
 
 router = APIRouter(
@@ -88,10 +91,11 @@ def generate_questions(
     set_gemini_context(session.id)
 
     try:
-        questions = ai_service.generate_questions(
+        questions, applied_round = ai_service.generate_questions(
             resume_text=resume_text,
             role=payload.role,
-            difficulty=payload.difficulty
+            difficulty=payload.difficulty,
+            round=payload.round,
         )
     except Exception as exc:
         db.delete(session)
@@ -105,6 +109,9 @@ def generate_questions(
         ) from exc
     finally:
         clear_gemini_context()
+
+    session.round = applied_round
+    db.add(session)
 
     question_list = re.findall(
         r'^\d+\..*?(?=^\d+\.|\Z)',
@@ -162,8 +169,41 @@ def generate_questions(
         "session_id": session.id,
         "role": session.role,
         "difficulty": session.difficulty,
+        "round": session.round,
         "questions_saved": len(question_list),
         "questions": questions
+    }
+
+
+@router.get(
+    "/rounds",
+    response_model=RoundDiscoveryResponse
+)
+@limiter.limit("30/minute")
+def get_interview_rounds(
+    request: Request,
+    response: Response,
+    role: str,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Given a free-text role, returns the interview rounds a candidate
+    can choose from - only when the role resolves to the Software
+    Engineering domain. Every other domain returns an empty rounds
+    list, since round-based interviews are software-only for now.
+    """
+
+    domain = RoleClassifier().classify_role(role)
+
+    if domain != "software":
+        return {"domain": domain, "subrole": None, "rounds": []}
+
+    subrole = classify_software_subrole(role)
+
+    return {
+        "domain": domain,
+        "subrole": subrole,
+        "rounds": get_rounds_for_subrole(subrole),
     }
 
 
@@ -195,6 +235,7 @@ def get_interview_history(
                 "session_id": session.id,
                 "role": session.role,
                 "difficulty": session.difficulty,
+                "round": session.round,
                 "created_at": session.created_at
             }
         )
@@ -269,6 +310,7 @@ def get_interview(
         "session_id": session.id,
         "role": session.role,
         "difficulty": session.difficulty,
+        "round": session.round,
         "created_at": session.created_at,
         "questions": question_list,
     }

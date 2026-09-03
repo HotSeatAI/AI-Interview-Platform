@@ -334,6 +334,7 @@ const handleFinishInterview = async () => {
     state: {
       role: session.role,
       difficulty: session.difficulty,
+      round: session.round,
       createdAt: session.created_at,
       questions: session.questions,
       feedbackMap,
