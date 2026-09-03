@@ -10,6 +10,7 @@ from app.services.prompts.software_rounds import (
 from app.services.prompts.finance_prompt import build_finance_prompt
 from app.services.prompts.finance_rounds import build_finance_round_prompt
 from app.services.prompts.consulting_prompt import build_consulting_prompt
+from app.services.prompts.consulting_rounds import build_consulting_round_prompt
 from app.services.prompts.sales_prompt import build_sales_prompt
 from app.services.prompts.marketing_prompt import build_marketing_prompt
 from app.services.prompts.digital_design_prompt import build_digital_design_prompt
@@ -85,11 +86,20 @@ class AIService:
 
         elif category == "consulting":
 
-            prompt = build_consulting_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_consulting_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_consulting_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         elif category == "sales":
 
