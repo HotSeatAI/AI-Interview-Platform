@@ -22,11 +22,55 @@ from app.models.user_topic import UserTopic
 from app.schemas.interview import GenerateQuestionsRequest
 from app.schemas.interview import InterviewDetailResponse
 from app.schemas.interview import InterviewHistoryItem
+from app.schemas.interview import RoundDiscoveryResponse
 
 from app.services.ai_service import AIService
 from app.services.api_key_manager import (
     clear_gemini_context,
     set_gemini_context,
+)
+from app.services.role_classifier import (
+    RoleClassifier,
+    classify_software_subrole,
+    classify_finance_subrole,
+    classify_consulting_subrole,
+    classify_sales_subrole,
+    classify_marketing_subrole,
+    classify_vlsi_subrole,
+    classify_digital_design_subrole,
+    classify_analog_subrole,
+    classify_embedded_subrole,
+    classify_product_management_subrole,
+)
+from app.services.prompts.software_rounds import (
+    get_rounds_for_subrole as get_software_rounds_for_subrole,
+)
+from app.services.prompts.finance_rounds import (
+    get_rounds_for_subrole as get_finance_rounds_for_subrole,
+)
+from app.services.prompts.consulting_rounds import (
+    get_rounds_for_subrole as get_consulting_rounds_for_subrole,
+)
+from app.services.prompts.sales_rounds import (
+    get_rounds_for_subrole as get_sales_rounds_for_subrole,
+)
+from app.services.prompts.marketing_rounds import (
+    get_rounds_for_subrole as get_marketing_rounds_for_subrole,
+)
+from app.services.prompts.vlsi_rounds import (
+    get_rounds_for_subrole as get_vlsi_rounds_for_subrole,
+)
+from app.services.prompts.digital_design_rounds import (
+    get_rounds_for_subrole as get_digital_design_rounds_for_subrole,
+)
+from app.services.prompts.analog_design_rounds import (
+    get_rounds_for_subrole as get_analog_design_rounds_for_subrole,
+)
+from app.services.prompts.embedded_systems_rounds import (
+    get_rounds_for_subrole as get_embedded_systems_rounds_for_subrole,
+)
+from app.services.prompts.product_management_rounds import (
+    get_rounds_for_subrole as get_product_management_rounds_for_subrole,
 )
 
 
@@ -88,10 +132,11 @@ def generate_questions(
     set_gemini_context(session.id)
 
     try:
-        questions = ai_service.generate_questions(
+        questions, applied_round = ai_service.generate_questions(
             resume_text=resume_text,
             role=payload.role,
-            difficulty=payload.difficulty
+            difficulty=payload.difficulty,
+            round=payload.round,
         )
     except Exception as exc:
         db.delete(session)
@@ -105,6 +150,9 @@ def generate_questions(
         ) from exc
     finally:
         clear_gemini_context()
+
+    session.round = applied_round
+    db.add(session)
 
     question_list = re.findall(
         r'^\d+\..*?(?=^\d+\.|\Z)',
@@ -162,9 +210,115 @@ def generate_questions(
         "session_id": session.id,
         "role": session.role,
         "difficulty": session.difficulty,
+        "round": session.round,
         "questions_saved": len(question_list),
         "questions": questions
     }
+
+
+@router.get(
+    "/rounds",
+    response_model=RoundDiscoveryResponse
+)
+@limiter.limit("30/minute")
+def get_interview_rounds(
+    request: Request,
+    response: Response,
+    role: str,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Given a free-text role, returns the interview rounds a candidate
+    can choose from. All 10 supported domains have round support:
+    Software Engineering, Finance, Consulting, Sales, Marketing,
+    VLSI, Digital Design, Analog Design, Embedded Systems, and
+    Product Management. Any unclassified role returns an empty
+    rounds list.
+    """
+
+    domain = RoleClassifier().classify_role(role)
+
+    if domain == "software":
+        subrole = classify_software_subrole(role)
+        return {
+            "domain": domain,
+            "subrole": subrole,
+            "rounds": get_software_rounds_for_subrole(subrole),
+        }
+
+    if domain == "finance":
+        subrole = classify_finance_subrole(role)
+        return {
+            "domain": domain,
+            "subrole": subrole,
+            "rounds": get_finance_rounds_for_subrole(subrole),
+        }
+
+    if domain == "consulting":
+        subrole = classify_consulting_subrole(role)
+        return {
+            "domain": domain,
+            "subrole": subrole,
+            "rounds": get_consulting_rounds_for_subrole(subrole),
+        }
+
+    if domain == "sales":
+        subrole = classify_sales_subrole(role)
+        return {
+            "domain": domain,
+            "subrole": subrole,
+            "rounds": get_sales_rounds_for_subrole(subrole),
+        }
+
+    if domain == "marketing":
+        subrole = classify_marketing_subrole(role)
+        return {
+            "domain": domain,
+            "subrole": subrole,
+            "rounds": get_marketing_rounds_for_subrole(subrole),
+        }
+
+    if domain == "vlsi":
+        subrole = classify_vlsi_subrole(role)
+        return {
+            "domain": domain,
+            "subrole": subrole,
+            "rounds": get_vlsi_rounds_for_subrole(subrole),
+        }
+
+    if domain == "digital_design":
+        subrole = classify_digital_design_subrole(role)
+        return {
+            "domain": domain,
+            "subrole": subrole,
+            "rounds": get_digital_design_rounds_for_subrole(subrole),
+        }
+
+    if domain == "analog_design":
+        subrole = classify_analog_subrole(role)
+        return {
+            "domain": domain,
+            "subrole": subrole,
+            "rounds": get_analog_design_rounds_for_subrole(subrole),
+        }
+
+    if domain == "embedded_systems":
+        subrole = classify_embedded_subrole(role)
+        return {
+            "domain": domain,
+            "subrole": subrole,
+            "rounds": get_embedded_systems_rounds_for_subrole(subrole),
+        }
+
+    if domain == "product_management":
+        subrole = classify_product_management_subrole(role)
+        return {
+            "domain": domain,
+            "subrole": subrole,
+            "rounds": get_product_management_rounds_for_subrole(subrole),
+        }
+
+    return {"domain": domain, "subrole": None, "rounds": []}
 
 
 @router.get(
@@ -195,6 +349,7 @@ def get_interview_history(
                 "session_id": session.id,
                 "role": session.role,
                 "difficulty": session.difficulty,
+                "round": session.round,
                 "created_at": session.created_at
             }
         )
@@ -269,6 +424,7 @@ def get_interview(
         "session_id": session.id,
         "role": session.role,
         "difficulty": session.difficulty,
+        "round": session.round,
         "created_at": session.created_at,
         "questions": question_list,
     }

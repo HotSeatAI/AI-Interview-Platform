@@ -5,6 +5,7 @@ import { getSessionResults } from "../api/answerApi";
 import useAuth from "../hooks/useAuth";
 import Navbar from "../components/layout/Navbar.jsx";
 import DeliveryTrend from "../components/interview/DeliveryTrend.jsx";
+import { ROUND_LABELS } from "../constants/interviewRounds";
 
 function SessionResultsPage() {
   const { sessionId } = useParams();
@@ -122,6 +123,9 @@ function SessionResultsPage() {
           <h1>
             {navState.role || "Interview"}
             {navState.difficulty ? ` · ${navState.difficulty}` : ""}
+            {navState.round && navState.round !== "full"
+              ? ` · ${ROUND_LABELS[navState.round] || navState.round}`
+              : ""}
           </h1>
           {navState.createdAt && (
             <p>Completed {new Date(navState.createdAt).toLocaleString()}</p>

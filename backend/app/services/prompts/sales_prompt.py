@@ -395,3 +395,10 @@ Do not include headings, introductions, markdown, bullet points or any text befo
 
 If a Sales Strategy Question was generated as a coding question, keep its `TYPE: CODING` line exactly as specified above; do not add this line to any other question.
 """
+
+
+# Public re-export for sales_rounds.py - added without touching any
+# existing prompt text/structure above. Lets the round-based builders
+# reuse the same per-sub-role fundamentals content without reaching
+# into this module's underscore-prefixed name.
+FUNDAMENTALS_BY_SUBROLE = _FUNDAMENTALS_BY_SUBROLE
