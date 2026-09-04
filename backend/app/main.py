@@ -18,6 +18,7 @@ from app.api.resume_analysis import (
     router as resume_analysis_router
 )
 from app.api.topics import router as topics_router
+from app.api.health import router as health_router
 from app.models.resume_analysis import (
     ResumeAnalysis
 )
@@ -45,3 +46,4 @@ app.include_router(dashboard_router)
 app.include_router(code.router)
 app.include_router(resume_analysis_router)
 app.include_router(topics_router)
+app.include_router(health_router)
