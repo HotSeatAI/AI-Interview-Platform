@@ -272,7 +272,11 @@ function InterviewGeneratorForm() {
 
       {error && <p className="error-text">{error}</p>}
 
-      <button className="button button--primary button--xl button--wide" type="submit" disabled={loading}>
+      <button
+        className="button button--primary button--xl button--wide"
+        type="submit"
+        disabled={loading || !formData.role.trim() || (rounds.length > 0 && !selectedRound)}
+      >
         {loading ? "Generating..." : "Enter the HotSeat"}
       </button>
     </form>
