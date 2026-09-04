@@ -24,6 +24,7 @@ from app.services.prompts.embedded_systems_rounds import build_embedded_systems_
 from app.services.prompts.vlsi_prompt import build_vlsi_prompt
 from app.services.prompts.vlsi_rounds import build_vlsi_round_prompt
 from app.services.prompts.product_management import build_product_management_prompt
+from app.services.prompts.product_management_rounds import build_product_management_round_prompt
 from app.services.prompts.evaluation_prompt import (
     build_evaluation_prompt,
     build_follow_up_prompt,
@@ -211,11 +212,20 @@ class AIService:
 
         elif category == "product_management":
 
-            prompt = build_product_management_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_product_management_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_product_management_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         else:
 
