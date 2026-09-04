@@ -20,6 +20,7 @@ from app.services.prompts.digital_design_rounds import build_digital_design_roun
 from app.services.prompts.analog_design_prompt import build_analog_design_prompt
 from app.services.prompts.analog_design_rounds import build_analog_design_round_prompt
 from app.services.prompts.embedded_systems_prompt import build_embedded_systems_prompt
+from app.services.prompts.embedded_systems_rounds import build_embedded_systems_round_prompt
 from app.services.prompts.vlsi_prompt import build_vlsi_prompt
 from app.services.prompts.vlsi_rounds import build_vlsi_round_prompt
 from app.services.prompts.product_management import build_product_management_prompt
@@ -176,11 +177,20 @@ class AIService:
 
         elif category == "embedded_systems":
 
-            prompt = build_embedded_systems_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_embedded_systems_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_embedded_systems_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         elif category == "vlsi":
 
