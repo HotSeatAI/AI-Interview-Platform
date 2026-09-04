@@ -331,6 +331,7 @@ def reset_password(
 @limiter.limit("15/minute")
 def read_me(
     request: Request,
+    response: Response,
     current_user: User = Depends(
         get_current_user
     )
@@ -345,6 +346,7 @@ def read_me(
 @limiter.limit("15/minute")
 def update_profile(
     request: Request,
+    response: Response,
     profile: ProfileUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -452,6 +454,7 @@ def request_email_change(
 @limiter.limit("5/minute")
 def confirm_email_change(
     request: Request,
+    response: Response,
     token: str = Query(...),
     db: Session = Depends(get_db),
 ):

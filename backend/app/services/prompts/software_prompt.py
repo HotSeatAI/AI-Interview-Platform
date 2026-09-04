@@ -491,3 +491,11 @@ For coding questions, keep the numbering, then on its own line write exactly `TY
 
 Do not include introductions, conclusions, markdown, or any additional explanatory text outside the questions.
 """
+
+
+# Public re-exports for software_rounds.py - added without touching
+# any existing prompt text/structure above. Lets the round-based
+# builders reuse the same per-sub-role topic lists without reaching
+# into this module's underscore-prefixed names.
+FUNDAMENTALS_BY_SUBROLE = _FUNDAMENTALS_BY_SUBROLE
+SYSTEM_DESIGN_BY_SUBROLE = _SYSTEM_DESIGN_BY_SUBROLE

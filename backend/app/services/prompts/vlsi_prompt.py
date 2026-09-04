@@ -321,3 +321,11 @@ Return ONLY the numbered interview questions.
 
 Do not include headings, introductions, markdown, bullet points or any text before or after the questions.
 """
+
+
+# Public re-exports for vlsi_rounds.py - added without touching any
+# existing prompt text/structure above. Lets the round-based builders
+# reuse the same per-sub-role STA/VLSI concepts content without
+# reaching into this module's underscore-prefixed names.
+STA_CONCEPTS_BY_SUBROLE = _STA_CONCEPTS_BY_SUBROLE
+STA_CONCEPTS_BY_SUBROLE_NO_RESUME = _STA_CONCEPTS_BY_SUBROLE_NO_RESUME

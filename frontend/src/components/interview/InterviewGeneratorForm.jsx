@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { generateInterview } from "../../api/interviewApi";
+import { generateInterview, getInterviewRounds } from "../../api/interviewApi";
 import { getResumes, uploadResume } from "../../api/resumeApi";
 import useAuth from "../../hooks/useAuth";
 
@@ -25,6 +25,10 @@ function InterviewGeneratorForm() {
   const [loadingResumes, setLoadingResumes] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+
+  const [rounds, setRounds] = useState([]);
+  const [selectedRound, setSelectedRound] = useState("");
+  const [roundsLoading, setRoundsLoading] = useState(false);
 
   const fetchResumes = async () => {
     try {
@@ -53,6 +57,36 @@ function InterviewGeneratorForm() {
 
     loadInitialResumes();
   }, [token]);
+
+  useEffect(() => {
+    const role = formData.role.trim();
+
+    const handle = setTimeout(async () => {
+      if (role.length < 2) {
+        setRounds([]);
+        setSelectedRound("");
+        return;
+      }
+
+      try {
+        setRoundsLoading(true);
+
+        const data = await getInterviewRounds(role, token);
+
+        setRounds(data.rounds || []);
+        setSelectedRound("");
+      } catch {
+        // Fail soft - falls back to the no-round-picker flow rather
+        // than blocking the form on a lookup that isn't essential.
+        setRounds([]);
+        setSelectedRound("");
+      } finally {
+        setRoundsLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(handle);
+  }, [formData.role, token]);
 
   const handleChange = (event) => {
     if (event.target.name === "resume_id" && event.target.value === UPLOAD_NEW_VALUE) {
@@ -114,6 +148,10 @@ function InterviewGeneratorForm() {
       return;
     }
 
+    if (rounds.length > 0 && !selectedRound) {
+      setError("Please select an interview round.");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -125,6 +163,7 @@ function InterviewGeneratorForm() {
           resume_id:formData.resume_id
           ? Number(formData.resume_id)
           : null,
+          round: rounds.length > 0 ? selectedRound : undefined,
         },
         token
       );
@@ -186,6 +225,32 @@ function InterviewGeneratorForm() {
           onChange={handleChange}
         />
       </label>
+
+      {rounds.length > 0 && (
+        <label className="form-field">
+          <span>Interview Round</span>
+          <select
+            name="round"
+            value={selectedRound}
+            onChange={(event) => setSelectedRound(event.target.value)}
+          >
+            <option value="" disabled>
+              Select a round
+            </option>
+            {rounds.map((round) => (
+              <option key={round.key} value={round.key}>
+                {round.label}
+              </option>
+            ))}
+          </select>
+          <span className="form-hint">
+            {rounds.find((round) => round.key === selectedRound)?.description ||
+              "Pick which round of this role's interview to practice."}
+          </span>
+        </label>
+      )}
+
+      {roundsLoading && <p className="form-hint">Checking available rounds...</p>}
 
       <div className="form-field">
         <span>Difficulty</span>
