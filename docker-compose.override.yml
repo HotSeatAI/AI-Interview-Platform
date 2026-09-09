@@ -1,0 +1,6 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+  backend:
+    environment:
+      DATABASE_URL: postgresql://interview_user_official:Harshal0508@postgres:5432/interview_db
