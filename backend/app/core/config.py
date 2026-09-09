@@ -69,6 +69,38 @@ GEMINI_STRUCTURING_THINKING_BUDGET = int(
     os.getenv("GEMINI_STRUCTURING_THINKING_BUDGET", 128)
 )
 
+# Applied to answer_evaluation, interview_question_generation, and
+# follow_up_question_generation. Validated live, side by side against
+# the default (dynamic/uncapped) thinking budget: evaluate_answer
+# matched default scoring/feedback on both a correct answer and a
+# deliberately wrong one (same score, same errors caught); the
+# follow-up generation cap produced an equally well-formed, on-topic
+# question (finish_reason=STOP, not truncated). An earlier test run
+# appeared to show a follow-up regression, but that was a confounded
+# result from combining this cap with a separate max_output_tokens
+# bug (since fixed/reverted) that let thinking tokens starve the
+# visible output - re-tested in isolation afterward and it was fine.
+# Deliberately NOT applied to generate_model_answer - untested in
+# isolation, and no longer on the critical latency path anyway.
+GEMINI_INTERVIEW_THINKING_BUDGET = int(
+    os.getenv("GEMINI_INTERVIEW_THINKING_BUDGET", 128)
+)
+
+# Hard ceiling, in seconds, on how long POST /answer will wait for the
+# BONUS Gemini calls (delivery feedback, speculative model answer) -
+# measured from when they were fired, not from when this is read, so
+# it bounds the whole wave regardless of how much of it evaluate_answer
+# itself already used. If a bonus call isn't done by then, it's
+# dropped (same "must never block" soft-fail already used for
+# exceptions, just extended to timeouts) rather than left to run the
+# response time up further - this is what stops a slow/rate-limited
+# bonus call from turning one answer submission into a 60-second wait.
+# evaluate_answer itself is NOT subject to this - a score can't be
+# fabricated, so if Gemini itself is slow, the response is slow.
+ANSWER_ENRICHMENT_TIMEOUT_SECONDS = int(
+    os.getenv("ANSWER_ENRICHMENT_TIMEOUT_SECONDS", 12)
+)
+
 raw_keys = os.getenv("GEMINI_API_KEYS")
 
 GEMINI_API_KEYS = [
