@@ -1,5 +1,8 @@
 import json
 
+from google.genai import types
+
+from app.core.config import GEMINI_INTERVIEW_THINKING_BUDGET
 from app.services.role_classifier import RoleClassifier
 from app.services.api_key_manager import api_key_manager
 from app.services.prompts.software_prompt import build_software_prompt
@@ -30,6 +33,8 @@ from app.services.prompts.evaluation_prompt import (
     build_follow_up_prompt,
     build_skipped_topics_prompt,
     build_model_answer_prompt,
+    AnswerEvaluation,
+    SkippedTopicsResponse,
 )
 from app.services.prompts.delivery_feedback_prompt import (
     build_delivery_feedback_prompt,
@@ -243,6 +248,11 @@ class AIService:
 
         response = self.key_manager.generate_content(
             prompt,
+            config=types.GenerateContentConfig(
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=GEMINI_INTERVIEW_THINKING_BUDGET,
+                ),
+            ),
             purpose="interview_question_generation",
         )
 
@@ -381,6 +391,14 @@ class AIService:
 
         response = self.key_manager.generate_content(
             prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=AnswerEvaluation,
+                temperature=0.0,
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=GEMINI_INTERVIEW_THINKING_BUDGET,
+                ),
+            ),
             purpose="answer_evaluation",
         )
 
@@ -420,6 +438,11 @@ class AIService:
 
         response = self.key_manager.generate_content(
             prompt,
+            config=types.GenerateContentConfig(
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=GEMINI_INTERVIEW_THINKING_BUDGET,
+                ),
+            ),
             purpose="follow_up_question_generation",
         )
 
@@ -453,12 +476,18 @@ class AIService:
         try:
 
             response = self.key_manager.generate_content(
-                prompt
+                prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=SkippedTopicsResponse,
+                    temperature=0.0,
+                ),
+                purpose="skipped_topics_generation",
             )
 
             topics = json.loads(
                 response.text.strip()
-            )
+            )["topics"]
 
             if (
                 not isinstance(topics, list)

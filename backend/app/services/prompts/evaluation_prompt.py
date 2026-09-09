@@ -10,6 +10,33 @@ IMPORTANT:
 - Do NOT modify the score range unless the parser is updated.
 """
 
+from pydantic import BaseModel, Field
+
+
+class AnswerEvaluation(BaseModel):
+    """
+    Structured-output schema for build_evaluation_prompt's response.
+    Passed as response_schema so Gemini returns this shape directly
+    instead of relying on prompt-instructed free-text JSON - mirrors
+    the same field names/types build_evaluation_prompt already asks
+    for, so parse_evaluation_response's validation still applies
+    unchanged as a defense-in-depth backstop.
+    """
+
+    score: int = Field(ge=1, le=10)
+    feedback: str
+    strengths: list[str]
+    improvements: list[str]
+
+
+class SkippedTopicsResponse(BaseModel):
+    """
+    Structured-output schema for build_skipped_topics_prompt's
+    response - one topic per skipped question, in the same order.
+    """
+
+    topics: list[str]
+
 
 def build_evaluation_prompt(
     question_text: str,
