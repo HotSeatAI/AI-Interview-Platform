@@ -152,6 +152,15 @@ FRONTEND_URL = os.getenv(
     "http://localhost:3000"
 )
 
+# Base URL of this backend itself - needed for links that point at a
+# FastAPI route directly (e.g. the unsubscribe link in reminder
+# emails, GET /unsubscribe), as opposed to FRONTEND_URL links that
+# point at a React route.
+BACKEND_URL = os.getenv(
+    "BACKEND_URL",
+    "http://localhost:8000"
+)
+
 # -----------------------------
 # CORS Configuration
 # -----------------------------

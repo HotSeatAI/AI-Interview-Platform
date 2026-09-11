@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import status
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import Query
@@ -38,7 +39,8 @@ from app.schemas.user import (
 )
 from app.utils.jwt_handler import (
     create_access_token,
-    get_current_user
+    get_current_user,
+    verify_unsubscribe_token,
 )
 
 from app.services.oauth_service import (
@@ -177,6 +179,57 @@ def google_auth(
         payload.id_token,
         db
     )
+
+
+def _apply_unsubscribe(token: str, db: Session):
+    user_id = verify_unsubscribe_token(token)
+
+    if user_id is not None:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user is not None:
+            user.email_opt_out = True
+            db.commit()
+
+
+@router.get("/unsubscribe", response_class=HTMLResponse)
+def unsubscribe(
+    token: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    """No auth dependency - clicked straight from an email client,
+    same reasoning as verify-email/email-change confirm. Only
+    reminder emails check this flag; verification/reset/security
+    emails always send regardless (see EmailService). Handles a
+    human clicking the link in the email body."""
+
+    _apply_unsubscribe(token, db)
+
+    return """
+    <html>
+        <body style="font-family: sans-serif; text-align: center; padding: 60px 20px;">
+            <h2>You've been unsubscribed</h2>
+            <p>You won't receive reminder emails from Hot Seat anymore.</p>
+        </body>
+    </html>
+    """
+
+
+@router.post("/unsubscribe")
+def unsubscribe_one_click(
+    token: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    """RFC 8058 one-click unsubscribe target - this is what Gmail/
+    Yahoo's own built-in "Unsubscribe" button actually calls
+    (a POST, triggered by the List-Unsubscribe-Post header in
+    EmailService), not the GET route above. No body/HTML needed,
+    just a 2xx response."""
+
+    _apply_unsubscribe(token, db)
+
+    return {"status": "unsubscribed"}
+
+
 @router.get("/auth/verify-email")
 def verify_email(
     token: str = Query(...),

@@ -33,6 +33,7 @@ from app.models.resume_analysis import ResumeAnalysis
 from app.models.user import User
 from app.models.user_topic import UserTopic
 from app.services.email_service import EmailService
+from app.utils.jwt_handler import create_unsubscribe_token
 
 # Not used directly below, but User.<relationship> references these
 # classes by string name - importing them registers the classes on
@@ -285,6 +286,7 @@ def _run_locked(dry_run: bool):
         users = (
             db.query(User)
             .filter((User.auth_provider != "local") | (User.email_verified.is_(True)))
+            .filter(User.email_opt_out.is_(False))
             .all()
         )
 
@@ -308,6 +310,7 @@ def _run_locked(dry_run: bool):
                                     recipient_name=user.username,
                                     last_score=last_score,
                                     weak_topic=weak_topic,
+                                    unsubscribe_token=create_unsubscribe_token(user.id),
                                 ),
                             )
                             _log_sent(db, user.id, tier)
@@ -325,6 +328,7 @@ def _run_locked(dry_run: bool):
                                 feature_name=feature_name,
                                 feature_url=feature_url,
                                 used=used,
+                                unsubscribe_token=create_unsubscribe_token(user.id),
                             ),
                         )
                         _log_sent(db, user.id, tier)
@@ -346,6 +350,7 @@ def _run_locked(dry_run: bool):
                                     session_count=session_count,
                                     avg_score=avg_score,
                                     best_domain=best_domain,
+                                    unsubscribe_token=create_unsubscribe_token(user.id),
                                 ),
                             )
                             _log_sent(db, user.id, tier)
@@ -372,7 +377,7 @@ def _run_locked(dry_run: bool):
                 if _already_sent_for_target(db, "unfinished_session", session.id):
                     continue
                 user = db.query(User).filter(User.id == session.user_id).first()
-                if user is None or _cooldown_active(db, user.id):
+                if user is None or user.email_opt_out or _cooldown_active(db, user.id):
                     continue
                 print(f"[unfinished_session] {user.email}: session_id={session.id}, role={session.role}")
                 if not dry_run:
@@ -383,6 +388,7 @@ def _run_locked(dry_run: bool):
                             recipient_name=user.username,
                             session_id=session.id,
                             role=session.role,
+                            unsubscribe_token=create_unsubscribe_token(user.id),
                         ),
                     )
                     _log_sent(db, user.id, "unfinished_session", target_id=session.id)
@@ -405,7 +411,7 @@ def _run_locked(dry_run: bool):
                 if _already_sent_for_target(db, "stalled_resume_analysis", analysis.id):
                     continue
                 user = db.query(User).filter(User.id == analysis.user_id).first()
-                if user is None or _cooldown_active(db, user.id):
+                if user is None or user.email_opt_out or _cooldown_active(db, user.id):
                     continue
                 job_title = analysis.job_title or "that role"
                 print(f"[stalled_resume_analysis] {user.email}: analysis_id={analysis.id}, job_title={job_title}")
@@ -417,6 +423,7 @@ def _run_locked(dry_run: bool):
                             recipient_name=user.username,
                             analysis_id=analysis.id,
                             job_title=job_title,
+                            unsubscribe_token=create_unsubscribe_token(user.id),
                         ),
                     )
                     _log_sent(db, user.id, "stalled_resume_analysis", target_id=analysis.id)

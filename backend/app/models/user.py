@@ -109,6 +109,12 @@ class User(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     last_login_at = Column(DateTime, nullable=True)
 
+    # Set via the public GET /unsubscribe link in reminder emails
+    # (see utils/jwt_handler.py's unsubscribe-token helpers). Only
+    # reminder emails check this - verification/reset/security
+    # emails are not marketing and always send regardless.
+    email_opt_out = Column(Boolean, nullable=False, default=False)
+
     resumes = relationship(
         "Resume",
         back_populates="owner",

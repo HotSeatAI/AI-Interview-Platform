@@ -2,11 +2,44 @@ import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
 
 from app.core.config import (
+    BACKEND_URL,
     BREVO_API_KEY,
     FRONTEND_URL,
     SENDER_EMAIL,
     SENDER_NAME,
 )
+
+
+def _unsubscribe_url(unsubscribe_token: str) -> str:
+    return f"{BACKEND_URL}/unsubscribe?token={unsubscribe_token}"
+
+
+def _unsubscribe_footer(unsubscribe_token: str) -> str:
+    """Shared footer for reminder emails only - verification/reset/
+    security emails are not marketing and never include this."""
+
+    return f"""
+    <p style="font-size:12px;color:#888;margin-top:24px;">
+        Don't want these emails?
+        <a href="{_unsubscribe_url(unsubscribe_token)}" style="color:#888;">Unsubscribe</a>
+    </p>
+    """
+
+
+def _unsubscribe_headers(unsubscribe_token: str) -> dict:
+    """RFC 8058 one-click unsubscribe headers. Gmail/Yahoo's 2024
+    bulk-sender rules specifically look for this - a body link
+    alone (no header) reads as unauthenticated bulk mail and can get
+    silently dropped rather than just spam-foldered, which is worse
+    for actually reaching the inbox than having no unsubscribe link
+    at all. Required alongside the body link, not instead of it -
+    the header handles email-client "Unsubscribe" buttons, the link
+    covers clients that don't surface it."""
+
+    return {
+        "List-Unsubscribe": f"<{_unsubscribe_url(unsubscribe_token)}>",
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    }
 
 
 class EmailService:
@@ -371,6 +404,7 @@ class EmailService:
         recipient_name: str,
         last_score: float,
         weak_topic: str,
+        unsubscribe_token: str,
     ):
         """Tier A reminder (~2 days inactive) - personalized with the
         user's last session score and a flagged weak topic."""
@@ -391,24 +425,23 @@ class EmailService:
                 "email": SENDER_EMAIL,
             },
 
-            subject=f"{last_score:.0f}% was good. Let's make it your floor, not your ceiling.",
+            headers=_unsubscribe_headers(unsubscribe_token),
+
+            subject=f"Can you beat your last score of {last_score:.0f}%?",
 
             html_content=f"""
             <p>Hey {recipient_name},</p>
 
             <p>
-            Your last mock interview scored <b>{last_score:.0f}%</b>.
-            Solid - but interview skills are closer to a muscle than a
-            fact you learn once, and they fade fast without reps.
-            <b>"{weak_topic}"</b> is exactly the kind of gap that turns
-            into a real stumble if it sits untouched too long.
+            Your last mock interview score was <b>{last_score:.0f}%</b>.
+            Good work - but interview skills fade quickly without
+            regular practice, and <b>"{weak_topic}"</b> is one spot
+            that could still trip you up in a real interview.
             </p>
 
             <p>
-            Ten minutes today is enough to turn that soft spot into a
-            strength before a real interviewer catches it instead.
-            Come back stronger than the version of you that scored
-            {last_score:.0f}%.
+            Just 10 minutes of practice today can turn that weak spot
+            into a strength before it costs you.
             </p>
 
             <a
@@ -425,6 +458,8 @@ class EmailService:
             </a>
 
             <p>&mdash; The Hot Seat Team</p>
+
+            {_unsubscribe_footer(unsubscribe_token)}
             """,
         )
 
@@ -447,6 +482,7 @@ class EmailService:
         feature_name: str,
         feature_url: str,
         used: bool,
+        unsubscribe_token: str,
     ):
         """Tier B reminder (~4 days inactive). If `used` is False,
         nudges toward an untried feature. If True (every feature's
@@ -454,22 +490,20 @@ class EmailService:
 
         if not used:
 
-            subject = "The feature you haven't touched might matter more than the ones you have"
+            subject = f"You haven't tried {feature_name} yet"
 
             body = f"""
             <p>Hey {recipient_name},</p>
 
             <p>
-            You've been putting in solid reps on mock interviews - but
-            there's a part of Hot Seat you haven't opened yet:
-            <b>{feature_name}</b>. It answers a question interview
-            practice alone can't.
+            You've been putting in good work on mock interviews - but
+            there's one part of Hot Seat you haven't tried yet:
+            <b>{feature_name}</b>.
             </p>
 
             <p>
-            Most people who try it for the first time find at least
-            one thing that's been quietly working against them without
-            realizing it. Two minutes could save you a rejection later.
+            It only takes two minutes, and most people who try it find
+            something useful they didn't know before.
             </p>
 
             <a
@@ -486,26 +520,26 @@ class EmailService:
             </a>
 
             <p>&mdash; The Hot Seat Team</p>
+
+            {_unsubscribe_footer(unsubscribe_token)}
             """
 
         else:
 
-            subject = f"That {feature_name} result? Run it back."
+            subject = f"Check your {feature_name} results again"
 
             body = f"""
             <p>Hey {recipient_name},</p>
 
             <p>
-            Last time you used <b>{feature_name}</b>, it didn't just
-            look fine - it caught something specific and worth fixing,
-            the kind of thing that's easy to miss staring at your own
-            work.
+            Last time you used <b>{feature_name}</b>, it caught
+            something specific and worth fixing - the kind of thing
+            that's easy to miss on your own.
             </p>
 
             <p>
-            Things rarely stay static for long, and what worked last
-            time may not be what works next time. A couple of minutes
-            now beats finding out the hard way later.
+            Things change quickly, so it's worth running it again to
+            see what's changed.
             </p>
 
             <a
@@ -522,6 +556,8 @@ class EmailService:
             </a>
 
             <p>&mdash; The Hot Seat Team</p>
+
+            {_unsubscribe_footer(unsubscribe_token)}
             """
 
         email = sib_api_v3_sdk.SendSmtpEmail(
@@ -537,6 +573,8 @@ class EmailService:
                 "name": SENDER_NAME,
                 "email": SENDER_EMAIL,
             },
+
+            headers=_unsubscribe_headers(unsubscribe_token),
 
             subject=subject,
 
@@ -562,6 +600,7 @@ class EmailService:
         session_count: int,
         avg_score: float,
         best_domain: str,
+        unsubscribe_token: str,
     ):
         """Tier C reminder (~6 days inactive) - aggregate progress
         recap, reassuring rather than guilt-tripping."""
@@ -582,23 +621,24 @@ class EmailService:
                 "email": SENDER_EMAIL,
             },
 
-            subject="You've come further than you think",
+            headers=_unsubscribe_headers(unsubscribe_token),
+
+            subject="Look how far you've come",
 
             html_content=f"""
             <p>Hey {recipient_name},</p>
 
             <p>
-            <b>{session_count} mock interviews. {avg_score:.0f}% average.
-            Strongest in {best_domain}.</b> That's not a beginner's
-            stat line - most people quit long before racking up numbers
-            like that.
+            You've completed <b>{session_count} mock interviews</b>
+            with an average score of <b>{avg_score:.0f}%</b>, and
+            you're strongest in <b>{best_domain}</b>. That's real
+            progress - most people give up long before getting here.
             </p>
 
             <p>
-            Everything you've built is still sitting exactly where you
-            left it - nothing resets, nothing expires. The only thing
-            that fades from here is momentum, and that's on you to
-            protect.
+            Everything you've built is saved right where you left it.
+            The only thing that fades from here is momentum, so don't
+            let it slip.
             </p>
 
             <a
@@ -615,6 +655,8 @@ class EmailService:
             </a>
 
             <p>&mdash; The Hot Seat Team</p>
+
+            {_unsubscribe_footer(unsubscribe_token)}
             """,
         )
 
@@ -636,6 +678,7 @@ class EmailService:
         recipient_name: str,
         session_id: int,
         role: str,
+        unsubscribe_token: str,
     ):
         """One-time nudge for an interview session left unfinished
         for over 2 hours."""
@@ -656,23 +699,23 @@ class EmailService:
                 "email": SENDER_EMAIL,
             },
 
-            subject="You're one answer away from finding out your score",
+            headers=_unsubscribe_headers(unsubscribe_token),
+
+            subject="Finish your interview and see your score",
 
             html_content=f"""
             <p>Hey {recipient_name},</p>
 
             <p>
             You started a <b>{role}</b> interview and stepped away
-            partway through - totally normal, and nothing was thrown
-            out. Every question you already answered, and every one
-            still waiting, is exactly where you left it.
+            partway through - nothing was lost. Every question you
+            already answered, and every one still waiting, is exactly
+            where you left it.
             </p>
 
             <p>
-            Half-finished practice earns almost none of the payoff of
-            full practice - no score, no feedback, since only complete
-            sessions get graded. Finishing usually takes less time than
-            starting a new one from scratch.
+            Only finished interviews get scored, so finishing now takes
+            less time than starting a new one from scratch.
             </p>
 
             <a
@@ -689,6 +732,8 @@ class EmailService:
             </a>
 
             <p>&mdash; The Hot Seat Team</p>
+
+            {_unsubscribe_footer(unsubscribe_token)}
             """,
         )
 
@@ -710,6 +755,7 @@ class EmailService:
         recipient_name: str,
         analysis_id: int,
         job_title: str,
+        unsubscribe_token: str,
     ):
         """One-time nudge for a resume analysis stuck in
         'processing'/'failed' for over an hour."""
@@ -730,22 +776,22 @@ class EmailService:
                 "email": SENDER_EMAIL,
             },
 
-            subject=f"Your {job_title} analysis is stuck - here's the 30-second fix",
+            headers=_unsubscribe_headers(unsubscribe_token),
+
+            subject="Let's fix your resume analysis",
 
             html_content=f"""
             <p>Hey {recipient_name},</p>
 
             <p>
-            You asked us to analyze your resume against
-            <b>{job_title}</b>, and instead of a result, you got
-            silence. That's on us - something glitched partway through
-            processing, not your resume or your job description.
+            We tried to analyze your resume against <b>{job_title}</b>,
+            but something glitched partway through - that's on us, not
+            your resume or your job description.
             </p>
 
             <p>
-            Nothing was lost on your side, and this won't count twice
-            against anything. A retry almost always goes through
-            cleanly the second time.
+            Nothing was lost on your side, and a retry almost always
+            goes through cleanly the second time.
             </p>
 
             <a
@@ -762,6 +808,8 @@ class EmailService:
             </a>
 
             <p>&mdash; The Hot Seat Team</p>
+
+            {_unsubscribe_footer(unsubscribe_token)}
             """,
         )
 
