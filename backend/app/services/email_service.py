@@ -134,6 +134,80 @@ class EmailService:
                 f"Unable to send verification email: {error}"
             )
 
+    def send_verification_reminder_email(
+        self,
+        recipient_email: str,
+        recipient_name: str,
+        verification_token: str,
+    ):
+        """One-time nudge for a local signup that never verified
+        their email - sent once by scripts/send_reminder_emails.py.
+        Uses a fresh token (old one may have expired), same as
+        resend_verification_email in api/auth.py."""
+
+        verification_url = (
+            f"{FRONTEND_URL}"
+            f"/verify-email?token={verification_token}"
+        )
+
+        email = sib_api_v3_sdk.SendSmtpEmail(
+
+            to=[
+                {
+                    "email": recipient_email,
+                    "name": recipient_name,
+                }
+            ],
+
+            sender={
+                "name": SENDER_NAME,
+                "email": SENDER_EMAIL,
+            },
+
+            subject="You're one click away from verifying your account",
+
+            html_content=f"""
+            <p>Hey {recipient_name},</p>
+
+            <p>
+            You signed up for Hot Seat, but your account is still
+            unverified - you're one click away from being able to log
+            in and start practicing.
+            </p>
+
+            <a
+                href="{verification_url}"
+                style="
+                    background:#2563eb;
+                    color:white;
+                    padding:12px 20px;
+                    text-decoration:none;
+                    border-radius:8px;
+                "
+            >
+                Verify Email
+            </a>
+
+            <br><br>
+
+            <p>
+            This link expires in 24 hours.
+            </p>
+            """,
+        )
+
+        try:
+
+            self.api_instance.send_transac_email(
+                email
+            )
+
+        except ApiException as error:
+
+            raise RuntimeError(
+                f"Unable to send verification reminder email: {error}"
+            )
+
     def send_password_reset_email(
         self,
         recipient_email: str,

@@ -33,6 +33,7 @@ from app.models.resume_analysis import ResumeAnalysis
 from app.models.user import User
 from app.models.user_topic import UserTopic
 from app.services.email_service import EmailService
+from app.services.email_verification_service import EmailVerificationService
 from app.utils.jwt_handler import create_unsubscribe_token
 
 # Not used directly below, but User.<relationship> references these
@@ -56,6 +57,8 @@ TIME_TIERS = [
 UNFINISHED_SESSION_AGE = timedelta(hours=2)
 STALLED_ANALYSIS_AGE = timedelta(hours=1)
 STALLED_ANALYSIS_STATUSES = ("processing", "failed")
+UNVERIFIED_SIGNUP_AGE = timedelta(hours=2)
+VERIFY_NUDGE_INTERVAL = timedelta(days=3)
 
 # Arbitrary fixed key for a Postgres session-level advisory lock -
 # held for the whole run so two overlapping invocations (e.g. a
@@ -443,6 +446,48 @@ def _run_locked(dry_run: bool):
             except Exception as error:
                 error_count += 1
                 print(f"  [error] stalled_analysis {analysis.id}: {error}")
+
+        # Repeating nudge (every VERIFY_NUDGE_INTERVAL) for local
+        # signups that never verified their email - keeps firing
+        # until they verify (which removes them from this query) or
+        # forever otherwise. Not gated by email_opt_out/cooldown
+        # since these users are never eligible for the tier/other-
+        # event emails above anyway (see the main eligibility
+        # filter), so there's no overlap to guard against.
+        unverified_cutoff = datetime.utcnow() - UNVERIFIED_SIGNUP_AGE
+        unverified_users = (
+            db.query(User)
+            .filter(
+                User.auth_provider == "local",
+                User.email_verified.is_(False),
+                User.created_at <= unverified_cutoff,
+            )
+            .all()
+        )
+        for user in unverified_users:
+            try:
+                nudge_cutoff = datetime.utcnow() - VERIFY_NUDGE_INTERVAL
+                if _already_sent_this_streak(db, user.id, "verify_email_nudge", nudge_cutoff):
+                    continue
+                print(f"[verify_email_nudge] {user.email}")
+                if not dry_run:
+                    verification_token = EmailVerificationService.generate_verification_token(
+                        db, user.id
+                    )
+                    sent = _send(
+                        email_service, allowlist, user.email,
+                        lambda svc: svc.send_verification_reminder_email(
+                            recipient_email=user.email,
+                            recipient_name=user.username,
+                            verification_token=verification_token,
+                        ),
+                    )
+                    if sent:
+                        _log_sent(db, user.id, "verify_email_nudge", target_id=user.id)
+                sent_count += 1
+            except Exception as error:
+                error_count += 1
+                print(f"  [error] verify_email_nudge {user.email}: {error}")
 
     finally:
         db.close()
