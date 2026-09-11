@@ -1,12 +1,10 @@
 name: Reminder Emails
 
-# Manual trigger only for now, on purpose - the daily `schedule`
-# trigger is intentionally left out until reminder-email content and
-# targeting logic have been validated via REMINDER_EMAIL_ALLOWLIST.
-# Add a `schedule:` trigger here once that's confirmed and the
-# allowlist secret is cleared.
 on:
   workflow_dispatch: {}
+  # Daily at 3:30 UTC = 9:00 AM IST.
+  schedule:
+    - cron: '30 3 * * *'
 
 jobs:
   send-reminders:
