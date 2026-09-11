@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import DateTime
@@ -98,6 +100,14 @@ class User(Base):
     # PUT /me/accept-terms. See ProtectedRoute on the frontend.
     terms_accepted = Column(Boolean, nullable=False, default=False)
     terms_accepted_at = Column(DateTime, nullable=True)
+
+    # Drive the reminder-email inactivity tiers in
+    # scripts/send_reminder_emails.py. created_at is the fallback
+    # activity baseline for users who never logged in again after
+    # signup; last_login_at is set on every successful local/Google
+    # login (see api/auth.py).
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    last_login_at = Column(DateTime, nullable=True)
 
     resumes = relationship(
         "Resume",

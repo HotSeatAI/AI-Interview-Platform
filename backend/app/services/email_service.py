@@ -364,3 +364,415 @@ class EmailService:
             raise RuntimeError(
                 f"Unable to send password changed notice: {error}"
             )
+
+    def send_reminder_highlight_email(
+        self,
+        recipient_email: str,
+        recipient_name: str,
+        last_score: float,
+        weak_topic: str,
+    ):
+        """Tier A reminder (~2 days inactive) - personalized with the
+        user's last session score and a flagged weak topic."""
+
+        practice_url = f"{FRONTEND_URL}/generate-interview"
+
+        email = sib_api_v3_sdk.SendSmtpEmail(
+
+            to=[
+                {
+                    "email": recipient_email,
+                    "name": recipient_name,
+                }
+            ],
+
+            sender={
+                "name": SENDER_NAME,
+                "email": SENDER_EMAIL,
+            },
+
+            subject=f"{last_score:.0f}% was good. Let's make it your floor, not your ceiling.",
+
+            html_content=f"""
+            <p>Hey {recipient_name},</p>
+
+            <p>
+            Your last mock interview scored <b>{last_score:.0f}%</b>.
+            Solid - but interview skills are closer to a muscle than a
+            fact you learn once, and they fade fast without reps.
+            <b>"{weak_topic}"</b> is exactly the kind of gap that turns
+            into a real stumble if it sits untouched too long.
+            </p>
+
+            <p>
+            Ten minutes today is enough to turn that soft spot into a
+            strength before a real interviewer catches it instead.
+            Come back stronger than the version of you that scored
+            {last_score:.0f}%.
+            </p>
+
+            <a
+                href="{practice_url}"
+                style="
+                    background:#2563eb;
+                    color:white;
+                    padding:12px 20px;
+                    text-decoration:none;
+                    border-radius:8px;
+                "
+            >
+                Beat Your Score
+            </a>
+
+            <p>&mdash; The Hot Seat Team</p>
+            """,
+        )
+
+        try:
+
+            self.api_instance.send_transac_email(
+                email
+            )
+
+        except ApiException as error:
+
+            raise RuntimeError(
+                f"Unable to send reminder highlight email: {error}"
+            )
+
+    def send_reminder_feature_email(
+        self,
+        recipient_email: str,
+        recipient_name: str,
+        feature_name: str,
+        feature_url: str,
+        used: bool,
+    ):
+        """Tier B reminder (~4 days inactive). If `used` is False,
+        nudges toward an untried feature. If True (every feature's
+        already been tried), recaps their most-used one instead."""
+
+        if not used:
+
+            subject = "The feature you haven't touched might matter more than the ones you have"
+
+            body = f"""
+            <p>Hey {recipient_name},</p>
+
+            <p>
+            You've been putting in solid reps on mock interviews - but
+            there's a part of Hot Seat you haven't opened yet:
+            <b>{feature_name}</b>. It answers a question interview
+            practice alone can't.
+            </p>
+
+            <p>
+            Most people who try it for the first time find at least
+            one thing that's been quietly working against them without
+            realizing it. Two minutes could save you a rejection later.
+            </p>
+
+            <a
+                href="{feature_url}"
+                style="
+                    background:#2563eb;
+                    color:white;
+                    padding:12px 20px;
+                    text-decoration:none;
+                    border-radius:8px;
+                "
+            >
+                Try {feature_name}
+            </a>
+
+            <p>&mdash; The Hot Seat Team</p>
+            """
+
+        else:
+
+            subject = f"That {feature_name} result? Run it back."
+
+            body = f"""
+            <p>Hey {recipient_name},</p>
+
+            <p>
+            Last time you used <b>{feature_name}</b>, it didn't just
+            look fine - it caught something specific and worth fixing,
+            the kind of thing that's easy to miss staring at your own
+            work.
+            </p>
+
+            <p>
+            Things rarely stay static for long, and what worked last
+            time may not be what works next time. A couple of minutes
+            now beats finding out the hard way later.
+            </p>
+
+            <a
+                href="{feature_url}"
+                style="
+                    background:#2563eb;
+                    color:white;
+                    padding:12px 20px;
+                    text-decoration:none;
+                    border-radius:8px;
+                "
+            >
+                Try {feature_name} Again
+            </a>
+
+            <p>&mdash; The Hot Seat Team</p>
+            """
+
+        email = sib_api_v3_sdk.SendSmtpEmail(
+
+            to=[
+                {
+                    "email": recipient_email,
+                    "name": recipient_name,
+                }
+            ],
+
+            sender={
+                "name": SENDER_NAME,
+                "email": SENDER_EMAIL,
+            },
+
+            subject=subject,
+
+            html_content=body,
+        )
+
+        try:
+
+            self.api_instance.send_transac_email(
+                email
+            )
+
+        except ApiException as error:
+
+            raise RuntimeError(
+                f"Unable to send reminder feature email: {error}"
+            )
+
+    def send_reminder_progress_recap_email(
+        self,
+        recipient_email: str,
+        recipient_name: str,
+        session_count: int,
+        avg_score: float,
+        best_domain: str,
+    ):
+        """Tier C reminder (~6 days inactive) - aggregate progress
+        recap, reassuring rather than guilt-tripping."""
+
+        dashboard_url = f"{FRONTEND_URL}/dashboard"
+
+        email = sib_api_v3_sdk.SendSmtpEmail(
+
+            to=[
+                {
+                    "email": recipient_email,
+                    "name": recipient_name,
+                }
+            ],
+
+            sender={
+                "name": SENDER_NAME,
+                "email": SENDER_EMAIL,
+            },
+
+            subject="You've come further than you think",
+
+            html_content=f"""
+            <p>Hey {recipient_name},</p>
+
+            <p>
+            <b>{session_count} mock interviews. {avg_score:.0f}% average.
+            Strongest in {best_domain}.</b> That's not a beginner's
+            stat line - most people quit long before racking up numbers
+            like that.
+            </p>
+
+            <p>
+            Everything you've built is still sitting exactly where you
+            left it - nothing resets, nothing expires. The only thing
+            that fades from here is momentum, and that's on you to
+            protect.
+            </p>
+
+            <a
+                href="{dashboard_url}"
+                style="
+                    background:#2563eb;
+                    color:white;
+                    padding:12px 20px;
+                    text-decoration:none;
+                    border-radius:8px;
+                "
+            >
+                Pick Up Where You Left Off
+            </a>
+
+            <p>&mdash; The Hot Seat Team</p>
+            """,
+        )
+
+        try:
+
+            self.api_instance.send_transac_email(
+                email
+            )
+
+        except ApiException as error:
+
+            raise RuntimeError(
+                f"Unable to send reminder progress recap email: {error}"
+            )
+
+    def send_unfinished_session_email(
+        self,
+        recipient_email: str,
+        recipient_name: str,
+        session_id: int,
+        role: str,
+    ):
+        """One-time nudge for an interview session left unfinished
+        for over 2 hours."""
+
+        session_url = f"{FRONTEND_URL}/interview/{session_id}"
+
+        email = sib_api_v3_sdk.SendSmtpEmail(
+
+            to=[
+                {
+                    "email": recipient_email,
+                    "name": recipient_name,
+                }
+            ],
+
+            sender={
+                "name": SENDER_NAME,
+                "email": SENDER_EMAIL,
+            },
+
+            subject="You're one answer away from finding out your score",
+
+            html_content=f"""
+            <p>Hey {recipient_name},</p>
+
+            <p>
+            You started a <b>{role}</b> interview and stepped away
+            partway through - totally normal, and nothing was thrown
+            out. Every question you already answered, and every one
+            still waiting, is exactly where you left it.
+            </p>
+
+            <p>
+            Half-finished practice earns almost none of the payoff of
+            full practice - no score, no feedback, since only complete
+            sessions get graded. Finishing usually takes less time than
+            starting a new one from scratch.
+            </p>
+
+            <a
+                href="{session_url}"
+                style="
+                    background:#2563eb;
+                    color:white;
+                    padding:12px 20px;
+                    text-decoration:none;
+                    border-radius:8px;
+                "
+            >
+                Finish Interview
+            </a>
+
+            <p>&mdash; The Hot Seat Team</p>
+            """,
+        )
+
+        try:
+
+            self.api_instance.send_transac_email(
+                email
+            )
+
+        except ApiException as error:
+
+            raise RuntimeError(
+                f"Unable to send unfinished session email: {error}"
+            )
+
+    def send_stalled_analysis_email(
+        self,
+        recipient_email: str,
+        recipient_name: str,
+        analysis_id: int,
+        job_title: str,
+    ):
+        """One-time nudge for a resume analysis stuck in
+        'processing'/'failed' for over an hour."""
+
+        analysis_url = f"{FRONTEND_URL}/resume-analysis/{analysis_id}"
+
+        email = sib_api_v3_sdk.SendSmtpEmail(
+
+            to=[
+                {
+                    "email": recipient_email,
+                    "name": recipient_name,
+                }
+            ],
+
+            sender={
+                "name": SENDER_NAME,
+                "email": SENDER_EMAIL,
+            },
+
+            subject=f"Your {job_title} analysis is stuck - here's the 30-second fix",
+
+            html_content=f"""
+            <p>Hey {recipient_name},</p>
+
+            <p>
+            You asked us to analyze your resume against
+            <b>{job_title}</b>, and instead of a result, you got
+            silence. That's on us - something glitched partway through
+            processing, not your resume or your job description.
+            </p>
+
+            <p>
+            Nothing was lost on your side, and this won't count twice
+            against anything. A retry almost always goes through
+            cleanly the second time.
+            </p>
+
+            <a
+                href="{analysis_url}"
+                style="
+                    background:#2563eb;
+                    color:white;
+                    padding:12px 20px;
+                    text-decoration:none;
+                    border-radius:8px;
+                "
+            >
+                Retry Analysis
+            </a>
+
+            <p>&mdash; The Hot Seat Team</p>
+            """,
+        )
+
+        try:
+
+            self.api_instance.send_transac_email(
+                email
+            )
+
+        except ApiException as error:
+
+            raise RuntimeError(
+                f"Unable to send stalled analysis email: {error}"
+            )

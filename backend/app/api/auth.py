@@ -150,6 +150,9 @@ def login(
             detail="Please verify your email before logging in."
     )
 
+    user.last_login_at = datetime.utcnow()
+    db.commit()
+
     access_token = create_access_token(
         {
             "sub": user.email

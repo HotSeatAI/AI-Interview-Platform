@@ -1,0 +1,36 @@
+name: Reminder Emails
+
+# Manual trigger only for now, on purpose - the daily `schedule`
+# trigger is intentionally left out until reminder-email content and
+# targeting logic have been validated via REMINDER_EMAIL_ALLOWLIST.
+# Add a `schedule:` trigger here once that's confirmed and the
+# allowlist secret is cleared.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Send reminder emails
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_NAME: ${{ secrets.SENDER_NAME }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GEMINI_API_KEYS: ${{ secrets.GEMINI_API_KEYS }}
+          REMINDER_EMAIL_ALLOWLIST: ${{ secrets.REMINDER_EMAIL_ALLOWLIST }}
+        run: python -m app.scripts.send_reminder_emails
