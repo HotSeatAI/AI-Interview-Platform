@@ -247,11 +247,18 @@ def _progress_recap(db, user):
     return session_count, float(avg_score), best_domain
 
 
-def _send(email_service, allowlist, recipient_email, send_fn):
+def _send(email_service, allowlist, recipient_email, send_fn) -> bool:
+    """Returns whether the email was actually sent. Callers must
+    only write a reminder_email_log row when this is True - logging
+    on every match regardless of allowlist skip would falsely mark
+    real users as "already reminded" for something they never
+    received, silently blocking them from ever getting it."""
+
     if allowlist and recipient_email.lower() not in allowlist:
         print(f"  [skip-not-allowlisted] would send to {recipient_email}")
-        return
+        return False
     send_fn(email_service)
+    return True
 
 
 def run(dry_run: bool):
@@ -303,7 +310,7 @@ def _run_locked(dry_run: bool):
                         last_score, weak_topic = data
                         print(f"[{tier}] {user.email}: score={last_score}, weak_topic={weak_topic}")
                         if not dry_run:
-                            _send(
+                            sent = _send(
                                 email_service, allowlist, user.email,
                                 lambda svc: svc.send_reminder_highlight_email(
                                     recipient_email=user.email,
@@ -313,14 +320,15 @@ def _run_locked(dry_run: bool):
                                     unsubscribe_token=create_unsubscribe_token(user.id),
                                 ),
                             )
-                            _log_sent(db, user.id, tier)
+                            if sent:
+                                _log_sent(db, user.id, tier)
                         sent_count += 1
 
                 elif tier == "inactive_4d":
                     feature_name, feature_url, used = _pick_feature(db, user)
                     print(f"[{tier}] {user.email}: feature={feature_name}, used={used}")
                     if not dry_run:
-                        _send(
+                        sent = _send(
                             email_service, allowlist, user.email,
                             lambda svc: svc.send_reminder_feature_email(
                                 recipient_email=user.email,
@@ -331,7 +339,8 @@ def _run_locked(dry_run: bool):
                                 unsubscribe_token=create_unsubscribe_token(user.id),
                             ),
                         )
-                        _log_sent(db, user.id, tier)
+                        if sent:
+                            _log_sent(db, user.id, tier)
                     sent_count += 1
 
                 elif tier == "inactive_6d":
@@ -342,7 +351,7 @@ def _run_locked(dry_run: bool):
                         session_count, avg_score, best_domain = recap
                         print(f"[{tier}] {user.email}: sessions={session_count}, avg={avg_score:.0f}, domain={best_domain}")
                         if not dry_run:
-                            _send(
+                            sent = _send(
                                 email_service, allowlist, user.email,
                                 lambda svc: svc.send_reminder_progress_recap_email(
                                     recipient_email=user.email,
@@ -353,7 +362,8 @@ def _run_locked(dry_run: bool):
                                     unsubscribe_token=create_unsubscribe_token(user.id),
                                 ),
                             )
-                            _log_sent(db, user.id, tier)
+                            if sent:
+                                _log_sent(db, user.id, tier)
                         sent_count += 1
 
             except Exception as error:
@@ -381,7 +391,7 @@ def _run_locked(dry_run: bool):
                     continue
                 print(f"[unfinished_session] {user.email}: session_id={session.id}, role={session.role}")
                 if not dry_run:
-                    _send(
+                    sent = _send(
                         email_service, allowlist, user.email,
                         lambda svc: svc.send_unfinished_session_email(
                             recipient_email=user.email,
@@ -391,7 +401,8 @@ def _run_locked(dry_run: bool):
                             unsubscribe_token=create_unsubscribe_token(user.id),
                         ),
                     )
-                    _log_sent(db, user.id, "unfinished_session", target_id=session.id)
+                    if sent:
+                        _log_sent(db, user.id, "unfinished_session", target_id=session.id)
                 sent_count += 1
             except Exception as error:
                 error_count += 1
@@ -416,7 +427,7 @@ def _run_locked(dry_run: bool):
                 job_title = analysis.job_title or "that role"
                 print(f"[stalled_resume_analysis] {user.email}: analysis_id={analysis.id}, job_title={job_title}")
                 if not dry_run:
-                    _send(
+                    sent = _send(
                         email_service, allowlist, user.email,
                         lambda svc: svc.send_stalled_analysis_email(
                             recipient_email=user.email,
@@ -426,7 +437,8 @@ def _run_locked(dry_run: bool):
                             unsubscribe_token=create_unsubscribe_token(user.id),
                         ),
                     )
-                    _log_sent(db, user.id, "stalled_resume_analysis", target_id=analysis.id)
+                    if sent:
+                        _log_sent(db, user.id, "stalled_resume_analysis", target_id=analysis.id)
                 sent_count += 1
             except Exception as error:
                 error_count += 1
