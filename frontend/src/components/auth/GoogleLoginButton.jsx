@@ -1,11 +1,12 @@
 import { GoogleLogin } from "@react-oauth/google";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import useAuth from "../../hooks/useAuth";
 
 function GoogleLoginButton() {
   const { googleLogin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSuccess = async (credentialResponse) => {
   try {
@@ -14,7 +15,7 @@ function GoogleLoginButton() {
     }
 
     await googleLogin(credentialResponse.credential);
-    navigate("/dashboard");
+    navigate(location.state?.from?.pathname ?? "/dashboard");
   } catch (error) {
     // Don't log the raw error - it can carry the Google ID token or an
     // Authorization header in its request config.
@@ -24,6 +25,7 @@ function GoogleLoginButton() {
     );
 
     alert(
+      error.friendlyMessage ||
       error.response?.data?.detail ||
       error.message ||
       "Google authentication failed."

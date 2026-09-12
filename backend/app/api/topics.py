@@ -3,8 +3,11 @@ import re
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from fastapi import Request
+from fastapi import Response
 from sqlalchemy.orm import Session
 
+from app.core.rate_limiter import limiter
 from app.database.database import get_db
 from app.api.auth import get_current_user
 
@@ -62,7 +65,10 @@ def get_topics(
 
 
 @router.post("/{topic_id}/practice")
+@limiter.limit("15/minute")
 def start_topic_practice(
+    request: Request,
+    response: Response,
     topic_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)

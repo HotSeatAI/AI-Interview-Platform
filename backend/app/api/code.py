@@ -1,5 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request, Response
 
+from app.core.rate_limiter import limiter
 from app.schemas.code import (
     CodeRunRequest,
     CodeRunResponse,
@@ -20,10 +21,13 @@ execution_service = CodeExecutionService()
     "/run",
     response_model=CodeRunResponse,
 )
-async def run_code(
-    request: CodeRunRequest,
+@limiter.limit("15/minute")
+def run_code(
+    request: Request,
+    response: Response,
+    payload: CodeRunRequest,
 ):
 
-    return await execution_service.run_code(
-        request
+    return execution_service.run_code(
+        payload
     )

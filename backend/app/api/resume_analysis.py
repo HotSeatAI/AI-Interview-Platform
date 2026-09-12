@@ -10,6 +10,8 @@ from fastapi import (
     File,
     Form,
     HTTPException,
+    Request,
+    Response,
     UploadFile,
 )
 from app.services.resume_analysis_worker import (
@@ -17,6 +19,7 @@ from app.services.resume_analysis_worker import (
 )
 from sqlalchemy.orm import Session
 from app.api.auth import get_current_user
+from app.core.rate_limiter import limiter
 from app.database.database import get_db
 from app.models.resume import Resume
 from app.models.resume_analysis import ResumeAnalysis
@@ -66,7 +69,10 @@ def _normalize_for_hash(text: str) -> str:
 
 
 @router.post("/start")
+@limiter.limit("15/minute")
 async def start_resume_analysis(
+    request: Request,
+    response: Response,
     background_tasks: BackgroundTasks,
 
     resume_id: int = Form(...),
@@ -214,7 +220,10 @@ async def start_resume_analysis(
     }
 
 @router.post("/ats-score")
+@limiter.limit("15/minute")
 def get_ats_score(
+    request: Request,
+    response: Response,
     resume_id: int = Form(...),
 
     db: Session = Depends(get_db),

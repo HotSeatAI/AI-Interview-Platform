@@ -16,6 +16,15 @@ ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(
     os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 180)
 )
+
+# Rate limiter storage backend (see app/core/rate_limiter.py). Defaults
+# to slowapi's in-process memory store - correct for a single backend
+# instance. Only needs to become a redis://... URL if this ever runs
+# as multiple instances at once, so limits stay shared across them.
+RATE_LIMIT_STORAGE_URI = os.getenv(
+    "RATE_LIMIT_STORAGE_URI", "memory://"
+)
+
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
 if not GOOGLE_CLIENT_ID:
@@ -58,6 +67,38 @@ GEMINI_EMBEDDING_MODEL = os.getenv(
 # 1 — 0 is rejected outright as an invalid argument.
 GEMINI_STRUCTURING_THINKING_BUDGET = int(
     os.getenv("GEMINI_STRUCTURING_THINKING_BUDGET", 128)
+)
+
+# Applied to answer_evaluation, interview_question_generation, and
+# follow_up_question_generation. Validated live, side by side against
+# the default (dynamic/uncapped) thinking budget: evaluate_answer
+# matched default scoring/feedback on both a correct answer and a
+# deliberately wrong one (same score, same errors caught); the
+# follow-up generation cap produced an equally well-formed, on-topic
+# question (finish_reason=STOP, not truncated). An earlier test run
+# appeared to show a follow-up regression, but that was a confounded
+# result from combining this cap with a separate max_output_tokens
+# bug (since fixed/reverted) that let thinking tokens starve the
+# visible output - re-tested in isolation afterward and it was fine.
+# Deliberately NOT applied to generate_model_answer - untested in
+# isolation, and no longer on the critical latency path anyway.
+GEMINI_INTERVIEW_THINKING_BUDGET = int(
+    os.getenv("GEMINI_INTERVIEW_THINKING_BUDGET", 128)
+)
+
+# Hard ceiling, in seconds, on how long POST /answer will wait for the
+# BONUS Gemini calls (delivery feedback, speculative model answer) -
+# measured from when they were fired, not from when this is read, so
+# it bounds the whole wave regardless of how much of it evaluate_answer
+# itself already used. If a bonus call isn't done by then, it's
+# dropped (same "must never block" soft-fail already used for
+# exceptions, just extended to timeouts) rather than left to run the
+# response time up further - this is what stops a slow/rate-limited
+# bonus call from turning one answer submission into a 60-second wait.
+# evaluate_answer itself is NOT subject to this - a score can't be
+# fabricated, so if Gemini itself is slow, the response is slow.
+ANSWER_ENRICHMENT_TIMEOUT_SECONDS = int(
+    os.getenv("ANSWER_ENRICHMENT_TIMEOUT_SECONDS", 12)
 )
 
 raw_keys = os.getenv("GEMINI_API_KEYS")
@@ -109,6 +150,15 @@ SENDER_EMAIL = os.getenv(
 FRONTEND_URL = os.getenv(
     "FRONTEND_URL",
     "http://localhost:3000"
+)
+
+# Base URL of this backend itself - needed for links that point at a
+# FastAPI route directly (e.g. the unsubscribe link in reminder
+# emails, GET /unsubscribe), as opposed to FRONTEND_URL links that
+# point at a React route.
+BACKEND_URL = os.getenv(
+    "BACKEND_URL",
+    "http://localhost:8000"
 )
 
 # -----------------------------

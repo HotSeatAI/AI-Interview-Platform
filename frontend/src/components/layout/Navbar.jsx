@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { FiSettings } from "react-icons/fi";
 import useAuth from "../../hooks/useAuth";
 import BrandLogo from "./BrandLogo";
 import ThemeToggle from "./ThemeToggle";
@@ -43,6 +44,16 @@ function Navbar() {
 
       <div className="navbar__user">
         <span className="navbar__avatar">{getInitials(user?.username)}</span>
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            isActive ? "navbar__icon-link navbar__icon-link--active" : "navbar__icon-link"
+          }
+          aria-label="Settings"
+          title="Settings"
+        >
+          <FiSettings size={18} />
+        </NavLink>
         <ThemeToggle />
         <Button variant="ghost" size="sm" onClick={logout}>
           Log out

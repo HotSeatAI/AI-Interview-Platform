@@ -2,6 +2,42 @@
 Sales interview prompt builder.
 """
 
+from app.services.role_classifier import classify_sales_subrole
+
+
+_FUNDAMENTALS_BY_SUBROLE = {
+    "generic": """Easy
+- Sales Funnel
+- CRM
+- Lead Generation
+
+Medium
+- Negotiation
+- Prospecting
+- Pipeline Management
+
+Hard
+- Enterprise Sales
+- Sales Forecasting
+- Strategic Selling
+- Key Account Management
+- Sales Metrics""",
+    "customer_success": """Easy
+- Customer Onboarding
+- Customer Health Scores
+- Basic Account Management
+
+Medium
+- Renewals
+- Upsell & Cross-sell
+- Churn Prevention
+
+Hard
+- Strategic Account Growth
+- Enterprise Renewal Negotiations
+- Customer Advocacy Programs""",
+}
+
 
 def build_sales_prompt(
     role: str,
@@ -19,6 +55,9 @@ def build_sales_prompt(
     Returns:
         Prompt string for Gemini.
     """
+
+    subrole = classify_sales_subrole(role)
+    fundamentals_block = _FUNDAMENTALS_BY_SUBROLE[subrole]
 
     if resume_text:
 
@@ -51,22 +90,7 @@ Generate exactly 3 questions.
 
 Difficulty Guidelines:
 
-Easy
-- Sales Funnel
-- CRM
-- Lead Generation
-
-Medium
-- Negotiation
-- Prospecting
-- Pipeline Management
-
-Hard
-- Enterprise Sales
-- Sales Forecasting
-- Strategic Selling
-- Key Account Management
-- Sales Metrics
+{fundamentals_block}
 
 Questions must strictly match the selected difficulty.
 
@@ -246,22 +270,7 @@ Generate exactly 3 questions.
 
 Difficulty Guidelines:
 
-Easy
-- Sales Funnel
-- CRM
-- Lead Generation
-
-Medium
-- Negotiation
-- Prospecting
-- Pipeline Management
-
-Hard
-- Enterprise Sales
-- Sales Forecasting
-- Strategic Selling
-- Key Account Management
-- Sales Metrics
+{fundamentals_block}
 
 3. Customer Scenarios (2)
 
@@ -386,3 +395,10 @@ Do not include headings, introductions, markdown, bullet points or any text befo
 
 If a Sales Strategy Question was generated as a coding question, keep its `TYPE: CODING` line exactly as specified above; do not add this line to any other question.
 """
+
+
+# Public re-export for sales_rounds.py - added without touching any
+# existing prompt text/structure above. Lets the round-based builders
+# reuse the same per-sub-role fundamentals content without reaching
+# into this module's underscore-prefixed name.
+FUNDAMENTALS_BY_SUBROLE = _FUNDAMENTALS_BY_SUBROLE

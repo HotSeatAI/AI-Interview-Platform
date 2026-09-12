@@ -10,6 +10,17 @@ export const generateInterview = async (payload, token) => {
   return response.data;
 };
 
+export const getInterviewRounds = async (role, token) => {
+  const response = await apiClient.get("/interview/rounds", {
+    params: { role },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};
+
 export const getInterviewSession = async (sessionId, token) => {
   const response = await apiClient.get(`/interview/${sessionId}`, {
     headers: {

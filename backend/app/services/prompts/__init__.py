@@ -10,4 +10,9 @@ Modules:
 - consulting_prompt
 - sales_prompt
 - marketing_prompt
+- digital_design_prompt
+- analog_design_prompt
+- embedded_systems_prompt
+- vlsi_prompt
+- product_management
 """

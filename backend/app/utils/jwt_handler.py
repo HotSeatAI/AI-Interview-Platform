@@ -23,6 +23,34 @@ oauth2_scheme = OAuth2PasswordBearer(
 )
 
 
+def create_unsubscribe_token(user_id: int) -> str:
+    """Non-expiring token embedded in reminder-email unsubscribe
+    links. No `exp` claim - jose only checks expiry when the claim
+    is present, and these links must keep working no matter how old
+    the email they came from is."""
+
+    return jwt.encode(
+        {"purpose": "unsubscribe", "user_id": user_id},
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
+
+
+def verify_unsubscribe_token(token: str) -> Optional[int]:
+    """Returns the user_id encoded in an unsubscribe token, or None
+    if the token is invalid/tampered."""
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        return None
+
+    if payload.get("purpose") != "unsubscribe":
+        return None
+
+    return payload.get("user_id")
+
+
 def create_access_token(data: dict):
 
     to_encode = data.copy()

@@ -208,8 +208,6 @@ VLSI_KEYWORDS = {
     "physical design",
     "physical design engineer",
     "backend vlsi",
-    "backend design",
-    "backend engineer",
     "physical verification",
     "timing engineer",
     "sta",
@@ -409,3 +407,558 @@ Rules:
             return category
 
         return self._gemini_classification(role)
+
+
+# ============================================================
+# Software sub-role classification.
+#
+# Second-level classifier, used only inside the `software` domain's
+# prompt builder (build_software_prompt), to decide which "Core CS
+# Fundamentals" and "System Design" topics are actually relevant to
+# the specific role - e.g. an ML Engineer shouldn't be asked about
+# OS/DBMS, and a Frontend Developer shouldn't be asked about database
+# sharding. Independent of classify_role() above: classify_role still
+# returns "software" for all of these roles, this function only picks
+# which topic set within the software prompt to use.
+#
+# Deliberately keyword-only, no Gemini fallback - "generic" (today's
+# original OS/DBMS/OOP behavior) is a legitimate, confirmed-correct
+# default for backend/full-stack/SDE/unmatched roles, not an error
+# case that needs an LLM to resolve.
+# ============================================================
+
+ML_DATA_SCIENCE_KEYWORDS = {
+    "machine learning",
+    "machine learning engineer",
+    "ml engineer",
+    "data scientist",
+    "data science",
+    "ai engineer",
+    "artificial intelligence engineer",
+    "deep learning",
+    "deep learning engineer",
+    "nlp engineer",
+    "natural language processing",
+    "computer vision",
+    "computer vision engineer",
+    "mlops",
+    "mlops engineer",
+}
+
+DATA_ENGINEERING_KEYWORDS = {
+    "data engineer",
+    "data engineering",
+    "etl developer",
+    "etl engineer",
+    "big data engineer",
+    "big data developer",
+    "analytics engineer",
+    "data pipeline engineer",
+    "data platform engineer",
+}
+
+FRONTEND_SUBROLE_KEYWORDS = {
+    "frontend developer",
+    "frontend engineer",
+    "front-end developer",
+    "front-end engineer",
+    "front end developer",
+    "ui developer",
+    "ui engineer",
+    "react developer",
+    "angular developer",
+    "vue developer",
+}
+
+MOBILE_SUBROLE_KEYWORDS = {
+    "android developer",
+    "ios developer",
+    "mobile developer",
+    "mobile app developer",
+    "mobile engineer",
+    "flutter developer",
+    "react native developer",
+    "swift developer",
+    "kotlin developer",
+}
+
+DEVOPS_SRE_KEYWORDS = {
+    "devops engineer",
+    "devops",
+    "site reliability engineer",
+    "sre",
+    "cloud engineer",
+    "platform engineer",
+    "infrastructure engineer",
+    "kubernetes engineer",
+    "cloud infrastructure engineer",
+}
+
+QA_TESTING_KEYWORDS = {
+    "qa engineer",
+    "quality assurance engineer",
+    "test engineer",
+    "sdet",
+    "software test engineer",
+    "automation test engineer",
+    "qa automation engineer",
+}
+
+
+def classify_software_subrole(role: str) -> str:
+    """
+    Classify a role already known to be in the "software" domain into
+    a finer-grained sub-role bucket, used to pick relevant Fundamentals
+    and System Design topics. Returns "generic" (today's original
+    OS/DBMS/OOP behavior) if nothing more specific matches.
+    """
+
+    normalized = role.strip().lower()
+
+    for keyword in ML_DATA_SCIENCE_KEYWORDS:
+        if keyword in normalized:
+            return "ml_data_science"
+
+    for keyword in DATA_ENGINEERING_KEYWORDS:
+        if keyword in normalized:
+            return "data_engineering"
+
+    for keyword in FRONTEND_SUBROLE_KEYWORDS:
+        if keyword in normalized:
+            return "frontend"
+
+    for keyword in MOBILE_SUBROLE_KEYWORDS:
+        if keyword in normalized:
+            return "mobile"
+
+    for keyword in DEVOPS_SRE_KEYWORDS:
+        if keyword in normalized:
+            return "devops_sre"
+
+    for keyword in QA_TESTING_KEYWORDS:
+        if keyword in normalized:
+            return "qa_testing"
+
+    return "generic"
+
+
+# ============================================================
+# Finance sub-role classification (used only inside
+# build_finance_prompt, to pick relevant Finance Fundamentals
+# topics per specific finance role).
+# ============================================================
+
+INVESTMENT_BANKING_PE_KEYWORDS = {
+    "investment banking",
+    "investment banker",
+    "m&a",
+    "mergers and acquisitions",
+    "private equity",
+    "ib analyst",
+    "ib associate",
+}
+
+EQUITY_RESEARCH_KEYWORDS = {
+    "equity research",
+    "asset management",
+    "portfolio management",
+    "portfolio manager",
+    "buy side analyst",
+    "sell side analyst",
+}
+
+CORPORATE_FINANCE_TREASURY_KEYWORDS = {
+    "corporate finance",
+    "treasury",
+    "fp&a",
+    "financial planning and analysis",
+    "treasury analyst",
+    "treasury manager",
+}
+
+FINANCE_RISK_MANAGEMENT_KEYWORDS = {
+    "risk management",
+    "risk analyst",
+    "market risk",
+    "credit risk",
+    "risk manager",
+}
+
+VENTURE_CAPITAL_KEYWORDS = {
+    "venture capital",
+    "vc analyst",
+    "vc associate",
+    "startup investing",
+}
+
+
+def classify_finance_subrole(role: str) -> str:
+    """
+    Classify a role already known to be in the "finance" domain into
+    a finer-grained sub-role bucket, used to pick relevant Finance
+    Fundamentals topics. Returns "generic" if nothing more specific
+    matches.
+    """
+
+    normalized = role.strip().lower()
+
+    for keyword in INVESTMENT_BANKING_PE_KEYWORDS:
+        if keyword in normalized:
+            return "investment_banking_pe"
+
+    for keyword in EQUITY_RESEARCH_KEYWORDS:
+        if keyword in normalized:
+            return "equity_research"
+
+    for keyword in CORPORATE_FINANCE_TREASURY_KEYWORDS:
+        if keyword in normalized:
+            return "corporate_finance_treasury"
+
+    for keyword in FINANCE_RISK_MANAGEMENT_KEYWORDS:
+        if keyword in normalized:
+            return "risk_management"
+
+    for keyword in VENTURE_CAPITAL_KEYWORDS:
+        if keyword in normalized:
+            return "venture_capital"
+
+    return "generic"
+
+
+# ============================================================
+# Consulting sub-role classification (used only inside
+# build_consulting_prompt).
+# ============================================================
+
+OPERATIONS_CONSULTING_KEYWORDS = {
+    "operations consulting",
+    "operations consultant",
+    "supply chain consulting",
+}
+
+DIGITAL_CONSULTING_KEYWORDS = {
+    "digital consulting",
+    "digital consultant",
+    "technology consulting",
+    "it consulting",
+}
+
+
+def classify_consulting_subrole(role: str) -> str:
+    """
+    Classify a role already known to be in the "consulting" domain
+    into a finer-grained sub-role bucket. Returns "generic" if
+    nothing more specific matches.
+    """
+
+    normalized = role.strip().lower()
+
+    for keyword in OPERATIONS_CONSULTING_KEYWORDS:
+        if keyword in normalized:
+            return "operations_consulting"
+
+    for keyword in DIGITAL_CONSULTING_KEYWORDS:
+        if keyword in normalized:
+            return "digital_consulting"
+
+    return "generic"
+
+
+# ============================================================
+# Sales sub-role classification (used only inside
+# build_sales_prompt).
+# ============================================================
+
+CUSTOMER_SUCCESS_KEYWORDS = {
+    "customer success",
+    "account manager",
+    "relationship manager",
+    "client success",
+}
+
+
+def classify_sales_subrole(role: str) -> str:
+    """
+    Classify a role already known to be in the "sales" domain into a
+    finer-grained sub-role bucket. Returns "generic" if nothing more
+    specific matches.
+    """
+
+    normalized = role.strip().lower()
+
+    for keyword in CUSTOMER_SUCCESS_KEYWORDS:
+        if keyword in normalized:
+            return "customer_success"
+
+    return "generic"
+
+
+# ============================================================
+# Marketing sub-role classification (used only inside
+# build_marketing_prompt).
+# ============================================================
+
+BRAND_MANAGEMENT_KEYWORDS = {
+    "brand management",
+    "brand manager",
+    "brand marketing",
+}
+
+MARKETING_SEO_KEYWORDS = {
+    "seo specialist",
+    "seo executive",
+    "search engine optimization",
+}
+
+CONTENT_MARKETING_KEYWORDS = {
+    "content marketing",
+    "content marketer",
+    "content strategist",
+}
+
+PRODUCT_MARKETING_KEYWORDS = {
+    "product marketing",
+    "product marketer",
+}
+
+
+def classify_marketing_subrole(role: str) -> str:
+    """
+    Classify a role already known to be in the "marketing" domain
+    into a finer-grained sub-role bucket. Returns "generic" if
+    nothing more specific matches.
+    """
+
+    normalized = role.strip().lower()
+
+    for keyword in BRAND_MANAGEMENT_KEYWORDS:
+        if keyword in normalized:
+            return "brand_management"
+
+    for keyword in MARKETING_SEO_KEYWORDS:
+        if keyword in normalized:
+            return "seo"
+
+    for keyword in CONTENT_MARKETING_KEYWORDS:
+        if keyword in normalized:
+            return "content_marketing"
+
+    for keyword in PRODUCT_MARKETING_KEYWORDS:
+        if keyword in normalized:
+            return "product_marketing"
+
+    return "generic"
+
+
+# ============================================================
+# VLSI sub-role classification (used only inside
+# build_vlsi_prompt).
+# ============================================================
+
+VLSI_PHYSICAL_DESIGN_KEYWORDS = {
+    "physical design",
+    "pd engineer",
+    "backend physical design",
+    "backend vlsi",
+    "physical implementation",
+    "floorplanning",
+}
+
+VLSI_DFT_KEYWORDS = {
+    "dft",
+    "dft engineer",
+    "design for test",
+    "scan",
+    "atpg",
+}
+
+VLSI_STA_TIMING_KEYWORDS = {
+    "sta",
+    "static timing",
+    "timing engineer",
+    "timing closure",
+}
+
+
+def classify_vlsi_subrole(role: str) -> str:
+    """
+    Classify a role already known to be in the "vlsi" domain into a
+    finer-grained sub-role bucket. Returns "generic" if nothing more
+    specific matches.
+    """
+
+    normalized = role.strip().lower()
+
+    for keyword in VLSI_PHYSICAL_DESIGN_KEYWORDS:
+        if keyword in normalized:
+            return "physical_design"
+
+    for keyword in VLSI_DFT_KEYWORDS:
+        if keyword in normalized:
+            return "dft"
+
+    for keyword in VLSI_STA_TIMING_KEYWORDS:
+        if keyword in normalized:
+            return "sta_timing"
+
+    return "generic"
+
+
+# ============================================================
+# Digital Design sub-role classification (used only inside
+# build_digital_design_prompt).
+# ============================================================
+
+FPGA_KEYWORDS = {
+    "fpga",
+    "fpga engineer",
+    "fpga design engineer",
+}
+
+VERIFICATION_DV_KEYWORDS = {
+    "verification engineer",
+    "design verification",
+    "dv engineer",
+    "verification",
+    "functional verification engineer",
+}
+
+
+def classify_digital_design_subrole(role: str) -> str:
+    """
+    Classify a role already known to be in the "digital_design"
+    domain into a finer-grained sub-role bucket. Returns "generic"
+    if nothing more specific matches.
+    """
+
+    normalized = role.strip().lower()
+
+    for keyword in FPGA_KEYWORDS:
+        if keyword in normalized:
+            return "fpga"
+
+    for keyword in VERIFICATION_DV_KEYWORDS:
+        if keyword in normalized:
+            return "verification_dv"
+
+    return "generic"
+
+
+# ============================================================
+# Embedded Systems sub-role classification (used only inside
+# build_embedded_systems_prompt).
+# ============================================================
+
+EMBEDDED_LINUX_KEYWORDS = {
+    "embedded linux",
+    "embedded linux engineer",
+    "linux kernel",
+    "kernel developer",
+}
+
+IOT_SUBROLE_KEYWORDS = {
+    "iot",
+    "iot engineer",
+}
+
+AUTOMOTIVE_EMBEDDED_KEYWORDS = {
+    "automotive embedded",
+    "automotive embedded engineer",
+    "autosar",
+}
+
+
+def classify_embedded_subrole(role: str) -> str:
+    """
+    Classify a role already known to be in the "embedded_systems"
+    domain into a finer-grained sub-role bucket. Returns "generic"
+    if nothing more specific matches.
+    """
+
+    normalized = role.strip().lower()
+
+    for keyword in EMBEDDED_LINUX_KEYWORDS:
+        if keyword in normalized:
+            return "embedded_linux"
+
+    for keyword in IOT_SUBROLE_KEYWORDS:
+        if keyword in normalized:
+            return "iot"
+
+    for keyword in AUTOMOTIVE_EMBEDDED_KEYWORDS:
+        if keyword in normalized:
+            return "automotive_embedded"
+
+    return "generic"
+
+
+# ============================================================
+# Analog Design sub-role classification (used only inside
+# build_analog_design_prompt).
+# ============================================================
+
+MIXED_SIGNAL_KEYWORDS = {
+    "mixed signal",
+    "mixed signal engineer",
+    "mixed signal design",
+}
+
+
+def classify_analog_subrole(role: str) -> str:
+    """
+    Classify a role already known to be in the "analog_design"
+    domain into a finer-grained sub-role bucket. Returns "generic"
+    if nothing more specific matches.
+    """
+
+    normalized = role.strip().lower()
+
+    for keyword in MIXED_SIGNAL_KEYWORDS:
+        if keyword in normalized:
+            return "mixed_signal"
+
+    return "generic"
+
+
+# ============================================================
+# Product Management sub-role classification (used only inside
+# build_product_management_prompt).
+# ============================================================
+
+TECHNICAL_PM_KEYWORDS = {
+    "technical product manager",
+    "technical pm",
+}
+
+GROWTH_PM_KEYWORDS = {
+    "growth product manager",
+    "growth pm",
+}
+
+PRODUCT_ANALYST_KEYWORDS = {
+    "product analyst",
+}
+
+
+def classify_product_management_subrole(role: str) -> str:
+    """
+    Classify a role already known to be in the "product_management"
+    domain into a finer-grained sub-role bucket. Returns "generic"
+    if nothing more specific matches.
+    """
+
+    normalized = role.strip().lower()
+
+    for keyword in TECHNICAL_PM_KEYWORDS:
+        if keyword in normalized:
+            return "technical_pm"
+
+    for keyword in GROWTH_PM_KEYWORDS:
+        if keyword in normalized:
+            return "growth_pm"
+
+    for keyword in PRODUCT_ANALYST_KEYWORDS:
+        if keyword in normalized:
+            return "product_analyst"
+
+    return "generic"

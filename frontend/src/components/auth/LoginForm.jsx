@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import GoogleLoginButton from "./GoogleLoginButton";
 import Button from "../ui/Button";
 function LoginForm() {
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     login,
     resendVerificationEmail,
@@ -36,10 +37,11 @@ function LoginForm() {
 
     try {
       await login(formData);
-      navigate("/dashboard");
+      navigate(location.state?.from?.pathname ?? "/dashboard");
     } catch (err) {
 
       const message =
+        err.friendlyMessage ||
         err.response?.data?.detail ||
         "Login failed.";
 

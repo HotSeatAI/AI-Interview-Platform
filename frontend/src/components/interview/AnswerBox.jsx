@@ -104,6 +104,7 @@ const AnswerBox = forwardRef(function AnswerBox(
     setExecutionStatus("internal_error");
 
     setConsoleOutput(
+      error?.friendlyMessage ||
       error?.response?.data?.detail ||
       error.message ||
       "Failed to execute code."
@@ -163,6 +164,7 @@ const AnswerBox = forwardRef(function AnswerBox(
     } catch (err) {
 
       setError(
+        err?.friendlyMessage ||
         err?.response?.data?.detail ||
         "Failed to submit answer."
       );

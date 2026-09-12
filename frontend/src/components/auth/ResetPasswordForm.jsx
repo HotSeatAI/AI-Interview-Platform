@@ -67,14 +67,19 @@ function ResetPasswordForm() {
       setSuccess(true);
     } catch (err) {
       const message =
+        err.friendlyMessage ||
         err.response?.data?.detail ||
         "Unable to reset your password.";
 
       setError(message);
-      // A non-2xx response here always means the token itself was
+
+      // A non-2xx response here normally means the token itself was
       // rejected (invalid/expired) - client-side validation never
-      // reaches the API call.
-      setTokenError(true);
+      // reaches the API call - except a 429, which means the request
+      // was blocked before the token was even checked.
+      if (err.response?.status !== 429) {
+        setTokenError(true);
+      }
     } finally {
       setLoading(false);
     }

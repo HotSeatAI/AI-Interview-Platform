@@ -7,6 +7,7 @@ import BrandLogo from "../components/layout/BrandLogo";
 import ThemeToggle from "../components/layout/ThemeToggle";
 import TermsModal from "../components/profile/TermsModal";
 import { COUNTRIES, CITIES_BY_COUNTRY, CITY_TO_COUNTRY } from "../constants/locationData";
+import { JOB_DOMAINS } from "../constants/jobDomains";
 
 const GENDER_OPTIONS = ["Male", "Female", "Prefer not to say"];
 const OTHER_CITY = "__other__";
@@ -35,20 +36,19 @@ function CompleteProfilePage() {
     city: "",
     cityOther: "",
   });
-  const [jobDomainInput, setJobDomainInput] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const addJobDomain = () => {
-    const value = jobDomainInput.trim();
-    if (!value) return;
+  const availableJobDomains = JOB_DOMAINS.filter(
+    (domain) => !formData.job_domains.includes(domain)
+  );
+
+  const addJobDomain = (domain) => {
+    if (!domain) return;
     setFormData((prev) => {
-      if (prev.job_domains.some((d) => d.toLowerCase() === value.toLowerCase())) {
-        return prev;
-      }
-      return { ...prev, job_domains: [...prev.job_domains, value] };
+      if (prev.job_domains.includes(domain)) return prev;
+      return { ...prev, job_domains: [...prev.job_domains, domain] };
     });
-    setJobDomainInput("");
   };
 
   const removeJobDomain = (domain) => {
@@ -56,13 +56,6 @@ function CompleteProfilePage() {
       ...prev,
       job_domains: prev.job_domains.filter((d) => d !== domain),
     }));
-  };
-
-  const handleJobDomainKeyDown = (e) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addJobDomain();
-    }
   };
 
   const handleChange = (field) => (e) => {
@@ -234,22 +227,22 @@ function CompleteProfilePage() {
 
             <div className="form-field">
               <span>Looking for Job Domain(s) *</span>
-              <div className="tag-input-row">
-                <input
-                  type="text"
-                  value={jobDomainInput}
-                  onChange={(e) => setJobDomainInput(e.target.value)}
-                  onKeyDown={handleJobDomainKeyDown}
-                  placeholder="e.g. Software Engineering"
-                />
-                <button
-                  type="button"
-                  className="button button--secondary button--sm"
-                  onClick={addJobDomain}
-                >
-                  Add
-                </button>
-              </div>
+              <select
+                value=""
+                onChange={(e) => addJobDomain(e.target.value)}
+                disabled={availableJobDomains.length === 0}
+              >
+                <option value="" disabled>
+                  {availableJobDomains.length > 0
+                    ? "Select a domain to add"
+                    : "All domains added"}
+                </option>
+                {availableJobDomains.map((domain) => (
+                  <option key={domain} value={domain}>
+                    {domain}
+                  </option>
+                ))}
+              </select>
               {formData.job_domains.length > 0 && (
                 <div className="tag-list">
                   {formData.job_domains.map((domain) => (

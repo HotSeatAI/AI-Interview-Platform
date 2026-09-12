@@ -2,6 +2,56 @@
 Consulting interview prompt builder.
 """
 
+from app.services.role_classifier import classify_consulting_subrole
+
+
+_FUNDAMENTALS_BY_SUBROLE = {
+    "generic": """Easy
+- SWOT Analysis
+- Porter's Five Forces
+- PESTLE Analysis
+
+Medium
+- Market Entry Strategy
+- Profitability Framework
+- Growth Strategy
+
+Hard
+- M&A Strategy
+- Corporate Transformation
+- Organizational Strategy
+- Competitive Strategy
+- Business Transformation""",
+    "operations_consulting": """Easy
+- Process Mapping
+- Basic Supply Chain Concepts
+- Cost Structures
+
+Medium
+- Lean & Six Sigma
+- Process Optimization
+- Inventory Management
+
+Hard
+- Supply Chain Redesign
+- Operational Transformation
+- Cost Reduction at Scale""",
+    "digital_consulting": """Easy
+- Digital Basics
+- Technology Landscape
+- Basic IT Systems
+
+Medium
+- Digital Transformation Strategy
+- Cloud Strategy
+- Data & Analytics Strategy
+
+Hard
+- Enterprise Technology Transformation
+- Change Management for Digital Initiatives
+- Platform & Ecosystem Strategy""",
+}
+
 
 def build_consulting_prompt(
     role: str,
@@ -19,6 +69,9 @@ def build_consulting_prompt(
     Returns:
         Prompt string for Gemini.
     """
+
+    subrole = classify_consulting_subrole(role)
+    fundamentals_block = _FUNDAMENTALS_BY_SUBROLE[subrole]
 
     if resume_text:
 
@@ -51,22 +104,7 @@ Generate exactly 3 questions.
 
 Difficulty Guidelines:
 
-Easy
-- SWOT Analysis
-- Porter's Five Forces
-- PESTLE Analysis
-
-Medium
-- Market Entry Strategy
-- Profitability Framework
-- Growth Strategy
-
-Hard
-- M&A Strategy
-- Corporate Transformation
-- Organizational Strategy
-- Competitive Strategy
-- Business Transformation
+{fundamentals_block}
 
 Questions must match the selected difficulty.
 
@@ -241,22 +279,7 @@ Generate exactly 3 questions.
 
 Difficulty Guidelines:
 
-Easy
-- SWOT Analysis
-- Porter's Five Forces
-- PESTLE Analysis
-
-Medium
-- Market Entry Strategy
-- Profitability Framework
-- Growth Strategy
-
-Hard
-- M&A Strategy
-- Corporate Transformation
-- Organizational Strategy
-- Competitive Strategy
-- Business Transformation
+{fundamentals_block}
 
 3. Business Case Studies (2)
 
@@ -381,3 +404,10 @@ Do not include headings, introductions, markdown, bullet points or any text befo
 
 If a Business Analysis Question was generated as a coding question, keep its `TYPE: CODING` line exactly as specified above; do not add this line to any other question.
 """
+
+
+# Public re-export for consulting_rounds.py - added without touching
+# any existing prompt text/structure above. Lets the round-based
+# builders reuse the same per-sub-role fundamentals content without
+# reaching into this module's underscore-prefixed name.
+FUNDAMENTALS_BY_SUBROLE = _FUNDAMENTALS_BY_SUBROLE

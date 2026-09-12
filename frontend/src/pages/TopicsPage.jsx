@@ -41,7 +41,7 @@ function TopicsPage() {
       navigate(`/interview/${response.session_id}`);
     } catch (err) {
       setError(
-        err?.response?.data?.detail || "Failed to start practice."
+        err?.friendlyMessage || err?.response?.data?.detail || "Failed to start practice."
       );
       setStartingId(null);
     }

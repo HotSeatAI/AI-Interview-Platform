@@ -303,6 +303,28 @@ textarea::placeholder {
   font-weight: 600;
 }
 
+.navbar__icon-link {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.navbar__icon-link:hover {
+  border-color: var(--text-muted, var(--border-default));
+}
+
+.navbar__icon-link--active {
+  background: var(--surface-elevated);
+  border-color: var(--accent, var(--border-default));
+}
+
 @media (max-width: 760px) {
   .navbar {
     flex-wrap: wrap;
@@ -1421,6 +1443,16 @@ textarea::placeholder {
   color: var(--accent);
   background: var(--accent-soft);
   padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.round-pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-soft);
+  border: 1px solid var(--border-default);
+  padding: 3px 10px;
   border-radius: 999px;
 }
 
@@ -2917,6 +2949,55 @@ textarea::placeholder {
   margin-bottom: 2px;
 }
 
+.settings-page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.settings-container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: clamp(28px, 4vw, 48px) clamp(20px, 4vw, 24px) 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.settings-section {
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-section__title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--text);
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .settings-form__row {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ============================================================
    Session results
    ============================================================ */
@@ -4209,4 +4290,69 @@ textarea::placeholder {
 .tag-chip__remove:hover {
   color: var(--red);
   background: var(--red-soft);
+}
+
+/* ============================================================
+   Floating help/support button (rendered globally from App.jsx,
+   hidden only on the live interview page)
+   ============================================================ */
+
+.help-button-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: var(--z-overlay);
+}
+
+.help-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border-default);
+  background: var(--surface-sunken);
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.help-button:hover {
+  border-color: var(--border-strong);
+}
+
+.help-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.help-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: max-content;
+  max-width: 260px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.help-popover__text {
+  font-size: 13.5px;
+  color: var(--text-soft);
+  margin: 0;
+}
+
+.help-popover__link {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  word-break: break-all;
 }

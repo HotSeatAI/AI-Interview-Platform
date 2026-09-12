@@ -1,10 +1,15 @@
 import re
+import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from fastapi import Request
+from fastapi import Response
 from sqlalchemy.orm import Session
 
+from app.core.rate_limiter import limiter
 from app.database.database import get_db
 from app.models.answer import Answer
 from app.models.question import Question
@@ -29,7 +34,10 @@ from app.services.api_key_manager import (
 
 from app.api.auth import get_current_user
 
-from app.core.config import FOLLOW_UP_SCORE_THRESHOLD
+from app.core.config import (
+    FOLLOW_UP_SCORE_THRESHOLD,
+    ANSWER_ENRICHMENT_TIMEOUT_SECONDS,
+)
 
 
 router = APIRouter(
@@ -42,7 +50,10 @@ router = APIRouter(
     "",
     response_model=AnswerResponse
 )
+@limiter.limit("15/minute")
 def submit_answer(
+    request: Request,
+    response: Response,
     payload: AnswerCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -95,12 +106,135 @@ def submit_answer(
                 detail=str(e)
             )
 
-        try:
-            evaluation = ai_service.evaluate_answer(
-                question_text=question.question_text,
+        # Plain values captured up front so the concurrent Gemini
+        # calls below never touch `db`/`question` from a worker
+        # thread - SQLAlchemy Session instances are not thread-safe.
+        session_id = question.session_id
+        question_text = question.question_text
+        question_type = question.question_type
+        session_difficulty = question.session.difficulty
+        follow_up_depth = question.follow_up_depth
+
+        # ---- Single wave: evaluate_answer + delivery feedback +
+        # model answer, all fired together.
+        #
+        # generate_delivery_feedback never used the evaluation's
+        # content (only delivery_signals/question_type/difficulty).
+        # generate_model_answer only needs question_text/question_type
+        # too - its old score<7 gate only decided whether to SHOW it,
+        # not what to generate - so it's fired speculatively here and
+        # simply discarded below if the score turns out to be >=7,
+        # instead of waiting for the score first and running it as a
+        # second sequential stage.
+        #
+        # The follow-up question is deliberately NOT generated here at
+        # all anymore. Its prompt is built from the evaluation's own
+        # score/feedback/strengths/improvements, so it can never join
+        # this wave - generating it here would always cost a second
+        # full sequential Gemini call on top of evaluate_answer's own
+        # latency. It's generated on demand by
+        # POST /answer/{answer_id}/follow-up instead, which the
+        # frontend calls when the user clicks "Next Question" on a
+        # question that qualifies - moving that latency to a moment
+        # that isn't on the "how long until I see my score" path.
+
+        def _run_evaluation():
+            set_gemini_context(session_id)
+            return ai_service.evaluate_answer(
+                question_text=question_text,
                 user_answer=combined_answer
             )
-        except Exception as exc:
+
+        def _run_delivery_feedback():
+            set_gemini_context(session_id)
+            try:
+                return ai_service.generate_delivery_feedback(
+                    delivery_signals=payload.delivery_signals,
+                    question_type=question_type,
+                    difficulty=session_difficulty,
+                )
+            except Exception as exc:
+
+                print("\n===== DELIVERY FEEDBACK GENERATION FAILED =====")
+                print(exc)
+                return None
+
+        def _run_model_answer():
+            set_gemini_context(session_id)
+            try:
+                return ai_service.generate_model_answer(
+                    question_text=question_text,
+                    question_type=question_type,
+                )
+            except Exception as exc:
+
+                print("\n===== MODEL ANSWER GENERATION FAILED =====")
+                print(exc)
+                return None
+
+        delivery_feedback = None
+        model_answer = None
+        eval_error = None
+        evaluation = None
+
+        wave_start = time.time()
+        executor = ThreadPoolExecutor(max_workers=3)
+
+        try:
+
+            eval_future = executor.submit(_run_evaluation)
+            delivery_future = (
+                executor.submit(_run_delivery_feedback)
+                if payload.delivery_signals
+                else None
+            )
+            model_answer_future = executor.submit(_run_model_answer)
+
+            try:
+                evaluation = eval_future.result()
+            except Exception as exc:
+                eval_error = exc
+
+            # Bonus calls get whatever's left of the shared enrichment
+            # budget, measured from when the wave started (not from
+            # now) - so evaluate_answer eating most of the budget
+            # correctly leaves little/no extra wait for these, rather
+            # than each one getting a fresh full timeout on top.
+            def _remaining_budget() -> float:
+                elapsed = time.time() - wave_start
+                return max(
+                    0.1,
+                    ANSWER_ENRICHMENT_TIMEOUT_SECONDS - elapsed,
+                )
+
+            if delivery_future is not None:
+                try:
+                    delivery_feedback = delivery_future.result(
+                        timeout=_remaining_budget(),
+                    )
+                except FutureTimeoutError:
+                    print(
+                        "\n===== DELIVERY FEEDBACK GENERATION "
+                        "TIMED OUT ====="
+                    )
+
+            try:
+                model_answer = model_answer_future.result(
+                    timeout=_remaining_budget(),
+                )
+            except FutureTimeoutError:
+                print(
+                    "\n===== MODEL ANSWER GENERATION TIMED OUT ====="
+                )
+
+        finally:
+            # wait=False: a bonus call that timed out keeps running in
+            # its worker thread, but this response must not block on
+            # it - that's the whole point of the timeout above. Its
+            # result, whenever it lands, is simply discarded.
+            executor.shutdown(wait=False)
+
+        if eval_error is not None:
             raise HTTPException(
                 status_code=503,
                 detail=(
@@ -108,7 +242,7 @@ def submit_answer(
                     "unavailable. Please try submitting again in a "
                     "moment."
                 ),
-            ) from exc
+            ) from eval_error
 
         try:
             _flag_weak_topics(db, current_user, evaluation["improvements"])
@@ -117,34 +251,16 @@ def submit_answer(
             print("\n===== WEAK TOPIC FLAGGING FAILED =====")
             print(exc)
 
-        delivery_feedback = None
+        # The speculative model answer was generated regardless of
+        # score (see comment above) - only decide now whether it's
+        # actually shown.
+        if evaluation["score"] >= 7:
+            model_answer = None
 
-        if payload.delivery_signals:
-
-            try:
-                delivery_feedback = ai_service.generate_delivery_feedback(
-                    delivery_signals=payload.delivery_signals,
-                    question_type=question.question_type,
-                    difficulty=question.session.difficulty,
-                )
-            except Exception as exc:
-
-                print("\n===== DELIVERY FEEDBACK GENERATION FAILED =====")
-                print(exc)
-
-        model_answer = None
-
-        if evaluation["score"] < 7:
-
-            try:
-                model_answer = ai_service.generate_model_answer(
-                    question_text=question.question_text,
-                    question_type=question.question_type,
-                )
-            except Exception as exc:
-
-                print("\n===== MODEL ANSWER GENERATION FAILED =====")
-                print(exc)
+        eligible_for_follow_up = (
+            evaluation["score"] >= FOLLOW_UP_SCORE_THRESHOLD
+            and follow_up_depth < 2
+        )
 
         answer = Answer(
             question_id=question.id,
@@ -167,74 +283,157 @@ def submit_answer(
         db.commit()
         db.refresh(answer)
 
-        follow_up = None
-        follow_up_text = None
-
-        if (
-            answer.score >= FOLLOW_UP_SCORE_THRESHOLD
-            and question.follow_up_depth < 2
-        ):
-
-            try:
-
-                follow_up_text = (
-                    ai_service.generate_follow_up_question(
-                        original_question=question.question_text,
-                        candidate_answer=combined_answer,
-                        evaluation=evaluation,
-                        follow_up_depth=question.follow_up_depth,
-                    )
-                    .strip()
-                )
-
-            except Exception as e:
-
-                print("\n===== FOLLOW-UP GENERATION FAILED =====")
-                print(e)
-
-            if follow_up_text:
-
-                follow_up = Question(
-                    session_id=question.session_id,
-                    question_text=follow_up_text.strip(),
-                    question_type=question.question_type,
-                    is_follow_up=True,
-                    parent_question_id=(
-                        question.parent_question_id
-                        if question.is_follow_up
-                        else question.id
-                    ),
-                    follow_up_depth=question.follow_up_depth + 1,
-                )
-
-                db.add(follow_up)
-                db.commit()
-                db.refresh(follow_up)
-
-                print("\n===== FOLLOW-UP CREATED =====")
-                print(f"Parent Question : {question.id}")
-                print(f"Depth           : {follow_up.follow_up_depth}")
-                print(f"Question        : {follow_up.question_text}")
-
         return AnswerResponse(
             answer_id=answer.id,
             score=answer.score,
             feedback=answer.feedback,
             strengths=answer.strengths,
             improvements=answer.improvements,
-            has_follow_up=follow_up is not None,
-            follow_up=(
-                FollowUpQuestionResponse(
-                    question_id=follow_up.id,
-                    question_text=follow_up.question_text,
-                    question_type=follow_up.question_type,
-                    follow_up_depth=follow_up.follow_up_depth,
-                )
-                if follow_up
-                else None
-            ),
+            eligible_for_follow_up=eligible_for_follow_up,
             delivery_feedback=answer.delivery_feedback,
             model_answer=model_answer,
+        )
+
+    finally:
+        clear_gemini_context()
+
+
+@router.post(
+    "/{answer_id}/follow-up",
+    response_model=FollowUpQuestionResponse
+)
+def generate_follow_up(
+    answer_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Generates (or returns the already-generated) follow-up question
+    for an answered question, on demand. Called by the frontend when
+    the user clicks "Next Question" on a question that scored high
+    enough - deliberately NOT part of POST /answer, since the
+    follow-up prompt needs the evaluation's own score/feedback as
+    input and so can never run in parallel with it; generating it
+    here instead keeps it off the "how long until I see my score"
+    critical path.
+    """
+
+    answer = (
+        db.query(Answer)
+        .filter(Answer.id == answer_id)
+        .first()
+    )
+
+    if not answer:
+        raise HTTPException(
+            status_code=404,
+            detail="Answer not found."
+        )
+
+    question = answer.question
+
+    if question.session.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You are not allowed to access this answer."
+        )
+
+    if (
+        answer.score < FOLLOW_UP_SCORE_THRESHOLD
+        or question.follow_up_depth >= 2
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="This question is not eligible for a follow-up."
+        )
+
+    # Idempotent: a double-click / back-navigation must not create a
+    # second follow-up for the same parent question.
+    existing_follow_up = (
+        db.query(Question)
+        .filter(
+            Question.parent_question_id == question.id,
+            Question.is_follow_up.is_(True),
+        )
+        .first()
+    )
+
+    if existing_follow_up:
+        return FollowUpQuestionResponse(
+            question_id=existing_follow_up.id,
+            question_text=existing_follow_up.question_text,
+            question_type=existing_follow_up.question_type,
+            follow_up_depth=existing_follow_up.follow_up_depth,
+        )
+
+    ai_service = AIService()
+
+    set_gemini_context(question.session_id)
+
+    try:
+
+        evaluation = {
+            "score": answer.score,
+            "feedback": answer.feedback,
+            "strengths": answer.strengths,
+            "improvements": answer.improvements,
+        }
+
+        try:
+            follow_up_text = (
+                ai_service.generate_follow_up_question(
+                    original_question=question.question_text,
+                    candidate_answer=answer.combined_answer,
+                    evaluation=evaluation,
+                    follow_up_depth=question.follow_up_depth,
+                )
+                .strip()
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Could not generate a follow-up question right "
+                    "now. Please try again in a moment."
+                ),
+            ) from exc
+
+        if not follow_up_text:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Could not generate a follow-up question right "
+                    "now. Please try again in a moment."
+                ),
+            )
+
+        follow_up = Question(
+            session_id=question.session_id,
+            question_text=follow_up_text,
+            question_type=question.question_type,
+            is_follow_up=True,
+            parent_question_id=(
+                question.parent_question_id
+                if question.is_follow_up
+                else question.id
+            ),
+            follow_up_depth=question.follow_up_depth + 1,
+        )
+
+        db.add(follow_up)
+        db.commit()
+        db.refresh(follow_up)
+
+        print("\n===== FOLLOW-UP CREATED =====")
+        print(f"Parent Question : {question.id}")
+        print(f"Depth           : {follow_up.follow_up_depth}")
+        print(f"Question        : {follow_up.question_text}")
+
+        return FollowUpQuestionResponse(
+            question_id=follow_up.id,
+            question_text=follow_up.question_text,
+            question_type=follow_up.question_type,
+            follow_up_depth=follow_up.follow_up_depth,
         )
 
     finally:

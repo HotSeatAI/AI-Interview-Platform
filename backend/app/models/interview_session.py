@@ -33,6 +33,16 @@ class InterviewSession(Base):
         nullable=False
     )
 
+    # Which round of a Software Engineering interview this session is
+    # scoped to (e.g. "round_1", "round_2", "round_3" - see
+    # software_rounds.ROUND_KEYS), or "full" for the legacy
+    # all-in-one interview. Null for any session created before this
+    # column existed, and for every non-software domain.
+    round = Column(
+        String,
+        nullable=True
+    )
+
     created_at = Column(
         DateTime,
         default=datetime.utcnow
