@@ -545,6 +545,8 @@ def get_session_results(
             weak_topics=[],
             skipped_questions=skipped_questions,
             is_finished=session.finished_at is not None,
+            rating=session.rating,
+            feedback_text=session.feedback_text,
         )
 
     total_score = 0
@@ -620,6 +622,8 @@ def get_session_results(
         weak_topics=weak_topics,
         skipped_questions=skipped_questions,
         is_finished=session.finished_at is not None,
+        rating=session.rating,
+        feedback_text=session.feedback_text,
     )
 
 

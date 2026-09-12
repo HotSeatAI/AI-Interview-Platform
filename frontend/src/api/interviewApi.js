@@ -54,3 +54,17 @@ export const finishInterviewSession = async (sessionId, token) => {
 
   return response.data;
 };
+
+export const submitSessionFeedback = async (sessionId, payload, token) => {
+  const response = await apiClient.post(
+    `/interview/${sessionId}/feedback`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};

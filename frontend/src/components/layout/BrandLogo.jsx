@@ -8,6 +8,7 @@ function BrandLogo({ className = "" }) {
         <span className="brand-logo__wordmark-hot">Hot</span>
         <span className="brand-logo__wordmark-seat">Seat</span>
       </span>
+      <span className="brand-logo__beta-tag">BETA</span>
     </span>
   );
 }

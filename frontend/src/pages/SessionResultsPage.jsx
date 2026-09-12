@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 
 import { getSessionResults } from "../api/answerApi";
+import { submitSessionFeedback } from "../api/interviewApi";
 import useAuth from "../hooks/useAuth";
 import Navbar from "../components/layout/Navbar.jsx";
 import DeliveryTrend from "../components/interview/DeliveryTrend.jsx";
+import SessionFeedbackForm from "../components/interview/SessionFeedbackForm.jsx";
 import { ROUND_LABELS } from "../constants/interviewRounds";
 
 function SessionResultsPage() {
@@ -36,6 +38,11 @@ function SessionResultsPage() {
       fetchResults();
     }
   }, [sessionId, token]);
+
+  const handleFeedbackSubmit = async (payload) => {
+    await submitSessionFeedback(sessionId, payload, token);
+    setResults((prev) => ({ ...prev, ...payload }));
+  };
 
   if (loading) {
     return (
@@ -234,6 +241,14 @@ function SessionResultsPage() {
               ))}
             </div>
           </div>
+        )}
+
+        {results.rating ? (
+          <div className="session-feedback-card session-feedback-card--done">
+            <p className="success-text">Thanks for your feedback!</p>
+          </div>
+        ) : (
+          <SessionFeedbackForm onSubmit={handleFeedbackSubmit} />
         )}
 
         <div className="results-actions">

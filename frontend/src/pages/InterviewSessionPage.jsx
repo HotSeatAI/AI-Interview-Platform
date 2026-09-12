@@ -1,7 +1,7 @@
 import { useEffect, useState , useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { getInterviewSession, finishInterviewSession } from "../api/interviewApi";
+import { getInterviewSession, finishInterviewSession, submitSessionFeedback } from "../api/interviewApi";
 import { generateFollowUp } from "../api/answerApi";
 import useAuth from "../hooks/useAuth";
 
@@ -11,6 +11,8 @@ import FeedbackCard from "../components/interview/FeedbackCard";
 import BrandLogo from "../components/layout/BrandLogo";
 import ThemeToggle from "../components/layout/ThemeToggle";
 import DeliveryConsentModal from "../components/interview/DeliveryConsentModal";
+import PreInterviewDisclaimerModal from "../components/interview/PreInterviewDisclaimerModal";
+import ExitFeedbackModal from "../components/interview/ExitFeedbackModal";
 import DeliveryCalibrationScreen from "../components/interview/DeliveryCalibrationScreen";
 import WebcamMonitor from "../components/interview/WebcamMonitor";
 import { createAudioDeliveryAnalyzer } from "../utils/audioDeliveryAnalyzer";
@@ -32,8 +34,9 @@ function InterviewSessionPage() {
 
   const [answeredQuestions, setAnsweredQuestions] = useState(new Set());
   const [feedbackMap, setFeedbackMap] = useState({});
-  const [readyForNext, setReadyForNext] = useState(false);
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
+  const [disclaimerAcknowledged, setDisclaimerAcknowledged] = useState(false);
+  const [showExitFeedback, setShowExitFeedback] = useState(false);
   // True while the on-demand follow-up check/generation triggered by
   // "Next"/"Finish" is in flight - see maybeGenerateFollowUp. Whether
   // a follow-up exists isn't known until this resolves (it's no
@@ -214,7 +217,7 @@ function InterviewSessionPage() {
   // True the instant the consent/calibration gate resolves either way
   // (declined outright, or calibration finished after accepting) -
   // questions should never be spoken aloud while that overlay is up.
-  const interviewReady = deliveryConsent !== null && !calibrating;
+  const interviewReady = disclaimerAcknowledged && deliveryConsent !== null && !calibrating;
 
   const currentQuestion =
     session.questions[currentQuestionIndex];
@@ -264,8 +267,6 @@ function InterviewSessionPage() {
     updated.add(currentQuestion.id);
     return updated;
   });
-
-  setReadyForNext(true);
 };
 
 // Generates the follow-up for the just-answered current question, if
@@ -331,8 +332,6 @@ const handlePrevious = () => {
 
     setCurrentQuestionIndex((prev) => prev - 1);
 
-    setReadyForNext(false);
-
   }
 };
 
@@ -347,8 +346,6 @@ const handleNext = async () => {
 
     setCurrentQuestionIndex((prev) => prev + 1);
 
-    setReadyForNext(false);
-
   }
 };
 
@@ -361,7 +358,6 @@ const handleFinishOrContinue = async () => {
 
   if (followUpAdded) {
     setCurrentQuestionIndex((prev) => prev + 1);
-    setReadyForNext(false);
     return;
   }
 
@@ -369,18 +365,6 @@ const handleFinishOrContinue = async () => {
 };
 
 const handleFinishInterview = async () => {
-  const unanswered =
-    session.questions.length -
-    answeredQuestions.size;
-
-  if (unanswered > 0) {
-    const confirmFinish = window.confirm(
-      `You still have ${unanswered} unanswered question(s).\n\nDo you want to finish the interview?`
-    );
-
-    if (!confirmFinish) return;
-  }
-
   try {
     await finishInterviewSession(sessionId, token);
   } catch (err) {
@@ -403,10 +387,26 @@ const handleFinishInterview = async () => {
 };
 
 const isLastQuestion = currentQuestionIndex === session.questions.length - 1;
+const isCurrentAnswered = answeredQuestions.has(currentQuestion.id);
+
+const handleExitFeedbackSubmit = async (payload) => {
+  await submitSessionFeedback(sessionId, payload, token);
+  navigate("/dashboard");
+};
+
+const handleExitSkip = () => {
+  navigate("/dashboard");
+};
 
 return (
   <div className="workspace">
-    {deliveryConsent === null && !calibrating && (
+    {!disclaimerAcknowledged && (
+      <PreInterviewDisclaimerModal
+        onAcknowledge={() => setDisclaimerAcknowledged(true)}
+      />
+    )}
+
+    {disclaimerAcknowledged && deliveryConsent === null && !calibrating && (
       <DeliveryConsentModal
         onContinue={handleContinueDelivery}
         onDecline={handleDeclineDelivery}
@@ -449,11 +449,22 @@ return (
 
       <div className="workspace-topbar__actions">
         <ThemeToggle />
-        <Link to="/dashboard" className="workspace-topbar__exit">
+        <button
+          type="button"
+          className="workspace-topbar__exit"
+          onClick={() => setShowExitFeedback(true)}
+        >
           Exit interview
-        </Link>
+        </button>
       </div>
     </header>
+
+    {showExitFeedback && (
+      <ExitFeedbackModal
+        onSubmit={handleExitFeedbackSubmit}
+        onSkip={handleExitSkip}
+      />
+    )}
 
     <main className="workspace-main">
       <QuestionCard
@@ -489,48 +500,30 @@ return (
       </button>
 
       <div className="workspace-actionbar__right">
-        {!isLastQuestion ? (
-          readyForNext ? (
-            <button
-              className="button button--primary"
-              onClick={handleNext}
-              disabled={generatingFollowUp}
-            >
-              {generatingFollowUp ? "Checking for follow-up..." : "Next Question →"}
-            </button>
-          ) : (
-            <>
-              <button className="button button--secondary" onClick={handleNext}>
-                Next / Skip
-              </button>
-              <button
-                className="button button--primary"
-                onClick={() => answerBoxRef.current?.submit()}
-                disabled={answeredQuestions.has(currentQuestion.id) || isSubmittingAnswer}
-              >
-                {isSubmittingAnswer ? "Submitting..." : "Submit answer"}
-              </button>
-            </>
-          )
+        {!isCurrentAnswered ? (
+          <button
+            className="button button--primary"
+            onClick={() => answerBoxRef.current?.submit()}
+            disabled={isSubmittingAnswer}
+          >
+            {isSubmittingAnswer ? "Submitting..." : "Submit answer"}
+          </button>
+        ) : isLastQuestion ? (
+          <button
+            className="button button--primary"
+            onClick={handleFinishOrContinue}
+            disabled={generatingFollowUp}
+          >
+            {generatingFollowUp ? "Checking for follow-up..." : "Finish Interview"}
+          </button>
         ) : (
-          <>
-            {!readyForNext && (
-              <button
-                className="button button--secondary"
-                onClick={() => answerBoxRef.current?.submit()}
-                disabled={answeredQuestions.has(currentQuestion.id) || isSubmittingAnswer}
-              >
-                {isSubmittingAnswer ? "Submitting..." : "Submit answer"}
-              </button>
-            )}
-            <button
-              className="button button--primary"
-              onClick={handleFinishOrContinue}
-              disabled={generatingFollowUp}
-            >
-              {generatingFollowUp ? "Checking for follow-up..." : "Finish Interview"}
-            </button>
-          </>
+          <button
+            className="button button--primary"
+            onClick={handleNext}
+            disabled={generatingFollowUp}
+          >
+            {generatingFollowUp ? "Checking for follow-up..." : "Next Question →"}
+          </button>
         )}
       </div>
     </footer>
