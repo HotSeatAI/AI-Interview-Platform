@@ -23,6 +23,7 @@ from app.schemas.interview import GenerateQuestionsRequest
 from app.schemas.interview import InterviewDetailResponse
 from app.schemas.interview import InterviewHistoryItem
 from app.schemas.interview import RoundDiscoveryResponse
+from app.schemas.interview import SessionFeedbackRequest
 
 from app.services.ai_service import AIService
 from app.services.api_key_manager import (
@@ -500,3 +501,39 @@ def finish_interview(
         db.commit()
 
     return {"finished": True}
+
+
+@router.post("/{session_id}/feedback")
+def submit_session_feedback(
+    session_id: int,
+    payload: SessionFeedbackRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Stores the post-interview rating/feedback shown on the results
+    page. Overwrites on repeat calls rather than rejecting them, so a
+    user revising their feedback doesn't need special-case handling.
+    """
+
+    session = (
+        db.query(InterviewSession)
+        .filter(
+            InterviewSession.id == session_id,
+            InterviewSession.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not session:
+        raise HTTPException(
+            status_code=404,
+            detail="Interview session not found"
+        )
+
+    session.rating = payload.rating
+    session.feedback_text = payload.feedback_text
+
+    db.commit()
+
+    return {"saved": True}

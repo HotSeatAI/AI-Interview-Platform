@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List
 from typing import Optional
 from pydantic import BaseModel
+from pydantic import Field
 
 
 class GenerateQuestionsRequest(BaseModel):
@@ -56,3 +57,8 @@ class RoundDiscoveryResponse(BaseModel):
     domain: str
     subrole: Optional[str] = None
     rounds: List[RoundOption]
+
+
+class SessionFeedbackRequest(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    feedback_text: Optional[str] = None

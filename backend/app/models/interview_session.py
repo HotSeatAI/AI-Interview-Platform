@@ -59,13 +59,24 @@ class InterviewSession(Base):
     )
 
     # Set only when the user actually clicks "Finish Interview" - not
-    # derived from answered-question counts, since finishing with
-    # unanswered/skipped questions left is an intentional, allowed
-    # path (see InterviewSessionPage.handleFinishInterview's confirm
-    # dialog). Used to warn on the results page when someone reaches
-    # it (e.g. via History) without ever finishing.
+    # derived from answered-question counts. Used to warn on the
+    # results page when someone reaches it (e.g. via History) without
+    # ever finishing.
     finished_at = Column(
         DateTime,
+        nullable=True
+    )
+
+    # Post-interview feedback, collected once on the results page
+    # (see POST /interview/{session_id}/feedback). Both null until the
+    # user submits it; rating is 1-5.
+    rating = Column(
+        Integer,
+        nullable=True
+    )
+
+    feedback_text = Column(
+        String,
         nullable=True
     )
 

@@ -87,3 +87,5 @@ class SessionResultsResponse(BaseModel):
     weak_topics: List[str]
     skipped_questions: List[SkippedQuestionInfo] = []
     is_finished: bool = False
+    rating: Optional[int] = None
+    feedback_text: Optional[str] = None

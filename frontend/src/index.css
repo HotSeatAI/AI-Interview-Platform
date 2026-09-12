@@ -247,6 +247,19 @@ textarea::placeholder {
   color: #0b1a2e;
 }
 
+.brand-logo__beta-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 2px 6px;
+  border-radius: 999px;
+  align-self: flex-start;
+  margin-left: 2px;
+}
+
 .landing__footer-brand .brand-logo {
   padding: 4px 10px 4px 6px;
 }
@@ -2415,6 +2428,9 @@ textarea::placeholder {
   font-weight: 600;
   color: var(--text-soft);
   flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0;
 }
 
 .workspace-main {
@@ -3281,6 +3297,59 @@ textarea::placeholder {
   gap: 14px;
   flex-wrap: wrap;
   padding-top: 8px;
+}
+
+/* ============================================================
+   Post-interview feedback (session results page)
+   ============================================================ */
+
+.session-feedback-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+}
+
+.session-feedback-card--done {
+  align-items: center;
+  text-align: center;
+}
+
+.session-feedback-card__headline {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 4px 0 0;
+}
+
+.session-feedback-stars {
+  display: flex;
+  gap: 6px;
+}
+
+.session-feedback-star {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--border-strong);
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.session-feedback-star--filled {
+  color: var(--accent);
+}
+
+.session-feedback-card__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 /* ============================================================
