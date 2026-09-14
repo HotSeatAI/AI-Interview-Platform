@@ -1,9 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 
 const MARGIN = 16;
+const PHONE_BREAKPOINT = 600;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+// On phones the sticky footer action bar covers the same bottom-right
+// corner this box defaults to - anchor above it there instead of
+// behind the bare viewport bottom, so the primary CTA (Submit/Next/
+// Finish) is never hidden under the webcam preview.
+function defaultBottomInset() {
+  if (window.innerWidth > PHONE_BREAKPOINT) return 0;
+
+  const actionbar = document.querySelector(".workspace-actionbar");
+  return actionbar ? actionbar.getBoundingClientRect().height : 0;
 }
 
 // Small live self-view so the candidate always knows the camera is
@@ -31,7 +43,7 @@ function WebcamMonitor({ stream }) {
     setPosition((prev) =>
       prev || {
         x: window.innerWidth - width - MARGIN,
-        y: window.innerHeight - height - MARGIN,
+        y: window.innerHeight - height - MARGIN - defaultBottomInset(),
       }
     );
   }, [stream]);

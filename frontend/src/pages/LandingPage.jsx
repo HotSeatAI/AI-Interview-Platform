@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import BrandLogo from "../components/layout/BrandLogo";
 import Button from "../components/ui/Button";
 import ThemeToggle from "../components/layout/ThemeToggle";
+import MobileNavToggle from "../components/layout/MobileNavToggle";
 import heroPhoto from "../assets/landing-hero.png";
 import ctaPhoto from "../assets/landing-cta.png";
 
@@ -123,21 +124,23 @@ function LandingPage() {
         <a href="#top" className="landing__brand">
           <BrandLogo />
         </a>
-        <nav className="landing__nav-links">
-          <a href="#features" className="landing__nav-link">
-            Product
-          </a>
-          <a href="#how-it-works" className="landing__nav-link">
-            How it works
-          </a>
-          <Link to="/login" className="landing__nav-link">
-            Log in
-          </Link>
-          <Button to="/signup" variant="primary" size="sm">
-            Start practicing
-          </Button>
-          <ThemeToggle />
-        </nav>
+        <MobileNavToggle>
+          <nav className="landing__nav-links">
+            <a href="#features" className="landing__nav-link">
+              Product
+            </a>
+            <a href="#how-it-works" className="landing__nav-link">
+              How it works
+            </a>
+            <Link to="/login" className="landing__nav-link">
+              Log in
+            </Link>
+            <Button to="/signup" variant="primary" size="sm">
+              Start practicing
+            </Button>
+            <ThemeToggle />
+          </nav>
+        </MobileNavToggle>
       </header>
 
       <section id="top" className="landing__hero">
