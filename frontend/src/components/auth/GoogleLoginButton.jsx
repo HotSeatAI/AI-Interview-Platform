@@ -2,9 +2,11 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import useAuth from "../../hooks/useAuth";
+import useTheme from "../../hooks/useTheme";
 
 function GoogleLoginButton() {
   const { googleLogin } = useAuth();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -40,7 +42,7 @@ function GoogleLoginButton() {
         onError={() => {
           alert("Google Sign-In was cancelled or failed.");
         }}
-        theme="filled_black"
+        theme={theme === "dark" ? "filled_black" : "outline"}
         shape="rectangular"
         size="large"
         text="continue_with"

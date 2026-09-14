@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import BrandLogo from "../components/layout/BrandLogo";
 import Button from "../components/ui/Button";
 import ThemeToggle from "../components/layout/ThemeToggle";
+import heroPhoto from "../assets/landing-hero.png";
+import ctaPhoto from "../assets/landing-cta.png";
 
 const FEATURES = [
   {
@@ -139,6 +141,13 @@ function LandingPage() {
       </header>
 
       <section id="top" className="landing__hero">
+        <img
+          src={heroPhoto}
+          alt=""
+          className="landing__hero-photo"
+        />
+        <div className="landing__hero-scrim" />
+
         <div className="landing__hero-grid">
           <div className="landing__hero-copy">
             <div className="eyebrow">AI INTERVIEW PREPARATION</div>
@@ -147,8 +156,7 @@ function LandingPage() {
             </h1>
             <p className="landing__sub">
               Real questions on your projects and stack, follow-ups that probe when
-              you're vague, and a live coding editor that grades the work — not just
-              the words.
+              you're vague, and a live coding editor that grades the work.
             </p>
             <div className="landing__actions">
               <Button to="/signup" variant="primary">
@@ -162,56 +170,12 @@ function LandingPage() {
               Resume-tailored · Voice, text &amp; code · Adaptive follow-ups
             </div>
           </div>
-
-          <div className="landing__hero-visual">
-            <div className="mock-window">
-              <div className="mock-topbar">
-                <div className="mock-dots">
-                  <span className="mock-dot" />
-                  <span className="mock-dot" />
-                  <span className="mock-dot" />
-                </div>
-                <div className="mock-label">SESSION 03 / 08 · SOFTWARE ENGINEERING</div>
-              </div>
-              <div className="mock-body">
-                <div className="mock-qlabel">QUESTION · FOLLOW-UP</div>
-                <p className="mock-question">
-                  You mentioned optimizing a query in your resume — walk me through
-                  how you found the bottleneck, then implement a fix.
-                </p>
-                <div className="mock-editor">
-                  <div className="mock-editor__header">
-                    <span className="mock-editor__lang">python3</span>
-                    <span className="mock-editor__run">Run</span>
-                  </div>
-                  <div className="mock-code-line">
-                    <span className="mock-code-num">1</span>
-                    &nbsp;&nbsp;def find_bottleneck(query_plan):
-                  </div>
-                  <div className="mock-code-line">
-                    <span className="mock-code-num">2</span>
-                    &nbsp;&nbsp;&nbsp;&nbsp;
-                    <span className="mock-code-accent">return</span> sorted(query_plan,
-                    key=cost)[-1]
-                  </div>
-                  <div className="mock-code-line">
-                    <span className="mock-code-num">3</span>
-                    &nbsp;&nbsp;
-                    <span className="mock-code-accent">█</span>
-                  </div>
-                </div>
-                <div className="mock-score-row">
-                  <span className="mock-score-pill">Last answer · 82</span>
-                  <span className="mock-recording">
-                    <span className="mock-rec-dot" />
-                    Recording
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
+
+      <div className="landing__mono-strip">
+        RESUME-TAILORED &nbsp;·&nbsp; VOICE, TEXT &amp; CODE &nbsp;·&nbsp; ADAPTIVE FOLLOW-UPS
+      </div>
 
       <section id="features" className="landing__features">
         <div className="section-header">
@@ -251,17 +215,23 @@ function LandingPage() {
       </section>
 
       <section className="landing__final-cta">
-        <div className="eyebrow">READY WHEN YOU ARE</div>
-        <h2>Your next interview starts here.</h2>
-        <p>Upload a resume, pick a role, and take a full interview in the next ten minutes.</p>
-        <Button to="/signup" variant="primary" className="landing__cta--large">
-          Enter the HotSeat
-        </Button>
+        <div className="landing__final-cta-copy">
+          <div className="eyebrow">READY WHEN YOU ARE</div>
+          <h2>Your next interview starts here.</h2>
+          <p>Upload a resume, pick a role, and take a full interview in the next ten minutes.</p>
+          <Button to="/signup" variant="primary" className="landing__cta--large landing__cta--lime">
+            Enter the HotSeat
+          </Button>
+        </div>
+        <img src={ctaPhoto} alt="" className="landing__final-cta-photo" />
       </section>
 
       <footer className="landing__footer">
         <span className="landing__footer-brand">
           <BrandLogo />
+        </span>
+        <span className="landing__footer-beta">
+          HotSeat is in BETA — features and scoring are still being tuned.
         </span>
         <span className="landing__footer-copy">© 2026 HotSeat. Practice with intent.</span>
       </footer>

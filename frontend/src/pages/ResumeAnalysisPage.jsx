@@ -166,32 +166,34 @@ export default function ResumeAnalysisPage() {
     <Navbar />
     <main className="resume-analysis-page">
 
-      <section className="analysis-header">
-        <div>
-          <span>
-            Resume Intelligence
-          </span>
+      <div className="resume-analysis-slab">
+        <section className="analysis-header">
+          <div>
+            <span>
+              Resume Intelligence
+            </span>
 
-          <h1>
-            {analysis.job_title ||
-              (isStandalone
-                ? "ATS Compatibility Check"
-                : "Resume Analysis")}
-          </h1>
+            <h1>
+              {analysis.job_title ||
+                (isStandalone
+                  ? "ATS Compatibility Check"
+                  : "Resume Analysis")}
+            </h1>
 
-          <p>
-            {isStandalone
-              ? "How well an ATS can parse and rank this resume, plus what to fix to raise the score."
-              : "Evidence-backed analysis of your resume against this job description."}
-          </p>
-        </div>
-      </section>
+            <p>
+              {isStandalone
+                ? "How well an ATS can parse and rank this resume, plus what to fix to raise the score."
+                : "Evidence-backed analysis of your resume against this job description."}
+            </p>
+          </div>
+        </section>
 
-      <AnalysisTabs
-        tabs={tabs}
-        activeTab={activeTab}
-        onChange={setActiveTab}
-      />
+        <AnalysisTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+        />
+      </div>
 
       {activeTab === "overview" && (
         <AnalysisSummary

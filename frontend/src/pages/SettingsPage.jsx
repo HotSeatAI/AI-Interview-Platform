@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import useAuth from "../hooks/useAuth";
 import Navbar from "../components/layout/Navbar.jsx";
+import PageHeader from "../components/layout/PageHeader.jsx";
 import {
   updateProfile,
   requestEmailChange,
@@ -203,14 +204,32 @@ function SettingsPage() {
     <div className="settings-page">
       <Navbar />
 
-      <main className="settings-container">
-        <div className="section-header">
-          <div className="eyebrow">ACCOUNT</div>
-          <h1>Settings</h1>
-          <p>View and update your profile, email, and password.</p>
-        </div>
+      <PageHeader
+        eyebrow="ACCOUNT"
+        title="Settings"
+        subtitle="View and update your profile, email, and password."
+      />
 
-        <section className="settings-section">
+      <main className="settings-container">
+        <nav className="settings-rail" aria-label="Settings sections">
+          <a href="#profile" className="settings-rail__link settings-rail__link--active">
+            Profile
+          </a>
+          <a href="#email" className="settings-rail__link">
+            Change Email
+          </a>
+          <a href="#password" className="settings-rail__link">
+            Change Password
+          </a>
+
+          <div className="settings-rail__card">
+            <div className="settings-rail__card-label">SIGNED IN AS</div>
+            <div className="settings-rail__card-value">{user?.email}</div>
+          </div>
+        </nav>
+
+        <div className="settings-content">
+        <section className="settings-section" id="profile">
           <h2 className="settings-section__title">Profile</h2>
 
           <form className="settings-form" onSubmit={handleProfileSubmit}>
@@ -386,7 +405,7 @@ function SettingsPage() {
         </section>
 
         {isLocalAccount ? (
-          <section className="settings-section">
+          <section className="settings-section" id="email">
             <h2 className="settings-section__title">Change Email</h2>
 
             {emailPending ? (
@@ -433,14 +452,14 @@ function SettingsPage() {
             )}
           </section>
         ) : (
-          <section className="settings-section">
+          <section className="settings-section" id="email">
             <h2 className="settings-section__title">Change Email</h2>
             <p className="form-hint">Your email is managed by your Google account.</p>
           </section>
         )}
 
         {isLocalAccount && (
-          <section className="settings-section">
+          <section className="settings-section" id="password">
             <h2 className="settings-section__title">Change Password</h2>
 
             <form className="settings-form" onSubmit={handlePasswordSubmit}>
@@ -500,6 +519,7 @@ function SettingsPage() {
             </form>
           </section>
         )}
+        </div>
       </main>
     </div>
   );
