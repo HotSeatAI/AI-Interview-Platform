@@ -1093,6 +1093,10 @@ textarea::placeholder {
     padding: 0 20px;
   }
 
+  .landing__hero-scrim {
+    background: color-mix(in oklch, var(--slab) 88%, transparent);
+  }
+
   .feature-row__num {
     display: none;
   }
