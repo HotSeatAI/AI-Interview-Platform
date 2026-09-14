@@ -1,6 +1,12 @@
 @import "./styles/tokens.css";
 @import "./styles/primitives.css";
 
+/* Breakpoints: 600px = phone (mobile-responsive pass); 760-900px =
+   pre-existing tablet/reflow tier, left alone; sub-600px values
+   (560px, 640px) are per-component form-row tweaks, also left alone.
+   No custom-media tooling in this project - these stay literal
+   max-width values throughout, not CSS custom properties. */
+
 :root {
   color: var(--text);
   background: var(--bg);
@@ -446,18 +452,71 @@ textarea::placeholder {
   border-color: var(--accent, var(--border-default));
 }
 
+/* ============================================================
+   Mobile hamburger nav (MobileNavToggle.jsx) - shared between the
+   authenticated Navbar and the public landing nav. Above 760px the
+   toggle is hidden and the panel is `display: contents` so its
+   children (the links nav + user/actions group) sit directly in the
+   parent header's flex row, unchanged from the pre-hamburger layout.
+   Below 760px the toggle appears and the panel becomes a dropped,
+   full-width menu.
+   ============================================================ */
+
+.nav-mobile-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  flex: none;
+}
+
+.nav-mobile-panel {
+  display: contents;
+}
+
 @media (max-width: 760px) {
-  .navbar {
-    flex-wrap: wrap;
-    row-gap: 12px;
-    padding: 14px 16px;
+  .nav-mobile-toggle {
+    display: inline-flex;
   }
 
-  .navbar__links {
-    order: 3;
+  .nav-mobile-panel {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-default);
+    box-shadow: var(--shadow-md);
+  }
+
+  .nav-mobile-panel--open {
+    display: flex;
+  }
+
+  .navbar__links,
+  .landing__nav-links {
+    flex-direction: column;
+    align-items: stretch;
     width: 100%;
-    justify-content: flex-start;
-    gap: 16px;
+    gap: 4px;
+  }
+
+  .navbar__user {
+    flex-wrap: wrap;
+    width: 100%;
+    padding-top: 12px;
+    margin-top: 8px;
+    border-top: 1px solid var(--border-default);
   }
 }
 
@@ -1029,12 +1088,25 @@ textarea::placeholder {
     grid-template-columns: 1fr;
   }
 
+  .landing__hero-copy {
+    grid-column: 1;
+    padding: 0 20px;
+  }
+
   .feature-row__num {
     display: none;
   }
 
   .feature-row--reverse .feature-row__visual {
     order: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .landing__hero {
+    height: auto;
+    min-height: 420px;
+    padding: 40px 0;
   }
 }
 
@@ -1705,6 +1777,20 @@ textarea::placeholder {
   max-width: 180px;
 }
 
+@media (max-width: 600px) {
+  .page-slab__stat-value {
+    font-size: clamp(28px, 9vw, 44px);
+  }
+
+  .page-slab__donut-row {
+    flex-wrap: wrap;
+  }
+
+  .page-slab__donut-caption {
+    max-width: none;
+  }
+}
+
 .activity-heatmap {
   background: var(--surface);
   border: 1px solid var(--border-default);
@@ -1712,6 +1798,7 @@ textarea::placeholder {
   padding: 24px;
   margin: 24px 0;
   box-shadow: var(--shadow-sm);
+  overflow-x: hidden;
 }
 
 .activity-heatmap__title {
@@ -2466,6 +2553,13 @@ textarea::placeholder {
   min-height: 640px;
 }
 
+@media (max-width: 900px) {
+  .generate-container {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+}
+
 .generate-card {
   width: 100%;
   max-width: 520px;
@@ -2614,6 +2708,13 @@ textarea::placeholder {
 .workspace-topbar__dots {
   display: flex;
   gap: 5px;
+}
+
+@media (max-width: 600px) {
+  .workspace-topbar__dots {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 .workspace-dot {
@@ -2833,6 +2934,17 @@ textarea::placeholder {
 .voice-button-row {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+  .question-card,
+  .answer-card,
+  .prev-feedback,
+  .dropzone,
+  .analysis-form-card {
+    padding: clamp(16px, 5vw, 28px);
+  }
 }
 
 .button--ghost-active {
@@ -3301,6 +3413,10 @@ textarea::placeholder {
     position: static;
     flex-direction: row;
     flex-wrap: wrap;
+  }
+
+  .settings-rail__card {
+    flex-basis: 100%;
   }
 }
 
@@ -4433,10 +4549,16 @@ textarea::placeholder {
   overflow: hidden;
   border: 1px solid var(--border-default);
   background: var(--surface-sunken);
-  z-index: 100;
+  z-index: var(--z-overlay);
   cursor: grab;
   touch-action: none;
   user-select: none;
+}
+
+@media (max-width: 600px) {
+  .webcam-monitor {
+    width: 96px;
+  }
 }
 
 .webcam-monitor:active {
@@ -4614,6 +4736,13 @@ textarea::placeholder {
   display: grid;
   grid-template-columns: minmax(260px, 0.82fr) minmax(340px, 1.18fr);
   min-height: 760px;
+}
+
+@media (max-width: 900px) {
+  .profile-setup-container {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
 }
 
 .profile-setup-meta {
