@@ -14,6 +14,12 @@ const OTHER_CITY = "__other__";
 
 const currentYear = new Date().getFullYear();
 
+const STEPS = [
+  "Job domains drive which roles HotSeat offers you.",
+  "Years of experience sets your default interview difficulty.",
+  "Everything here is editable later from Settings.",
+];
+
 function CompleteProfilePage() {
   const { user, token, refreshUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -175,14 +181,34 @@ function CompleteProfilePage() {
       </header>
 
       <main className="profile-setup-container">
-        <div className="profile-setup-card">
-          <div className="eyebrow">ONE LAST STEP</div>
-          <h1 className="profile-setup-card__headline">Complete your profile</h1>
-          <p className="profile-setup-card__sub">
-            Tell us a bit about yourself before you get started. Fields marked
-            with * are required.
-          </p>
+        <div className="auth-screen__left">
+          <div className="auth-screen__left-content">
+            <div className="eyebrow" style={{ color: "var(--slab-accent)" }}>
+              ONE LAST STEP
+            </div>
+            <h1 className="auth-screen__headline">Complete your profile</h1>
+            <p className="auth-screen__body">
+              Tell us a bit about yourself before you get started. Fields
+              marked with * are required.
+            </p>
 
+            <ol className="slab-explainer-list">
+              {STEPS.map((step, index) => (
+                <li className="slab-explainer-item" key={step}>
+                  <span className="slab-explainer-index">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="slab-explainer-text">{step}</span>
+                </li>
+              ))}
+            </ol>
+
+            <div className="profile-setup-meta">STEP 1 OF 2 · PROFILE, THEN TERMS</div>
+          </div>
+        </div>
+
+        <div className="auth-screen__right">
+        <div className="profile-setup-card">
           <form className="profile-setup-form" onSubmit={handleSubmit}>
             <div className="form-field">
               <span>Full Name *</span>
@@ -364,6 +390,7 @@ function CompleteProfilePage() {
               {submitting ? "Saving…" : "Save & Continue"}
             </button>
           </form>
+        </div>
         </div>
       </main>
     </div>

@@ -37,6 +37,7 @@ function Navbar() {
               isActive ? "navbar__link navbar__link--active" : "navbar__link"
             }
           >
+            <span className="navbar__link-dot" />
             {item.label}
           </NavLink>
         ))}
@@ -46,16 +47,14 @@ function Navbar() {
         <span className="navbar__avatar">{getInitials(user?.username)}</span>
         <NavLink
           to="/settings"
-          className={({ isActive }) =>
-            isActive ? "navbar__icon-link navbar__icon-link--active" : "navbar__icon-link"
-          }
+          className="navbar__settings-label"
           aria-label="Settings"
-          title="Settings"
         >
-          <FiSettings size={18} />
+          <FiSettings size={14} style={{ verticalAlign: "-2px", marginRight: 4 }} />
+          SETTINGS
         </NavLink>
         <ThemeToggle />
-        <Button variant="ghost" size="sm" onClick={logout}>
+        <Button variant="secondary" size="sm" onClick={logout}>
           Log out
         </Button>
       </div>

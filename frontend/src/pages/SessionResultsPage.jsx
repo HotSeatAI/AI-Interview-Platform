@@ -5,6 +5,7 @@ import { getSessionResults } from "../api/answerApi";
 import { submitSessionFeedback } from "../api/interviewApi";
 import useAuth from "../hooks/useAuth";
 import Navbar from "../components/layout/Navbar.jsx";
+import PageHeader from "../components/layout/PageHeader.jsx";
 import DeliveryTrend from "../components/interview/DeliveryTrend.jsx";
 import SessionFeedbackForm from "../components/interview/SessionFeedbackForm.jsx";
 import { ROUND_LABELS } from "../constants/interviewRounds";
@@ -124,36 +125,27 @@ function SessionResultsPage() {
     <div className="results-page">
       <Navbar />
 
+      <PageHeader
+        eyebrow="SESSION SUMMARY"
+        title={`${navState.role || "Interview"}${
+          navState.difficulty ? ` · ${navState.difficulty}` : ""
+        }${
+          navState.round && navState.round !== "full"
+            ? ` · ${ROUND_LABELS[navState.round] || navState.round}`
+            : ""
+        }`}
+        subtitle={
+          navState.createdAt
+            ? `Completed ${new Date(navState.createdAt).toLocaleString()}`
+            : undefined
+        }
+        stats={[
+          { value: `${results.average_score}/10`, label: "AVERAGE SCORE", accent: true },
+          { value: results.questions_attempted, label: "QUESTIONS ATTEMPTED" },
+        ]}
+      />
+
       <main className="results-container">
-        <div className="section-header">
-          <div className="eyebrow">SESSION SUMMARY</div>
-          <h1>
-            {navState.role || "Interview"}
-            {navState.difficulty ? ` · ${navState.difficulty}` : ""}
-            {navState.round && navState.round !== "full"
-              ? ` · ${ROUND_LABELS[navState.round] || navState.round}`
-              : ""}
-          </h1>
-          {navState.createdAt && (
-            <p>Completed {new Date(navState.createdAt).toLocaleString()}</p>
-          )}
-        </div>
-
-        <div className="results-score-row">
-          <div className="results-score-block">
-            <div className="results-score-num">
-              {results.average_score}
-              <span className="results-score-outof">/10</span>
-            </div>
-            <div className="results-score-label">AVERAGE SCORE</div>
-          </div>
-          <div className="results-score-divider" />
-          <div className="results-score-block">
-            <div className="results-meta-num">{results.questions_attempted}</div>
-            <div className="results-score-label">QUESTIONS ATTEMPTED</div>
-          </div>
-        </div>
-
         <div className="results-topics-grid">
           <div className="results-topics-col">
             <div className="results-topics-label">STRONG TOPICS</div>
@@ -236,7 +228,17 @@ function SessionResultsPage() {
                       </p>
                     )}
                   </div>
-                  <span className="results-question-row__score">{q.score}/10</span>
+                  <span
+                    className={`results-question-row__score ${
+                      q.score >= 8
+                        ? "results-question-row__score--good"
+                        : q.score < 5
+                        ? "results-question-row__score--weak"
+                        : ""
+                    }`}
+                  >
+                    {q.score}/10
+                  </span>
                 </div>
               ))}
             </div>

@@ -1,5 +1,6 @@
 import Editor from "@monaco-editor/react";
 import LanguageSelector from "./LanguageSelector";
+import useTheme from "../../hooks/useTheme";
 import {
   PROGRAMMING_LANGUAGES,
 } from "../../constants/programmingLanguages";
@@ -13,6 +14,8 @@ function CodeEditor({
   isRunning = false,
   onLanguageChange = () => {},
 }) {
+  const { theme } = useTheme();
+
   return (
     <div className="mode-block">
       <div className="mode-block__header">
@@ -40,7 +43,7 @@ function CodeEditor({
           language={language.monacoLanguage}
           value={value}
           onChange={(newValue) => onChange(newValue || "")}
-          theme="vs-dark"
+          theme={theme === "dark" ? "vs-dark" : "vs"}
           options={{
             readOnly: disabled,
 
