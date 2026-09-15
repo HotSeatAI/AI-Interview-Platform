@@ -1,22 +1,40 @@
 import json
 
+from google.genai import types
+
+from app.core.config import GEMINI_INTERVIEW_THINKING_BUDGET
 from app.services.role_classifier import RoleClassifier
 from app.services.api_key_manager import api_key_manager
 from app.services.prompts.software_prompt import build_software_prompt
+from app.services.prompts.software_rounds import (
+    ROUND_KEYS,
+    build_software_round_prompt,
+)
 from app.services.prompts.finance_prompt import build_finance_prompt
+from app.services.prompts.finance_rounds import build_finance_round_prompt
 from app.services.prompts.consulting_prompt import build_consulting_prompt
+from app.services.prompts.consulting_rounds import build_consulting_round_prompt
 from app.services.prompts.sales_prompt import build_sales_prompt
+from app.services.prompts.sales_rounds import build_sales_round_prompt
 from app.services.prompts.marketing_prompt import build_marketing_prompt
+from app.services.prompts.marketing_rounds import build_marketing_round_prompt
 from app.services.prompts.digital_design_prompt import build_digital_design_prompt
+from app.services.prompts.digital_design_rounds import build_digital_design_round_prompt
 from app.services.prompts.analog_design_prompt import build_analog_design_prompt
+from app.services.prompts.analog_design_rounds import build_analog_design_round_prompt
 from app.services.prompts.embedded_systems_prompt import build_embedded_systems_prompt
+from app.services.prompts.embedded_systems_rounds import build_embedded_systems_round_prompt
 from app.services.prompts.vlsi_prompt import build_vlsi_prompt
+from app.services.prompts.vlsi_rounds import build_vlsi_round_prompt
 from app.services.prompts.product_management import build_product_management_prompt
+from app.services.prompts.product_management_rounds import build_product_management_round_prompt
 from app.services.prompts.evaluation_prompt import (
     build_evaluation_prompt,
     build_follow_up_prompt,
     build_skipped_topics_prompt,
     build_model_answer_prompt,
+    AnswerEvaluation,
+    SkippedTopicsResponse,
 )
 from app.services.prompts.delivery_feedback_prompt import (
     build_delivery_feedback_prompt,
@@ -38,89 +56,181 @@ class AIService:
         resume_text: str | None,
         role: str,
         difficulty: str,
+        round: str | None = None,
     ):
 
         category = self.role_classifier.classify_role(role)
+        applied_round = "full"
 
         if category == "software":
 
-            prompt = build_software_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_software_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_software_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         elif category == "finance":
 
-            prompt = build_finance_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_finance_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_finance_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         elif category == "consulting":
 
-            prompt = build_consulting_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_consulting_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_consulting_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         elif category == "sales":
 
-            prompt = build_sales_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_sales_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_sales_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         elif category == "marketing":
 
-            prompt = build_marketing_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_marketing_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_marketing_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         elif category == "digital_design":
 
-            prompt = build_digital_design_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_digital_design_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_digital_design_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         elif category == "analog_design":
 
-            prompt = build_analog_design_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_analog_design_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_analog_design_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         elif category == "embedded_systems":
 
-            prompt = build_embedded_systems_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_embedded_systems_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_embedded_systems_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         elif category == "vlsi":
 
-            prompt = build_vlsi_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_vlsi_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_vlsi_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         elif category == "product_management":
 
-            prompt = build_product_management_prompt(
-                role=role,
-                difficulty=difficulty,
-                resume_text=resume_text,
-            )
+            if round in ROUND_KEYS:
+                prompt = build_product_management_round_prompt(
+                    round_key=round,
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
+                applied_round = round
+            else:
+                prompt = build_product_management_prompt(
+                    role=role,
+                    difficulty=difficulty,
+                    resume_text=resume_text,
+                )
 
         else:
 
@@ -138,13 +248,18 @@ class AIService:
 
         response = self.key_manager.generate_content(
             prompt,
+            config=types.GenerateContentConfig(
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=GEMINI_INTERVIEW_THINKING_BUDGET,
+                ),
+            ),
             purpose="interview_question_generation",
         )
 
         print("\n===== GEMINI QUESTION RESPONSE =====\n")
         print(response)
 
-        return response.text
+        return response.text, applied_round
 
     def generate_topic_questions(
         self,
@@ -276,6 +391,14 @@ class AIService:
 
         response = self.key_manager.generate_content(
             prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=AnswerEvaluation,
+                temperature=0.0,
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=GEMINI_INTERVIEW_THINKING_BUDGET,
+                ),
+            ),
             purpose="answer_evaluation",
         )
 
@@ -315,6 +438,11 @@ class AIService:
 
         response = self.key_manager.generate_content(
             prompt,
+            config=types.GenerateContentConfig(
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=GEMINI_INTERVIEW_THINKING_BUDGET,
+                ),
+            ),
             purpose="follow_up_question_generation",
         )
 
@@ -348,12 +476,18 @@ class AIService:
         try:
 
             response = self.key_manager.generate_content(
-                prompt
+                prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=SkippedTopicsResponse,
+                    temperature=0.0,
+                ),
+                purpose="skipped_topics_generation",
             )
 
             topics = json.loads(
                 response.text.strip()
-            )
+            )["topics"]
 
             if (
                 not isinstance(topics, list)

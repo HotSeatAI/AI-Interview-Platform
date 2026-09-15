@@ -1,11 +1,14 @@
 import { GoogleLogin } from "@react-oauth/google";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import useAuth from "../../hooks/useAuth";
+import useTheme from "../../hooks/useTheme";
 
 function GoogleLoginButton() {
   const { googleLogin } = useAuth();
+  const { theme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSuccess = async (credentialResponse) => {
   try {
@@ -14,7 +17,7 @@ function GoogleLoginButton() {
     }
 
     await googleLogin(credentialResponse.credential);
-    navigate("/dashboard");
+    navigate(location.state?.from?.pathname ?? "/dashboard");
   } catch (error) {
     // Don't log the raw error - it can carry the Google ID token or an
     // Authorization header in its request config.
@@ -39,7 +42,7 @@ function GoogleLoginButton() {
         onError={() => {
           alert("Google Sign-In was cancelled or failed.");
         }}
-        theme="filled_black"
+        theme={theme === "dark" ? "filled_black" : "outline"}
         shape="rectangular"
         size="large"
         text="continue_with"

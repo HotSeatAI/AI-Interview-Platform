@@ -56,7 +56,7 @@ Hot Seat behaves like an intelligent interviewer — generating role-specific in
 - Result caching — an unchanged resume/JD pair reuses the prior analysis instead of re-running it.
 - **ATS Resume Score** — a separate formatting/parseability report (section detection, structure, keyword hygiene) alongside the requirement-match score.
 
-**AI Interview Engine** — role-aware question generation across all 10 domains, adaptive follow-up questions (up to 2 levels deep) when an answer scores low, and Easy/Medium/Hard difficulty selection.
+**AI Interview Engine** — role-aware question generation across all 10 domains, Easy/Medium/Hard difficulty selection, and adaptive follow-up questions (up to 2 levels deep) that dig deeper into a topic when an answer scores well. Follow-up generation is deliberately deferred until the candidate moves to the next question instead of blocking the answer-evaluation response — it needs the evaluation's own score/feedback as input, so it can never run in parallel with scoring; generating it on demand keeps time-to-feedback fast regardless.
 
 **Delivery Analysis (Voice & Body Language)** — opt-in webcam/mic analysis during an interview (pause count, pacing, eye contact, fidgeting), computed entirely client-side from numeric signals — raw audio/video is never uploaded, only derived summary metrics are sent for feedback. Fully optional and can be declined without affecting the rest of the interview.
 
@@ -166,7 +166,7 @@ alembic downgrade -1                                    # rollback
 | Resume | `POST /resume/upload` · `GET /resume` · `DELETE /resume/{id}` |
 | Resume ↔ JD Matching | `POST /resume-analysis/start` · `POST /resume-analysis/ats-score` · `GET /resume-analysis/history` · `GET /resume-analysis/{id}/status` · `GET /resume-analysis/{id}/result` |
 | Interview | `POST /interview/generate-questions` · `GET /interview/history` · `GET /interview/{session_id}` · `POST /interview/{session_id}/finish` |
-| Answers | `POST /answer` · `GET /answer/{answer_id}` · `GET /answer/session/{id}/results` |
+| Answers | `POST /answer` · `POST /answer/{answer_id}/follow-up` · `GET /answer/{answer_id}` · `GET /answer/session/{id}/results` |
 | Weak Topics | `GET /topics` · `POST /topics/{topic_id}/practice` |
 | Code | `POST /code/run` |
 | Dashboard | `GET /dashboard` |

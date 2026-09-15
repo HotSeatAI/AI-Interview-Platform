@@ -351,3 +351,16 @@ Return ONLY the numbered interview questions.
 
 Do not include headings, introductions, markdown, bullet points or any text before or after the questions.
 """
+
+
+# Public re-exports for digital_design_rounds.py - added without
+# touching any existing prompt text/structure above. Lets the
+# round-based builders reuse the same per-sub-role topic content
+# without reaching into this module's underscore-prefixed names.
+COMPUTER_ARCH_BLOCK_BY_SUBROLE = _COMPUTER_ARCH_BLOCK_BY_SUBROLE
+COMPUTER_ARCH_TAIL_BY_SUBROLE = _COMPUTER_ARCH_TAIL_BY_SUBROLE
+RTL_VERIFICATION_BLOCK_BY_SUBROLE = _RTL_VERIFICATION_BLOCK_BY_SUBROLE
+RTL_VERIFICATION_BLOCK_BY_SUBROLE_NO_RESUME = _RTL_VERIFICATION_BLOCK_BY_SUBROLE_NO_RESUME
+COMPUTER_ARCHITECTURE_TOPICS = _COMPUTER_ARCHITECTURE_TOPICS
+RTL_VERIFICATION_TOPICS = _RTL_VERIFICATION_TOPICS
+RTL_VERIFICATION_TOPICS_NO_RESUME = _RTL_VERIFICATION_TOPICS_NO_RESUME

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from google.auth.transport import requests
 from google.auth.exceptions import GoogleAuthError
 from google.oauth2 import id_token
@@ -59,6 +61,9 @@ def authenticate_google_user(
 
     if user:
 
+        user.last_login_at = datetime.utcnow()
+        db.commit()
+
         access_token = create_access_token(
             {
                 "sub": user.email
@@ -100,6 +105,7 @@ def authenticate_google_user(
         if user.google_id is None:
             user.google_id = google_user_id
 
+        user.last_login_at = datetime.utcnow()
         db.commit()
         db.refresh(user)
 
@@ -124,7 +130,8 @@ def authenticate_google_user(
         email=email,
         hashed_password=None,
         google_id=google_user_id,
-        auth_provider="google"
+        auth_provider="google",
+        last_login_at=datetime.utcnow(),
     )
 
     db.add(new_user)

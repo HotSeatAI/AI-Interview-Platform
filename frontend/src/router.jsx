@@ -17,6 +17,8 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import TopicsPage from "./pages/TopicsPage";
 import CompleteProfilePage from "./pages/CompleteProfilePage";
+import SettingsPage from "./pages/SettingsPage";
+import ConfirmEmailChangePage from "./pages/ConfirmEmailChangePage";
 
 const router = createBrowserRouter([
   {
@@ -52,6 +54,14 @@ const router = createBrowserRouter([
       {
         path: "reset-password",
         element: <ResetPasswordPage />,
+      },
+
+      // Public route - the confirm link may be opened from a
+      // different session/device than the one that requested the
+      // change, so this must not require an active login.
+      {
+        path: "confirm-email-change",
+        element: <ConfirmEmailChangePage />,
       },
 
       {
@@ -131,6 +141,15 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <TopicsPage />
+          </ProtectedRoute>
+        ),
+      },
+
+      {
+        path: "settings",
+        element: (
+          <ProtectedRoute>
+            <SettingsPage />
           </ProtectedRoute>
         ),
       },

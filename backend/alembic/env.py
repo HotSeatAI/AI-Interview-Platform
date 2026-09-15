@@ -20,6 +20,7 @@ from app.models.resume_analysis import ResumeAnalysis
 from app.models.resume_evidence_vector import ResumeEvidenceVector
 from app.models.jd_profile_cache import JDProfileCache
 from app.models.user_topic import UserTopic
+from app.models.reminder_email_log import ReminderEmailLog
 
 config = context.config
 

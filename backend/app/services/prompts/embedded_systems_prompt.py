@@ -362,3 +362,14 @@ Return ONLY the numbered interview questions.
 
 Do not include headings, introductions, markdown, bullet points or any text before or after the questions.
 """
+
+
+# Public re-exports for embedded_systems_rounds.py - added without
+# touching any existing prompt text/structure above. Lets the
+# round-based builders reuse the same per-sub-role protocol/RTOS
+# content without reaching into this module's underscore-prefixed
+# names.
+PROTOCOLS_BLOCK_BY_SUBROLE = _PROTOCOLS_BLOCK_BY_SUBROLE
+PROTOCOLS_BLOCK_BY_SUBROLE_NO_RESUME = _PROTOCOLS_BLOCK_BY_SUBROLE_NO_RESUME
+RTOS_BLOCK_BY_SUBROLE = _RTOS_BLOCK_BY_SUBROLE
+RTOS_BLOCK_BY_SUBROLE_NO_RESUME = _RTOS_BLOCK_BY_SUBROLE_NO_RESUME

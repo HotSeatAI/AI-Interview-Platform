@@ -10,6 +10,17 @@ export const generateInterview = async (payload, token) => {
   return response.data;
 };
 
+export const getInterviewRounds = async (role, token) => {
+  const response = await apiClient.get("/interview/rounds", {
+    params: { role },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};
+
 export const getInterviewSession = async (sessionId, token) => {
   const response = await apiClient.get(`/interview/${sessionId}`, {
     headers: {
@@ -34,6 +45,20 @@ export const finishInterviewSession = async (sessionId, token) => {
   const response = await apiClient.post(
     `/interview/${sessionId}/finish`,
     {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};
+
+export const submitSessionFeedback = async (sessionId, payload, token) => {
+  const response = await apiClient.post(
+    `/interview/${sessionId}/feedback`,
+    payload,
     {
       headers: {
         Authorization: `Bearer ${token}`,

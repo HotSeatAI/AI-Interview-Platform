@@ -37,8 +37,14 @@ class AnswerResponse(BaseModel):
     strengths: List[str]
     improvements: List[str]
 
-    has_follow_up: bool
-    follow_up: Optional[FollowUpQuestionResponse] = None
+    # Whether this question qualifies for a follow-up (score threshold
+    # + depth limit) - the follow-up question itself is NOT generated
+    # here anymore (that would cost a second sequential Gemini call on
+    # top of evaluation's own latency). The frontend uses this flag to
+    # decide whether to call POST /answer/{answer_id}/follow-up when
+    # the user clicks "Next Question", deferring that generation to a
+    # moment that isn't on the "see my score" critical path.
+    eligible_for_follow_up: bool = False
 
     delivery_feedback: Optional[str] = None
     model_answer: Optional[str] = None
@@ -81,3 +87,5 @@ class SessionResultsResponse(BaseModel):
     weak_topics: List[str]
     skipped_questions: List[SkippedQuestionInfo] = []
     is_finished: bool = False
+    rating: Optional[int] = None
+    feedback_text: Optional[str] = None

@@ -3,7 +3,9 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import status
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from fastapi import Query
 from app.core.rate_limiter import limiter
 from app.database.database import get_db
@@ -21,6 +23,9 @@ from app.services.email_verification_service import (
 from app.services.password_reset_service import (
     PasswordResetService,
 )
+from app.services.email_change_service import (
+    EmailChangeService,
+)
 from app.utils.security import (
     hash_password,
     verify_password
@@ -29,10 +34,13 @@ from app.schemas.user import (
     ResendVerificationRequest,
     ForgotPasswordRequest,
     ResetPasswordRequest,
+    EmailChangeRequest,
+    PasswordChangeRequest,
 )
 from app.utils.jwt_handler import (
     create_access_token,
-    get_current_user
+    get_current_user,
+    verify_unsubscribe_token,
 )
 
 from app.services.oauth_service import (
@@ -144,6 +152,9 @@ def login(
             detail="Please verify your email before logging in."
     )
 
+    user.last_login_at = datetime.utcnow()
+    db.commit()
+
     access_token = create_access_token(
         {
             "sub": user.email
@@ -168,6 +179,57 @@ def google_auth(
         payload.id_token,
         db
     )
+
+
+def _apply_unsubscribe(token: str, db: Session):
+    user_id = verify_unsubscribe_token(token)
+
+    if user_id is not None:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user is not None:
+            user.email_opt_out = True
+            db.commit()
+
+
+@router.get("/unsubscribe", response_class=HTMLResponse)
+def unsubscribe(
+    token: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    """No auth dependency - clicked straight from an email client,
+    same reasoning as verify-email/email-change confirm. Only
+    reminder emails check this flag; verification/reset/security
+    emails always send regardless (see EmailService). Handles a
+    human clicking the link in the email body."""
+
+    _apply_unsubscribe(token, db)
+
+    return """
+    <html>
+        <body style="font-family: sans-serif; text-align: center; padding: 60px 20px;">
+            <h2>You've been unsubscribed</h2>
+            <p>You won't receive reminder emails from Hot Seat anymore.</p>
+        </body>
+    </html>
+    """
+
+
+@router.post("/unsubscribe")
+def unsubscribe_one_click(
+    token: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    """RFC 8058 one-click unsubscribe target - this is what Gmail/
+    Yahoo's own built-in "Unsubscribe" button actually calls
+    (a POST, triggered by the List-Unsubscribe-Post header in
+    EmailService), not the GET route above. No body/HTML needed,
+    just a 2xx response."""
+
+    _apply_unsubscribe(token, db)
+
+    return {"status": "unsubscribed"}
+
+
 @router.get("/auth/verify-email")
 def verify_email(
     token: str = Query(...),
@@ -322,7 +384,10 @@ def reset_password(
     "/me",
     response_model=UserResponse
 )
+@limiter.limit("15/minute")
 def read_me(
+    request: Request,
+    response: Response,
     current_user: User = Depends(
         get_current_user
     )
@@ -334,7 +399,10 @@ def read_me(
     "/me/profile",
     response_model=UserResponse
 )
+@limiter.limit("15/minute")
 def update_profile(
+    request: Request,
+    response: Response,
     profile: ProfileUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -371,3 +439,162 @@ def accept_terms(
     db.refresh(current_user)
 
     return current_user
+
+
+@router.post("/me/email-change/request")
+@limiter.limit("5/minute")
+def request_email_change(
+    request: Request,
+    response: Response,
+    payload: EmailChangeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Starts an email change for a local account. Never writes
+    users.email directly - only sends a confirmation link to the
+    new address. The DB column only changes once that link is
+    used (GET /me/email-change/confirm), which is what keeps this
+    from being abusable as an account-takeover vector via Google's
+    email-matched account linking (see oauth_service.py).
+    """
+
+    if current_user.auth_provider != "local":
+        raise HTTPException(
+            status_code=403,
+            detail="Email is managed by your Google account and can't be changed here.",
+        )
+
+    if not verify_password(
+        payload.current_password,
+        current_user.hashed_password,
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect password.",
+        )
+
+    if payload.new_email == current_user.email:
+        raise HTTPException(
+            status_code=400,
+            detail="That's already your current email address.",
+        )
+
+    change_token = EmailChangeService.request_email_change(
+        db=db,
+        user=current_user,
+        new_email=payload.new_email,
+    )
+
+    EmailService().send_email_change_confirmation(
+        recipient_email=payload.new_email,
+        recipient_name=current_user.username,
+        change_token=change_token,
+    )
+
+    EmailService().send_email_change_notice(
+        recipient_email=current_user.email,
+        recipient_name=current_user.username,
+        new_email=payload.new_email,
+    )
+
+    return {
+        "message": (
+            "Check your new email address for a link to confirm "
+            "the change."
+        )
+    }
+
+
+@router.get("/me/email-change/confirm")
+@limiter.limit("5/minute")
+def confirm_email_change(
+    request: Request,
+    response: Response,
+    token: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    """
+    No auth dependency - the token itself is the proof, since the
+    link may be opened from a different session/device than the
+    one that requested the change (same reasoning as verify-email).
+    """
+
+    user, change_record = (
+        EmailChangeService.verify_email_change_token(
+            db=db,
+            token=token,
+        )
+    )
+
+    new_email = change_record.new_email
+
+    try:
+        user.email = new_email
+        user.email_verified = True
+
+        db.delete(change_record)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="That email address is already in use.",
+        )
+
+    return {
+        "message": (
+            "Your email has been updated. Please log in again "
+            "with your new email address."
+        ),
+        "email": new_email,
+    }
+
+
+@router.post("/me/change-password")
+@limiter.limit("5/minute")
+def change_password(
+    request: Request,
+    response: Response,
+    payload: PasswordChangeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.auth_provider != "local":
+        raise HTTPException(
+            status_code=403,
+            detail="This account signs in with Google and has no password to change.",
+        )
+
+    if not verify_password(
+        payload.current_password,
+        current_user.hashed_password,
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect password.",
+        )
+
+    if verify_password(
+        payload.new_password,
+        current_user.hashed_password,
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="New password must be different from your current password.",
+        )
+
+    current_user.hashed_password = hash_password(
+        payload.new_password
+    )
+
+    db.commit()
+
+    EmailService().send_password_changed_notice(
+        recipient_email=current_user.email,
+        recipient_name=current_user.username,
+    )
+
+    return {
+        "message": "Password changed successfully."
+    }

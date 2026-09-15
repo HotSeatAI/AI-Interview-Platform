@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { getDashboard } from "../api/dashboardApi";
 import useAuth from "../hooks/useAuth";
 import Navbar from "../components/layout/Navbar.jsx";
+import PageHeader from "../components/layout/PageHeader.jsx";
 import ActivityHeatmap from "../components/dashboard/ActivityHeatmap.jsx";
 import Button from "../components/ui/Button.jsx";
 
@@ -58,37 +59,18 @@ function DashboardPage() {
     <div className="dashboard-page">
       <Navbar />
 
+      <PageHeader
+        eyebrow="DASHBOARD"
+        title={`Welcome back, ${dashboard.username}`}
+        subtitle={dashboard.email}
+        stats={[
+          { value: dashboard.total_interviews, label: "TOTAL INTERVIEWS" },
+          { value: dashboard.completed_interviews, label: "COMPLETED" },
+          { value: dashboard.in_progress_interviews, label: "IN PROGRESS", accent: true },
+        ]}
+      />
+
       <main className="dashboard-container">
-        <div className="dashboard-header">
-          <div className="eyebrow">DASHBOARD</div>
-          <h1 className="dashboard-greeting">Welcome back, {dashboard.username}</h1>
-          <p className="dashboard-email">{dashboard.email}</p>
-        </div>
-
-        <div className="stats-strip">
-          <div className="stats-strip__cell">
-            <div className="stats-strip__value">{dashboard.total_interviews}</div>
-            <div className="stats-strip__label">TOTAL INTERVIEWS</div>
-          </div>
-          <div className="stats-strip__divider" />
-          <div className="stats-strip__cell">
-            <div className="stats-strip__value">{dashboard.completed_interviews}</div>
-            <div className="stats-strip__label">COMPLETED</div>
-          </div>
-          <div className="stats-strip__divider" />
-          <div className="stats-strip__cell">
-            <div className="stats-strip__value">{dashboard.in_progress_interviews}</div>
-            <div className="stats-strip__label">IN PROGRESS</div>
-          </div>
-          <div className="stats-strip__divider" />
-          <div className="stats-strip__cell stats-strip__cell--wide">
-            <div className="stats-strip__value stats-strip__value--small">
-              {dashboard.latest_resume ?? "No resume uploaded"}
-            </div>
-            <div className="stats-strip__label">LATEST RESUME</div>
-          </div>
-        </div>
-
         <ActivityHeatmap activity={dashboard.activity} />
 
         <div className="dashboard-grid">

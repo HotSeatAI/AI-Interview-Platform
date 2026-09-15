@@ -20,6 +20,7 @@ class UserResponse(BaseModel):
     username: str
     email: EmailStr
     role: str
+    auth_provider: str
     profile_completed: bool
     full_name: Optional[str] = None
     mobile_number: Optional[str] = None
@@ -90,3 +91,13 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
+
+
+class EmailChangeRequest(BaseModel):
+    current_password: str
+    new_email: EmailStr
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8)

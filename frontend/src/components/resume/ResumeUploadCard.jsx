@@ -221,12 +221,6 @@ function ResumeUploadCard() {
   return (
     <>
       <section className="resume-section">
-        <div className="section-header">
-          <div className="eyebrow">YOUR RESUME</div>
-          <h1>This is what grounds your interview</h1>
-          <p>Every question HotSeat generates is built from the resume you upload here.</p>
-        </div>
-
         <div className="dropzone">
           <div className="dropzone__text">
             <div className="dropzone__label">DROP A PDF OR BROWSE</div>
@@ -296,7 +290,8 @@ function ResumeUploadCard() {
         </div>
       </section>
 
-      <section className="resume-section">
+      <section className="resume-section resume-analysis-grid">
+        <div className="resume-analysis-col">
         <div className="section-header">
           <div className="eyebrow">ATS CHECK</div>
           <h2>Check your ATS score</h2>
@@ -336,9 +331,9 @@ function ResumeUploadCard() {
             {atsChecking ? "Checking..." : "Check ATS score"}
           </button>
         </div>
-      </section>
+        </div>
 
-      <section className="resume-section">
+        <div className="resume-analysis-col">
         <div className="section-header">
           <div className="eyebrow">RESUME INTELLIGENCE</div>
           <h2>Check your resume against a job description</h2>
@@ -451,6 +446,7 @@ function ResumeUploadCard() {
             <AnalysisProgress progress={analysisProgress} currentStage={analysisCurrentStage} />
           </>
         )}
+        </div>
       </section>
     </>
   );

@@ -7,11 +7,18 @@ import BrandLogo from "../components/layout/BrandLogo";
 import ThemeToggle from "../components/layout/ThemeToggle";
 import TermsModal from "../components/profile/TermsModal";
 import { COUNTRIES, CITIES_BY_COUNTRY, CITY_TO_COUNTRY } from "../constants/locationData";
+import { JOB_DOMAINS } from "../constants/jobDomains";
 
 const GENDER_OPTIONS = ["Male", "Female", "Prefer not to say"];
 const OTHER_CITY = "__other__";
 
 const currentYear = new Date().getFullYear();
+
+const STEPS = [
+  "Job domains drive which roles HotSeat offers you.",
+  "Years of experience sets your default interview difficulty.",
+  "Everything here is editable later from Settings.",
+];
 
 function CompleteProfilePage() {
   const { user, token, refreshUser, logout } = useAuth();
@@ -35,20 +42,19 @@ function CompleteProfilePage() {
     city: "",
     cityOther: "",
   });
-  const [jobDomainInput, setJobDomainInput] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const addJobDomain = () => {
-    const value = jobDomainInput.trim();
-    if (!value) return;
+  const availableJobDomains = JOB_DOMAINS.filter(
+    (domain) => !formData.job_domains.includes(domain)
+  );
+
+  const addJobDomain = (domain) => {
+    if (!domain) return;
     setFormData((prev) => {
-      if (prev.job_domains.some((d) => d.toLowerCase() === value.toLowerCase())) {
-        return prev;
-      }
-      return { ...prev, job_domains: [...prev.job_domains, value] };
+      if (prev.job_domains.includes(domain)) return prev;
+      return { ...prev, job_domains: [...prev.job_domains, domain] };
     });
-    setJobDomainInput("");
   };
 
   const removeJobDomain = (domain) => {
@@ -56,13 +62,6 @@ function CompleteProfilePage() {
       ...prev,
       job_domains: prev.job_domains.filter((d) => d !== domain),
     }));
-  };
-
-  const handleJobDomainKeyDown = (e) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addJobDomain();
-    }
   };
 
   const handleChange = (field) => (e) => {
@@ -182,14 +181,34 @@ function CompleteProfilePage() {
       </header>
 
       <main className="profile-setup-container">
-        <div className="profile-setup-card">
-          <div className="eyebrow">ONE LAST STEP</div>
-          <h1 className="profile-setup-card__headline">Complete your profile</h1>
-          <p className="profile-setup-card__sub">
-            Tell us a bit about yourself before you get started. Fields marked
-            with * are required.
-          </p>
+        <div className="auth-screen__left">
+          <div className="auth-screen__left-content">
+            <div className="eyebrow" style={{ color: "var(--slab-accent)" }}>
+              ONE LAST STEP
+            </div>
+            <h1 className="auth-screen__headline">Complete your profile</h1>
+            <p className="auth-screen__body">
+              Tell us a bit about yourself before you get started. Fields
+              marked with * are required.
+            </p>
 
+            <ol className="slab-explainer-list">
+              {STEPS.map((step, index) => (
+                <li className="slab-explainer-item" key={step}>
+                  <span className="slab-explainer-index">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="slab-explainer-text">{step}</span>
+                </li>
+              ))}
+            </ol>
+
+            <div className="profile-setup-meta">STEP 1 OF 2 · PROFILE, THEN TERMS</div>
+          </div>
+        </div>
+
+        <div className="auth-screen__right">
+        <div className="profile-setup-card">
           <form className="profile-setup-form" onSubmit={handleSubmit}>
             <div className="form-field">
               <span>Full Name *</span>
@@ -234,22 +253,22 @@ function CompleteProfilePage() {
 
             <div className="form-field">
               <span>Looking for Job Domain(s) *</span>
-              <div className="tag-input-row">
-                <input
-                  type="text"
-                  value={jobDomainInput}
-                  onChange={(e) => setJobDomainInput(e.target.value)}
-                  onKeyDown={handleJobDomainKeyDown}
-                  placeholder="e.g. Software Engineering"
-                />
-                <button
-                  type="button"
-                  className="button button--secondary button--sm"
-                  onClick={addJobDomain}
-                >
-                  Add
-                </button>
-              </div>
+              <select
+                value=""
+                onChange={(e) => addJobDomain(e.target.value)}
+                disabled={availableJobDomains.length === 0}
+              >
+                <option value="" disabled>
+                  {availableJobDomains.length > 0
+                    ? "Select a domain to add"
+                    : "All domains added"}
+                </option>
+                {availableJobDomains.map((domain) => (
+                  <option key={domain} value={domain}>
+                    {domain}
+                  </option>
+                ))}
+              </select>
               {formData.job_domains.length > 0 && (
                 <div className="tag-list">
                   {formData.job_domains.map((domain) => (
@@ -371,6 +390,7 @@ function CompleteProfilePage() {
               {submitting ? "Saving…" : "Save & Continue"}
             </button>
           </form>
+        </div>
         </div>
       </main>
     </div>

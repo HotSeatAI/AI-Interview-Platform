@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { getTopics, startTopicPractice } from "../api/topicsApi";
 import useAuth from "../hooks/useAuth";
 import Navbar from "../components/layout/Navbar.jsx";
+import PageHeader from "../components/layout/PageHeader.jsx";
 
 function TopicsPage() {
   const { token } = useAuth();
@@ -67,37 +68,33 @@ function TopicsPage() {
 
   const progressPct = data.progress_pct;
   const circleStyle = {
-    background: `conic-gradient(var(--green) ${progressPct * 3.6}deg, var(--surface-elevated) 0deg)`,
+    background: `conic-gradient(var(--slab-accent) ${progressPct * 3.6}deg, var(--slab-dot) 0deg)`,
   };
 
   return (
     <div className="topics-page">
       <Navbar />
 
+      <PageHeader
+        eyebrow="STUDY PLAN"
+        title="Weak topics"
+        subtitle="Practice a topic with a focused 3-question round (Easy, Medium, Medium). Score above 5 on all three to resolve it."
+        right={
+          <div className="page-slab__donut-row">
+            <div className="page-slab__donut" style={circleStyle}>
+              <div className="page-slab__donut-inner">{progressPct}%</div>
+            </div>
+            <div className="page-slab__donut-caption">
+              Improvement suggestions completed
+              <div className="form-hint" style={{ color: "var(--on-slab-faint)" }}>
+                {data.resolved_total} resolved of {data.flagged_total} flagged
+              </div>
+            </div>
+          </div>
+        }
+      />
+
       <main className="topics-container">
-        <div className="section-header">
-          <div className="eyebrow">STUDY PLAN</div>
-          <h1>Weak topics</h1>
-          <p>
-            Practice a topic with a focused 3-question round (Easy, Medium,
-            Medium). Score above 5 on all three to resolve it.
-          </p>
-        </div>
-
-        <div className="topics-progress">
-          <div className="topics-progress__circle" style={circleStyle}>
-            <div className="topics-progress__circle-inner">
-              {progressPct}%
-            </div>
-          </div>
-          <div className="topics-progress__caption">
-            Improvement suggestions completed
-            <div className="form-hint">
-              {data.resolved_total} resolved of {data.flagged_total} flagged
-            </div>
-          </div>
-        </div>
-
         {data.topics.length === 0 ? (
           <div className="form-hint">
             No weak topics right now - nice work. New ones will show up

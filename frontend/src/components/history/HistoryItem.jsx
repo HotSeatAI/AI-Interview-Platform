@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 
+import { ROUND_LABELS } from "../../constants/interviewRounds";
+
 function HistoryItem({ session }) {
   const createdDate = new Date(session.created_at).toLocaleString();
 
@@ -9,6 +11,9 @@ function HistoryItem({ session }) {
         <div className="list-row__title">{session.role}</div>
         <div className="list-row__meta">
           <span className="difficulty-pill">{session.difficulty}</span>
+          {session.round && session.round !== "full" && (
+            <span className="round-pill">{ROUND_LABELS[session.round] || session.round}</span>
+          )}
           <span>{createdDate}</span>
         </div>
       </div>

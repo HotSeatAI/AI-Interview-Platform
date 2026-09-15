@@ -1,72 +1,77 @@
 /* ============================================================
-   Raw dark-palette tokens ("char") plus the raw light-palette
-   tokens ("paper") below. Nothing outside this file should
-   reference the char/paper tokens directly anymore — every
-   consumer goes through the theme-aware semantic tokens further down
-   (--bg/--surface/--text/etc.), which alias into these per
-   [data-theme]. Keep the raw values here so dark mode keeps
-   rendering byte-identical to the original app.
+   HotSeat redesign tokens (handoff/tokens.css + handoff/design-spec.md).
+   Dark is :root default; [data-theme="light"] overrides. The existing
+   bootstrap script (index.html) always sets data-theme explicitly, so
+   there's no unattributed-root case in practice.
 
-   --accent/--green/--red/--amber intentionally stay single,
-   non-themed values rather than gaining a [data-theme="dark"]
-   override — they're used by shared classes far beyond the
-   flagship pages (buttons, eyebrows, badges, links), and their
-   light/dark variants would only have differed cosmetically, so
-   keeping one value avoids any color drift on out-of-scope pages
-   while still satisfying "one restrained accent" everywhere.
+   Old semantic names (--accent, --red, --amber, --border-default, ...)
+   are kept as aliases onto the new palette so the ~600 existing
+   references across index.css don't all need rewriting - only
+   genuinely new component work (slab band, code editor, segmented
+   control) reaches for the new slab/code/orange token names
+   directly. See design-spec.md rules L1/L2 for why lime (--cta) only
+   ever appears on a slab.
    ============================================================ */
 :root {
-  --char: oklch(0.16 0.011 45);
-  --char-raised: oklch(0.21 0.013 45);
-  --char-deeper: oklch(0.135 0.009 45);
-  --char-elevated: oklch(0.245 0.018 42);
-  --char-border: oklch(0.31 0.015 45);
-  --char-text: oklch(0.94 0.006 70);
-  --char-text-soft: oklch(0.66 0.011 60);
+  /* surfaces */
+  --bg: oklch(0.16 0.011 45);
+  --surface: oklch(0.21 0.013 45);
+  --surface-2: oklch(0.245 0.018 42);
+  --sunken: oklch(0.135 0.009 45);
+  --line: oklch(0.31 0.015 45);
 
-  --paper: oklch(0.975 0.007 70);
-  --paper-raised: oklch(0.995 0.004 70);
-  --border: oklch(0.89 0.012 60);
-  --ink: oklch(0.24 0.02 50);
-  --ink-soft: oklch(0.48 0.02 55);
+  /* ink */
+  --text: oklch(0.94 0.006 70);
+  --text-soft: oklch(0.66 0.011 60);
 
-  --accent: oklch(0.65 0.19 35);
-  --accent-dark: oklch(0.57 0.19 35);
-  --accent-soft: oklch(0.65 0.19 35 / 0.14);
-  --accent-soft-strong: oklch(0.65 0.19 35 / 0.3);
-
+  /* brand */
+  --orange: oklch(0.65 0.19 35);
+  --orange-deep: oklch(0.57 0.19 35);
+  --orange-soft: oklch(0.65 0.19 35 / 0.16);
+  --orange-soft-strong: oklch(0.65 0.19 35 / 0.3);
   --green: oklch(0.62 0.135 150);
   --green-soft: oklch(0.62 0.135 150 / 0.16);
+  /* Kept for error/warning states the redesign doesn't otherwise
+     define (form validation, critical badges) - not part of the
+     handoff palette, chosen to sit tonally with it. */
   --red: oklch(0.6 0.18 25);
   --red-soft: oklch(0.6 0.18 25 / 0.14);
   --amber: oklch(0.75 0.14 75);
   --amber-soft: oklch(0.75 0.14 75 / 0.16);
 
-  --font-display: "Space Grotesk", "Inter", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
-}
+  /* lime CTA - only ever used ON a slab (rule L2) */
+  --cta: oklch(0.92 0.2 118);
+  --cta-ink: oklch(0.18 0.02 120);
 
-/* ============================================================
-   Semantic tokens — theme-aware, used by every page's CSS. Light
-   values alias the "paper/ink" palette above; dark values alias
-   the "char" palette, so dark mode renders byte-identical to the
-   original app. All page CSS should reference these (--bg,
-   --surface, --text, --border-default, ...) rather than the raw
-   char/paper tokens directly.
-   ============================================================ */
-:root {
-  --bg: var(--paper);
-  --surface: var(--paper-raised);
-  --surface-sunken: oklch(0.955 0.008 65);
-  --surface-elevated: var(--paper-raised);
-  --text: var(--ink);
-  --text-soft: var(--ink-soft);
-  --border-default: var(--border);
-  --border-strong: oklch(0.8 0.015 60);
+  /* slab band (the dark/tinted header band every page opens with) */
+  --slab: oklch(0.125 0.01 45);
+  --on-slab: oklch(0.97 0.004 70);
+  --on-slab-soft: oklch(0.74 0.012 60);
+  --on-slab-faint: oklch(0.6 0.012 60);
+  --slab-line: oklch(0.3 0.014 45);
+  --slab-fill: oklch(0.2 0.012 45);
+  --slab-dot: oklch(0.36 0.014 45);
+  --slab-accent: var(--cta);
 
-  --inverse: oklch(0.16 0.015 50);
-  --on-inverse: oklch(0.99 0.003 70);
+  /* code editor */
+  --code-bg: oklch(0.19 0.012 250);
+  --code-text: oklch(0.9 0.01 250);
+  --code-num: oklch(0.55 0.02 250);
+  --code-kw: oklch(0.78 0.12 320);
+  --code-lit: oklch(0.8 0.13 90);
+
+  /* ---- compatibility aliases onto the old semantic names ---- */
+  --accent: var(--orange);
+  --accent-dark: var(--orange-deep);
+  --accent-soft: var(--orange-soft);
+  --accent-soft-strong: var(--orange-soft-strong);
+  --surface-sunken: var(--sunken);
+  --surface-elevated: var(--surface-2);
+  --border-default: var(--line);
+  --border-strong: oklch(0.4 0.02 45);
+
+  --inverse: oklch(0.97 0.004 70);
+  --on-inverse: oklch(0.16 0.011 45);
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -86,9 +91,9 @@
   --space-11: 80px;
   --space-12: 96px;
 
-  --shadow-sm: 0 1px 2px oklch(0.2 0.02 50 / 0.06), 0 1px 1px oklch(0.2 0.02 50 / 0.04);
-  --shadow-md: 0 4px 12px oklch(0.2 0.02 50 / 0.08), 0 2px 4px oklch(0.2 0.02 50 / 0.04);
-  --shadow-lg: 0 12px 32px oklch(0.2 0.02 50 / 0.12), 0 4px 8px oklch(0.2 0.02 50 / 0.06);
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-md: 0 4px 16px oklch(0 0 0 / 0.4);
+  --shadow-lg: 0 16px 40px oklch(0 0 0 / 0.5);
 
   --z-sticky: 10;
   --z-dropdown: 20;
@@ -96,75 +101,128 @@
   --z-modal: 40;
   --z-toast: 50;
 
-  /* Auth left brand panel — theme-aware. The preview-card overlay
-     inside it uses a currentColor-based tint (see .auth-preview-card
-     in index.css) rather than a fixed white, so it keeps working
-     against either a light or dark panel background. */
-  --auth-panel-bg: var(--surface-elevated);
-  --auth-panel-text: var(--text);
-  --auth-panel-text-soft: var(--text-soft);
-  --auth-panel-border: var(--border-default);
+  --auth-panel-bg: var(--slab);
+  --auth-panel-text: var(--on-slab);
+  --auth-panel-text-soft: var(--on-slab-soft);
+  --auth-panel-border: var(--slab-line);
 
-  /* Translucent sticky-bar backdrop (interview workspace top/action
-     bars). Light value is the paper surface at matching opacity. */
+  --scrim: oklch(0.125 0.01 45 / 0.94);
+  --scrim-strong: oklch(0.125 0.01 45 / 0.95);
+
+  /* Display face (page titles, card titles, big questions) - Bodoni
+     Moda, mandatory 'opsz' 6 per rule T1. The wordmark does NOT use
+     this token (see --font-wordmark) - it stays Space Grotesk. */
+  --font-display: "Bodoni Moda", "Inter", serif;
+  /* UI, body, buttons, inputs, nav */
+  --font-body: "Manrope", "Inter", sans-serif;
+  /* Eyebrows, metadata, chips, code, numbers */
+  --font-mono: "JetBrains Mono", monospace;
+  /* Wordmark ONLY - never used anywhere else (non-negotiable) */
+  --font-wordmark: "Space Grotesk", sans-serif;
+}
+
+[data-theme="light"] {
+  --bg: oklch(0.975 0.007 70);
+  --surface: oklch(0.995 0.004 70);
+  --surface-2: oklch(0.955 0.008 65);
+  --sunken: oklch(0.955 0.008 65);
+  --line: oklch(0.89 0.012 60);
+
+  --text: oklch(0.24 0.02 50);
+  --text-soft: oklch(0.48 0.02 55);
+
+  --surface-sunken: var(--sunken);
+  --surface-elevated: var(--surface-2);
+  --border-default: var(--line);
+  --border-strong: oklch(0.8 0.015 60);
+
+  --inverse: oklch(0.16 0.015 50);
+  --on-inverse: oklch(0.99 0.003 70);
+
+  /* slab becomes warm paper, NOT dark - rule L1 */
+  --slab: oklch(0.928 0.009 68);
+  --on-slab: oklch(0.24 0.02 50);
+  --on-slab-soft: oklch(0.46 0.02 55);
+  --on-slab-faint: oklch(0.45 0.018 55);
+  --slab-line: oklch(0.855 0.012 62);
+  --slab-fill: oklch(0.985 0.004 70);
+  --slab-dot: oklch(0.8 0.012 62);
+  /* lime fails contrast on paper - slab eyebrow goes deep orange (L2) */
+  --slab-accent: oklch(0.5 0.17 35);
+
+  --code-bg: oklch(0.975 0.006 250);
+  --code-text: oklch(0.3 0.02 250);
+  --code-num: oklch(0.62 0.015 250);
+  --code-kw: oklch(0.48 0.17 320);
+  --code-lit: oklch(0.5 0.14 60);
+
+  --shadow-sm: 0 1px 2px oklch(0.2 0.02 50 / 0.06), 0 1px 1px oklch(0.2 0.02 50 / 0.04);
+  --shadow-md: 0 4px 12px oklch(0.2 0.02 50 / 0.08), 0 2px 4px oklch(0.2 0.02 50 / 0.04);
+  --shadow-lg: 0 12px 32px oklch(0.2 0.02 50 / 0.12), 0 4px 8px oklch(0.2 0.02 50 / 0.06);
+
+  --auth-panel-bg: var(--slab);
+  --auth-panel-text: var(--on-slab);
+  --auth-panel-text-soft: var(--on-slab-soft);
+  --auth-panel-border: var(--slab-line);
+
   --scrim: oklch(0.995 0.004 70 / 0.94);
   --scrim-strong: oklch(0.995 0.004 70 / 0.95);
 }
 
-[data-theme="dark"] {
-  --bg: var(--char);
-  --surface: var(--char-raised);
-  --surface-sunken: var(--char-deeper);
-  --surface-elevated: var(--char-elevated);
-  --text: var(--char-text);
-  --text-soft: var(--char-text-soft);
-  --border-default: var(--char-border);
-  --border-strong: oklch(0.4 0.02 45);
+/* Defensive fallback: only applies before any explicit data-theme
+   attribute exists (index.html's bootstrap script normally sets one
+   before first paint, so this mainly covers JS-disabled edge cases).
+   Mirrors the [data-theme="light"] block above, applied when the
+   system prefers light and no explicit theme has been chosen. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: oklch(0.975 0.007 70);
+    --surface: oklch(0.995 0.004 70);
+    --surface-2: oklch(0.955 0.008 65);
+    --sunken: oklch(0.955 0.008 65);
+    --line: oklch(0.89 0.012 60);
 
-  --inverse: var(--char-text);
-  --on-inverse: var(--char);
+    --text: oklch(0.24 0.02 50);
+    --text-soft: oklch(0.48 0.02 55);
 
-  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
-  --shadow-md: 0 4px 16px oklch(0 0 0 / 0.4);
-  --shadow-lg: 0 16px 40px oklch(0 0 0 / 0.5);
+    --surface-sunken: var(--sunken);
+    --surface-elevated: var(--surface-2);
+    --border-default: var(--line);
+    --border-strong: oklch(0.8 0.015 60);
 
-  --scrim: oklch(0.16 0.011 45 / 0.94);
-  --scrim-strong: oklch(0.16 0.011 45 / 0.95);
+    --inverse: oklch(0.16 0.015 50);
+    --on-inverse: oklch(0.99 0.003 70);
 
-  --auth-panel-bg: oklch(0.15 0.012 45);
-  --auth-panel-text: oklch(0.95 0.006 70);
-  --auth-panel-text-soft: oklch(0.72 0.012 60);
-  --auth-panel-border: oklch(0.28 0.014 45);
+    --slab: oklch(0.928 0.009 68);
+    --on-slab: oklch(0.24 0.02 50);
+    --on-slab-soft: oklch(0.46 0.02 55);
+    --on-slab-faint: oklch(0.45 0.018 55);
+    --slab-line: oklch(0.855 0.012 62);
+    --slab-fill: oklch(0.985 0.004 70);
+    --slab-dot: oklch(0.8 0.012 62);
+    --slab-accent: oklch(0.5 0.17 35);
+
+    --code-bg: oklch(0.975 0.006 250);
+    --code-text: oklch(0.3 0.02 250);
+    --code-num: oklch(0.62 0.015 250);
+    --code-kw: oklch(0.48 0.17 320);
+    --code-lit: oklch(0.5 0.14 60);
+
+    --shadow-sm: 0 1px 2px oklch(0.2 0.02 50 / 0.06), 0 1px 1px oklch(0.2 0.02 50 / 0.04);
+    --shadow-md: 0 4px 12px oklch(0.2 0.02 50 / 0.08), 0 2px 4px oklch(0.2 0.02 50 / 0.04);
+    --shadow-lg: 0 12px 32px oklch(0.2 0.02 50 / 0.12), 0 4px 8px oklch(0.2 0.02 50 / 0.06);
+
+    --auth-panel-bg: var(--slab);
+    --auth-panel-text: var(--on-slab);
+    --auth-panel-text-soft: var(--on-slab-soft);
+    --auth-panel-border: var(--slab-line);
+
+    --scrim: oklch(0.995 0.004 70 / 0.94);
+    --scrim-strong: oklch(0.995 0.004 70 / 0.95);
+  }
 }
 
-/* Defensive fallback: only applies before any explicit data-theme
-   attribute exists (the index.html bootstrap script normally sets
-   one before first paint, so this mainly covers JS-disabled edge
-   cases). Mirrors the [data-theme="dark"] block above. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) {
-    --bg: var(--char);
-    --surface: var(--char-raised);
-    --surface-sunken: var(--char-deeper);
-    --surface-elevated: var(--char-elevated);
-    --text: var(--char-text);
-    --text-soft: var(--char-text-soft);
-    --border-default: var(--char-border);
-    --border-strong: oklch(0.4 0.02 45);
-
-    --inverse: var(--char-text);
-    --on-inverse: var(--char);
-
-    --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
-    --shadow-md: 0 4px 16px oklch(0 0 0 / 0.4);
-    --shadow-lg: 0 16px 40px oklch(0 0 0 / 0.5);
-
-    --scrim: oklch(0.16 0.011 45 / 0.94);
-    --scrim-strong: oklch(0.16 0.011 45 / 0.95);
-
-    --auth-panel-bg: oklch(0.15 0.012 45);
-    --auth-panel-text: oklch(0.95 0.006 70);
-    --auth-panel-text-soft: oklch(0.72 0.012 60);
-    --auth-panel-border: oklch(0.28 0.014 45);
-  }
+@keyframes hs-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
 }

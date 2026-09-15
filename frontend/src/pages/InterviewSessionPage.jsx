@@ -1,7 +1,8 @@
 import { useEffect, useState , useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { getInterviewSession, finishInterviewSession } from "../api/interviewApi";
+import { getInterviewSession, finishInterviewSession, submitSessionFeedback } from "../api/interviewApi";
+import { generateFollowUp } from "../api/answerApi";
 import useAuth from "../hooks/useAuth";
 
 import QuestionCard from "../components/interview/QuestionCard";
@@ -10,6 +11,8 @@ import FeedbackCard from "../components/interview/FeedbackCard";
 import BrandLogo from "../components/layout/BrandLogo";
 import ThemeToggle from "../components/layout/ThemeToggle";
 import DeliveryConsentModal from "../components/interview/DeliveryConsentModal";
+import PreInterviewDisclaimerModal from "../components/interview/PreInterviewDisclaimerModal";
+import ExitFeedbackModal from "../components/interview/ExitFeedbackModal";
 import DeliveryCalibrationScreen from "../components/interview/DeliveryCalibrationScreen";
 import WebcamMonitor from "../components/interview/WebcamMonitor";
 import { createAudioDeliveryAnalyzer } from "../utils/audioDeliveryAnalyzer";
@@ -31,10 +34,14 @@ function InterviewSessionPage() {
 
   const [answeredQuestions, setAnsweredQuestions] = useState(new Set());
   const [feedbackMap, setFeedbackMap] = useState({});
-  const [readyForNext, setReadyForNext] = useState(false);
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
-  const [nextIsFollowUp, setNextIsFollowUp] =
-  useState(false);
+  const [disclaimerAcknowledged, setDisclaimerAcknowledged] = useState(false);
+  const [showExitFeedback, setShowExitFeedback] = useState(false);
+  // True while the on-demand follow-up check/generation triggered by
+  // "Next"/"Finish" is in flight - see maybeGenerateFollowUp. Whether
+  // a follow-up exists isn't known until this resolves (it's no
+  // longer generated synchronously during answer submission).
+  const [generatingFollowUp, setGeneratingFollowUp] = useState(false);
 
   // null = undecided (show consent modal), true/false once decided.
   const [deliveryConsent, setDeliveryConsent] = useState(null);
@@ -210,7 +217,7 @@ function InterviewSessionPage() {
   // True the instant the consent/calibration gate resolves either way
   // (declined outright, or calibration finished after accepting) -
   // questions should never be spoken aloud while that overlay is up.
-  const interviewReady = deliveryConsent !== null && !calibrating;
+  const interviewReady = disclaimerAcknowledged && deliveryConsent !== null && !calibrating;
 
   const currentQuestion =
     session.questions[currentQuestionIndex];
@@ -237,6 +244,7 @@ function InterviewSessionPage() {
   setFeedbackMap((prev) => ({
     ...prev,
     [currentQuestion.id]: {
+      answerId: response.answer_id,
       score: response.score,
       feedback: response.feedback,
       strengths: response.strengths,
@@ -244,6 +252,13 @@ function InterviewSessionPage() {
       deliveryFeedback: response.delivery_feedback,
       modelAnswer: response.model_answer,
       deliverySignals: response.delivery_signals,
+      // Whether this question qualifies for a follow-up - the
+      // follow-up question itself isn't generated yet. It's
+      // generated on demand in maybeGenerateFollowUp, triggered by
+      // "Next Question"/"Finish Interview", so that latency lands
+      // after the user has already seen their score/feedback
+      // instead of adding to it.
+      eligibleForFollowUp: response.eligible_for_follow_up,
     },
   }));
 
@@ -252,8 +267,27 @@ function InterviewSessionPage() {
     updated.add(currentQuestion.id);
     return updated;
   });
+};
 
-  if (response.has_follow_up && response.follow_up) {
+// Generates the follow-up for the just-answered current question, if
+// it's eligible, and splices it into the live question list right
+// after the current one. Returns true if a follow-up was added, so
+// callers know a "next question" now definitely exists even though
+// `session`/`currentQuestionIndex` in their own closure may still be
+// stale (React state updates from the splice above aren't visible
+// until the next render). Soft-fails like every other bonus-content
+// call in this app - a failure here must never block the user from
+// moving on.
+const maybeGenerateFollowUp = async () => {
+  const feedback = feedbackMap[currentQuestion.id];
+
+  if (!feedback?.eligibleForFollowUp) return false;
+
+  setGeneratingFollowUp(true);
+
+  try {
+    const followUp = await generateFollowUp(feedback.answerId, token);
+
     setSession((prevSession) => {
       const updatedQuestions = [...prevSession.questions];
 
@@ -261,13 +295,10 @@ function InterviewSessionPage() {
         currentQuestionIndex + 1,
         0,
         {
-          id: response.follow_up.question_id,
-          question_text:
-            response.follow_up.question_text,
-          question_type:
-            response.follow_up.question_type,
-          follow_up_depth:
-            response.follow_up.follow_up_depth,
+          id: followUp.question_id,
+          question_text: followUp.question_text,
+          question_type: followUp.question_type,
+          follow_up_depth: followUp.follow_up_depth,
           is_follow_up: true,
           answered: false,
         }
@@ -278,12 +309,22 @@ function InterviewSessionPage() {
         questions: updatedQuestions,
       };
     });
-    setNextIsFollowUp(true);
-  }else{
-    setNextIsFollowUp(false);
-  }
 
-  setReadyForNext(true);
+    setFeedbackMap((prev) => ({
+      ...prev,
+      [currentQuestion.id]: {
+        ...prev[currentQuestion.id],
+        eligibleForFollowUp: false,
+      },
+    }));
+
+    return true;
+  } catch (err) {
+    console.log("Follow-up generation failed:", err);
+    return false;
+  } finally {
+    setGeneratingFollowUp(false);
+  }
 };
 
 const handlePrevious = () => {
@@ -291,36 +332,39 @@ const handlePrevious = () => {
 
     setCurrentQuestionIndex((prev) => prev - 1);
 
-    setReadyForNext(false);
-    setNextIsFollowUp(false);
-
   }
 };
 
-const handleNext = () => {
-  if (currentQuestionIndex < session.questions.length - 1) {
+// `session.questions.length` read after the await may be stale (see
+// maybeGenerateFollowUp) - `followUpAdded` is the source of truth
+// when it's true, since the splice guarantees a question now exists
+// right after this one regardless of what the stale closure shows.
+const handleNext = async () => {
+  const followUpAdded = await maybeGenerateFollowUp();
+
+  if (followUpAdded || currentQuestionIndex < session.questions.length - 1) {
 
     setCurrentQuestionIndex((prev) => prev + 1);
 
-    setReadyForNext(false);
-    setNextIsFollowUp(false);
-
   }
 };
 
-const handleFinishInterview = async () => {
-  const unanswered =
-    session.questions.length -
-    answeredQuestions.size;
+// Bound to the "Finish Interview" button - that button only ever
+// renders on what looked like the last question, but a follow-up can
+// still turn out to be eligible for it. Check/generate first; only
+// actually finish if nothing was added.
+const handleFinishOrContinue = async () => {
+  const followUpAdded = await maybeGenerateFollowUp();
 
-  if (unanswered > 0) {
-    const confirmFinish = window.confirm(
-      `You still have ${unanswered} unanswered question(s).\n\nDo you want to finish the interview?`
-    );
-
-    if (!confirmFinish) return;
+  if (followUpAdded) {
+    setCurrentQuestionIndex((prev) => prev + 1);
+    return;
   }
 
+  await handleFinishInterview();
+};
+
+const handleFinishInterview = async () => {
   try {
     await finishInterviewSession(sessionId, token);
   } catch (err) {
@@ -334,6 +378,7 @@ const handleFinishInterview = async () => {
     state: {
       role: session.role,
       difficulty: session.difficulty,
+      round: session.round,
       createdAt: session.created_at,
       questions: session.questions,
       feedbackMap,
@@ -342,10 +387,26 @@ const handleFinishInterview = async () => {
 };
 
 const isLastQuestion = currentQuestionIndex === session.questions.length - 1;
+const isCurrentAnswered = answeredQuestions.has(currentQuestion.id);
+
+const handleExitFeedbackSubmit = async (payload) => {
+  await submitSessionFeedback(sessionId, payload, token);
+  navigate("/dashboard");
+};
+
+const handleExitSkip = () => {
+  navigate("/dashboard");
+};
 
 return (
   <div className="workspace">
-    {deliveryConsent === null && !calibrating && (
+    {!disclaimerAcknowledged && (
+      <PreInterviewDisclaimerModal
+        onAcknowledge={() => setDisclaimerAcknowledged(true)}
+      />
+    )}
+
+    {disclaimerAcknowledged && deliveryConsent === null && !calibrating && (
       <DeliveryConsentModal
         onContinue={handleContinueDelivery}
         onDecline={handleDeclineDelivery}
@@ -388,11 +449,22 @@ return (
 
       <div className="workspace-topbar__actions">
         <ThemeToggle />
-        <Link to="/dashboard" className="workspace-topbar__exit">
+        <button
+          type="button"
+          className="workspace-topbar__exit"
+          onClick={() => setShowExitFeedback(true)}
+        >
           Exit interview
-        </Link>
+        </button>
       </div>
     </header>
+
+    {showExitFeedback && (
+      <ExitFeedbackModal
+        onSubmit={handleExitFeedbackSubmit}
+        onSkip={handleExitSkip}
+      />
+    )}
 
     <main className="workspace-main">
       <QuestionCard
@@ -428,40 +500,30 @@ return (
       </button>
 
       <div className="workspace-actionbar__right">
-        {!isLastQuestion ? (
-          readyForNext ? (
-            <button className="button button--primary" onClick={handleNext}>
-              {nextIsFollowUp ? "Continue to Follow-up →" : "Next Question →"}
-            </button>
-          ) : (
-            <>
-              <button className="button button--secondary" onClick={handleNext}>
-                Next / Skip
-              </button>
-              <button
-                className="button button--primary"
-                onClick={() => answerBoxRef.current?.submit()}
-                disabled={answeredQuestions.has(currentQuestion.id) || isSubmittingAnswer}
-              >
-                {isSubmittingAnswer ? "Submitting..." : "Submit answer"}
-              </button>
-            </>
-          )
+        {!isCurrentAnswered ? (
+          <button
+            className="button button--primary"
+            onClick={() => answerBoxRef.current?.submit()}
+            disabled={isSubmittingAnswer}
+          >
+            {isSubmittingAnswer ? "Submitting..." : "Submit answer"}
+          </button>
+        ) : isLastQuestion ? (
+          <button
+            className="button button--primary"
+            onClick={handleFinishOrContinue}
+            disabled={generatingFollowUp}
+          >
+            {generatingFollowUp ? "Checking for follow-up..." : "Finish Interview"}
+          </button>
         ) : (
-          <>
-            {!readyForNext && (
-              <button
-                className="button button--secondary"
-                onClick={() => answerBoxRef.current?.submit()}
-                disabled={answeredQuestions.has(currentQuestion.id) || isSubmittingAnswer}
-              >
-                {isSubmittingAnswer ? "Submitting..." : "Submit answer"}
-              </button>
-            )}
-            <button className="button button--primary" onClick={handleFinishInterview}>
-              Finish Interview
-            </button>
-          </>
+          <button
+            className="button button--primary"
+            onClick={handleNext}
+            disabled={generatingFollowUp}
+          >
+            {generatingFollowUp ? "Checking for follow-up..." : "Next Question →"}
+          </button>
         )}
       </div>
     </footer>
