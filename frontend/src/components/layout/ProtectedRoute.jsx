@@ -9,23 +9,11 @@ function ProtectedRoute({ children }) {
     return <div className="app-loading">Loading&hellip;</div>;
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  if (!user.profile_completed && location.pathname !== "/complete-profile") {
-    return <Navigate to="/complete-profile" replace />;
-  }
-
-  if (!user.terms_accepted && location.pathname !== "/complete-profile") {
-    return <Navigate to="/complete-profile" replace />;
-  }
-
-  if (!user.profile_completed && location.pathname !== "/complete-profile") {
-    return <Navigate to="/complete-profile" replace />;
-  }
-
-  if (!user.terms_accepted && location.pathname !== "/complete-profile") {
+  if (
+    isAuthenticated &&
+    (!user.profile_completed || !user.terms_accepted) &&
+    location.pathname !== "/complete-profile"
+  ) {
     return <Navigate to="/complete-profile" replace />;
   }
 

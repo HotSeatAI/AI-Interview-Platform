@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import GoogleLoginButton from "./GoogleLoginButton";
 import Button from "../ui/Button";
 function SignupForm() {
-  const navigate = useNavigate();
   const { signup } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -14,6 +13,7 @@ function SignupForm() {
   });
 
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (event) => {
     setFormData({
@@ -30,11 +30,7 @@ function SignupForm() {
     try {
       await signup(formData);
 
-      alert(
-        "Account created successfully! Please check your email and verify your account before logging in."
-    );
-
-      navigate("/login");
+      setSuccess(true);
 
   } catch (err) {
 
@@ -45,6 +41,20 @@ function SignupForm() {
     );
   }
 };
+
+  if (success) {
+    return (
+      <div className="verify-card">
+        <span className="verify-card__tag verify-card__tag--success">SUCCESS</span>
+        <span className="verify-card__icon verify-card__icon--success" />
+        <h3 className="verify-card__title">Account created</h3>
+        <p className="verify-card__body">
+          Check your email to verify your account before logging in.
+        </p>
+        <Button to="/login">Go to login</Button>
+      </div>
+    );
+  }
 
   return (
     <form className="auth-form" onSubmit={handleSubmit}>

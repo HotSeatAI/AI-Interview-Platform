@@ -13,6 +13,10 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setAuthToken] = useState(getToken());
   const [loading, setLoading] = useState(true);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  const promptLogin = () => setShowLoginPrompt(true);
+  const dismissLoginPrompt = () => setShowLoginPrompt(false);
 
   const login = async ({ email, password }) => {
     try {
@@ -122,6 +126,9 @@ export function AuthProvider({ children }) {
         resendVerificationEmail,
         logout,
         refreshUser,
+        showLoginPrompt,
+        promptLogin,
+        dismissLoginPrompt,
       }}
     >
       {children}

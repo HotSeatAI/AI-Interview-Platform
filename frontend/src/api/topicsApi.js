@@ -2,9 +2,7 @@ import apiClient from "./client";
 
 export const getTopics = async (token) => {
   const response = await apiClient.get("/topics", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   return response.data;
@@ -15,9 +13,7 @@ export const startTopicPractice = async (topicId, token) => {
     `/topics/${topicId}/practice`,
     {},
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }
   );
 

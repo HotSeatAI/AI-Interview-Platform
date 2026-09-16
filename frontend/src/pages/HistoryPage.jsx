@@ -1,8 +1,11 @@
 import HistoryList from "../components/history/HistoryList";
 import Navbar from "../components/layout/Navbar.jsx";
 import PageHeader from "../components/layout/PageHeader.jsx";
+import usePageMeta from "../hooks/usePageMeta";
 
 function HistoryPage() {
+  usePageMeta("History", "Browse your past interview sessions and review how you performed.");
+
   return (
     <div className="history-page">
       <Navbar />

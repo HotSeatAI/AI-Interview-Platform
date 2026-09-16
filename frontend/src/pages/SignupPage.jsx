@@ -1,5 +1,6 @@
 import AuthLayout from "../components/auth/AuthLayout.jsx";
 import SignupForm from "../components/auth/SignupForm.jsx";
+import usePageMeta from "../hooks/usePageMeta";
 
 const MATCH_ROWS = [
   { label: "System design experience", badge: "Covered", tone: "met" },
@@ -7,6 +8,8 @@ const MATCH_ROWS = [
 ];
 
 function SignupPage() {
+  usePageMeta("Sign Up", "Create a free HotSeat account and start practicing interviews today.");
+
   return (
     <AuthLayout
       eyebrow="GETTING STARTED"

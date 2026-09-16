@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import status
 from fastapi.responses import HTMLResponse
@@ -59,6 +59,7 @@ def signup(
     request: Request,
     response: Response,
     user: UserCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
 
@@ -95,7 +96,8 @@ def signup(
         )
     )
 
-    EmailService().send_verification_email(
+    background_tasks.add_task(
+        EmailService().send_verification_email,
         recipient_email=new_user.email,
         recipient_name=new_user.username,
         verification_token=verification_token,
@@ -251,6 +253,7 @@ def resend_verification_email(
     request: Request,
     response: Response,
     payload: ResendVerificationRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
 
@@ -280,7 +283,8 @@ def resend_verification_email(
         )
     )
 
-    EmailService().send_verification_email(
+    background_tasks.add_task(
+        EmailService().send_verification_email,
         recipient_email=user.email,
         recipient_name=user.username,
         verification_token=verification_token,
@@ -298,6 +302,7 @@ def forgot_password(
     request: Request,
     response: Response,
     payload: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     """
@@ -339,7 +344,8 @@ def forgot_password(
         )
     )
 
-    EmailService().send_password_reset_email(
+    background_tasks.add_task(
+        EmailService().send_password_reset_email,
         recipient_email=user.email,
         recipient_name=user.username,
         reset_token=reset_token,
@@ -447,6 +453,7 @@ def request_email_change(
     request: Request,
     response: Response,
     payload: EmailChangeRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -486,13 +493,15 @@ def request_email_change(
         new_email=payload.new_email,
     )
 
-    EmailService().send_email_change_confirmation(
+    background_tasks.add_task(
+        EmailService().send_email_change_confirmation,
         recipient_email=payload.new_email,
         recipient_name=current_user.username,
         change_token=change_token,
     )
 
-    EmailService().send_email_change_notice(
+    background_tasks.add_task(
+        EmailService().send_email_change_notice,
         recipient_email=current_user.email,
         recipient_name=current_user.username,
         new_email=payload.new_email,
@@ -557,6 +566,7 @@ def change_password(
     request: Request,
     response: Response,
     payload: PasswordChangeRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -590,7 +600,8 @@ def change_password(
 
     db.commit()
 
-    EmailService().send_password_changed_notice(
+    background_tasks.add_task(
+        EmailService().send_password_changed_notice,
         recipient_email=current_user.email,
         recipient_name=current_user.username,
     )

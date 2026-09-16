@@ -1,3 +1,7 @@
+/* eslint-disable react-refresh/only-export-components --
+   this file's default export is the router, not a component; the
+   React.lazy() bindings below are route-table entries, not exports. */
+import { lazy } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import App from "./App";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
@@ -5,20 +9,23 @@ import ProtectedRoute from "./components/layout/ProtectedRoute";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
-import DashboardPage from "./pages/DashboardPage";
-import ResumePage from "./pages/ResumePage";
-import ResumeAnalysisPage from "./pages/ResumeAnalysisPage";
-import GenerateInterviewPage from "./pages/GenerateInterviewPage";
-import InterviewSessionPage from "./pages/InterviewSessionPage";
-import HistoryPage from "./pages/HistoryPage";
-import SessionResultsPage from "./pages/SessionResultsPage";
-import VerifyEmailPage from "./pages/VerifyEmailPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import TopicsPage from "./pages/TopicsPage";
-import CompleteProfilePage from "./pages/CompleteProfilePage";
-import SettingsPage from "./pages/SettingsPage";
-import ConfirmEmailChangePage from "./pages/ConfirmEmailChangePage";
+
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const ResumePage = lazy(() => import("./pages/ResumePage"));
+const ResumeAnalysisPage = lazy(() => import("./pages/ResumeAnalysisPage"));
+const GenerateInterviewPage = lazy(() => import("./pages/GenerateInterviewPage"));
+const InterviewSessionPage = lazy(() => import("./pages/InterviewSessionPage"));
+const HistoryPage = lazy(() => import("./pages/HistoryPage"));
+const SessionResultsPage = lazy(() => import("./pages/SessionResultsPage"));
+const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const TopicsPage = lazy(() => import("./pages/TopicsPage"));
+const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const ConfirmEmailChangePage = lazy(() => import("./pages/ConfirmEmailChangePage"));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
 
 const router = createBrowserRouter([
   {
@@ -38,6 +45,11 @@ const router = createBrowserRouter([
       {
         path: "signup",
         element: <SignupPage />,
+      },
+
+      {
+        path: "privacy",
+        element: <PrivacyPolicyPage />,
       },
 
       // Public route
@@ -152,6 +164,11 @@ const router = createBrowserRouter([
             <SettingsPage />
           </ProtectedRoute>
         ),
+      },
+
+      {
+        path: "*",
+        element: <NotFoundPage />,
       },
     ],
   },

@@ -7,8 +7,11 @@ import Navbar from "../components/layout/Navbar.jsx";
 import PageHeader from "../components/layout/PageHeader.jsx";
 import ActivityHeatmap from "../components/dashboard/ActivityHeatmap.jsx";
 import Button from "../components/ui/Button.jsx";
+import usePageMeta from "../hooks/usePageMeta";
 
 function DashboardPage() {
+  usePageMeta("Dashboard", "View your interview activity, stats, and progress on HotSeat.");
+
   const { token } = useAuth();
 
   const [dashboard, setDashboard] = useState(null);
@@ -30,9 +33,7 @@ function DashboardPage() {
       }
     };
 
-    if (token) {
-      fetchDashboard();
-    }
+    fetchDashboard();
   }, [token]);
 
   if (loading) {

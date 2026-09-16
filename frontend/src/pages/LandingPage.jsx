@@ -1,10 +1,14 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import BrandLogo from "../components/layout/BrandLogo";
 import Button from "../components/ui/Button";
 import ThemeToggle from "../components/layout/ThemeToggle";
 import MobileNavToggle from "../components/layout/MobileNavToggle";
-import heroPhoto from "../assets/landing-hero.png";
-import ctaPhoto from "../assets/landing-cta.png";
+import usePageMeta from "../hooks/usePageMeta";
+import heroPhotoWebp from "../assets/landing-hero.webp";
+import heroPhotoJpg from "../assets/landing-hero.jpg";
+import ctaPhotoWebp from "../assets/landing-cta.webp";
+import ctaPhotoJpg from "../assets/landing-cta.jpg";
 
 const FEATURES = [
   {
@@ -118,6 +122,27 @@ const STEPS = [
 ];
 
 function LandingPage() {
+  usePageMeta(
+    "AI Interview Platform",
+    "HotSeat is an AI-powered platform for practicing job interviews and getting instant feedback."
+  );
+
+  const heroRef = useRef(null);
+  const [showStickyCta, setShowStickyCta] = useState(false);
+
+  useEffect(() => {
+    const hero = heroRef.current;
+    if (!hero) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowStickyCta(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="landing">
       <header className="landing__nav">
@@ -143,12 +168,11 @@ function LandingPage() {
         </MobileNavToggle>
       </header>
 
-      <section id="top" className="landing__hero">
-        <img
-          src={heroPhoto}
-          alt=""
-          className="landing__hero-photo"
-        />
+      <section id="top" className="landing__hero" ref={heroRef}>
+        <picture>
+          <source srcSet={heroPhotoWebp} type="image/webp" />
+          <img src={heroPhotoJpg} alt="" className="landing__hero-photo" />
+        </picture>
         <div className="landing__hero-scrim" />
 
         <div className="landing__hero-grid">
@@ -226,7 +250,10 @@ function LandingPage() {
             Enter the HotSeat
           </Button>
         </div>
-        <img src={ctaPhoto} alt="" className="landing__final-cta-photo" />
+        <picture>
+          <source srcSet={ctaPhotoWebp} type="image/webp" />
+          <img src={ctaPhotoJpg} alt="" className="landing__final-cta-photo" />
+        </picture>
       </section>
 
       <footer className="landing__footer">
@@ -236,8 +263,20 @@ function LandingPage() {
         <span className="landing__footer-beta">
           HotSeat is in BETA — features and scoring are still being tuned.
         </span>
-        <span className="landing__footer-copy">© 2026 HotSeat. Practice with intent.</span>
+        <span className="landing__footer-copy">
+          © 2026 HotSeat. Practice with intent. · <Link to="/privacy">Privacy Policy</Link>
+        </span>
       </footer>
+
+      <div
+        className={`landing__sticky-cta ${
+          showStickyCta ? "landing__sticky-cta--visible" : ""
+        }`}
+      >
+        <Button to="/signup" variant="primary" fullWidth>
+          Start practicing free
+        </Button>
+      </div>
     </div>
   );
 }

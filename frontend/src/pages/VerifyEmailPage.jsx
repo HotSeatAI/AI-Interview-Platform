@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import apiClient from "../api/client";
+import usePageMeta from "../hooks/usePageMeta";
 
 function VerifyEmailPage() {
+  usePageMeta("Verify Email", "Verify your email address to activate your HotSeat account.");
+
   const [searchParams] = useSearchParams();
 
   const [status, setStatus] = useState("loading");

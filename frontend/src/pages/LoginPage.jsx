@@ -1,9 +1,12 @@
 import AuthLayout from "../components/auth/AuthLayout.jsx";
 import LoginForm from "../components/auth/LoginForm.jsx";
+import usePageMeta from "../hooks/usePageMeta";
 
 const SESSION_DOTS = [1, 1, 1, 1, 1, 1, 0, 0];
 
 function LoginPage() {
+  usePageMeta("Log In", "Log in to your HotSeat account to continue practicing interviews.");
+
   return (
     <AuthLayout
       eyebrow="SESSION LOG"

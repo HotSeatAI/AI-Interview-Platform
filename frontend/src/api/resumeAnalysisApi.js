@@ -39,9 +39,7 @@ export async function startResumeAnalysis({
     "/resume-analysis/start",
     formData,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }
   );
 
@@ -59,9 +57,7 @@ export async function getResumeAnalysisStatus(
   const response = await apiClient.get(
     `/resume-analysis/${analysisId}/status`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }
   );
 
@@ -79,9 +75,7 @@ export async function getResumeAnalysisResult(
   const response = await apiClient.get(
     `/resume-analysis/${analysisId}/result`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }
   );
 
@@ -107,9 +101,7 @@ export async function getAtsScore({ resumeId, token }) {
     "/resume-analysis/ats-score",
     formData,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }
   );
 
@@ -127,9 +119,7 @@ export async function getResumeAnalysisHistory(
   const response = await apiClient.get(
     "/resume-analysis/history",
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }
   );
 

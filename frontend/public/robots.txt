@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /signup
+Disallow: /dashboard
+Disallow: /resume
+Disallow: /resume-analysis/
+Disallow: /generate-interview
+Disallow: /interview/
+Disallow: /history
+Disallow: /results/
+Disallow: /topics
+Disallow: /settings
+Disallow: /complete-profile
+Disallow: /verify-email
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /confirm-email-change
+
+Sitemap: https://hotseatai.vercel.app/sitemap.xml

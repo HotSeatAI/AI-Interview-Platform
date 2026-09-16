@@ -13,6 +13,7 @@ import RequirementTable from "../components/resume-analysis/RequirementTable";
 import ImprovementTable from "../components/resume-analysis/ImprovementTable";
 import ReviewAreasTable from "../components/resume-analysis/ReviewAreasTable";
 import AtsFindingsTable from "../components/resume-analysis/AtsFindingsTable";
+import usePageMeta from "../hooks/usePageMeta";
 
 const JD_AWARE_TABS = [
   { id: "overview", label: "Overview" },
@@ -27,6 +28,11 @@ const STANDALONE_TABS = [
 ];
 
 export default function ResumeAnalysisPage() {
+  usePageMeta(
+    "Resume-JD Analysis",
+    "See how well your resume matches a job description, requirement by requirement."
+  );
+
   const { analysisId } =
     useParams();
 
@@ -45,10 +51,6 @@ export default function ResumeAnalysisPage() {
   const { token } = useAuth();
 
   useEffect(() => {
-    if (!token) {
-      return;
-    }
-
     const loadResult = async () => {
       try {
         const result =

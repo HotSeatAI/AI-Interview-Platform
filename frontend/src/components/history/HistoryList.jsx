@@ -27,9 +27,7 @@ function HistoryList() {
       }
     };
 
-    if (token) {
-      fetchHistory();
-    }
+    fetchHistory();
   }, [token]);
 
   if (loading) {
