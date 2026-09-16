@@ -1,5 +1,6 @@
 import InterviewGeneratorForm from "../components/interview/InterviewGeneratorForm.jsx";
 import Navbar from "../components/layout/Navbar.jsx";
+import usePageMeta from "../hooks/usePageMeta";
 
 const STEPS = [
   "Pick the role you want to practice for - HotSeat tailors questions to it.",
@@ -8,6 +9,8 @@ const STEPS = [
 ];
 
 function GenerateInterviewPage() {
+  usePageMeta("Interview Prep", "Set up a role and difficulty to generate a tailored practice interview.");
+
   return (
     <div className="generate-page">
       <Navbar />

@@ -8,6 +8,7 @@ import ThemeToggle from "../components/layout/ThemeToggle";
 import TermsModal from "../components/profile/TermsModal";
 import { COUNTRIES, CITIES_BY_COUNTRY, CITY_TO_COUNTRY } from "../constants/locationData";
 import { JOB_DOMAINS } from "../constants/jobDomains";
+import usePageMeta from "../hooks/usePageMeta";
 
 const GENDER_OPTIONS = ["Male", "Female", "Prefer not to say"];
 const OTHER_CITY = "__other__";
@@ -21,6 +22,8 @@ const STEPS = [
 ];
 
 function CompleteProfilePage() {
+  usePageMeta("Complete Profile", "Finish setting up your profile to start using HotSeat.");
+
   const { user, token, refreshUser, logout } = useAuth();
   const navigate = useNavigate();
 

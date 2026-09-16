@@ -17,10 +17,13 @@ import DeliveryCalibrationScreen from "../components/interview/DeliveryCalibrati
 import WebcamMonitor from "../components/interview/WebcamMonitor";
 import { createAudioDeliveryAnalyzer } from "../utils/audioDeliveryAnalyzer";
 import { createVideoDeliveryAnalyzer } from "../utils/videoDeliveryAnalyzer";
+import usePageMeta from "../hooks/usePageMeta";
 
 const CALIBRATION_MS = 3000;
 
 function InterviewSessionPage() {
+  usePageMeta("Live Interview", "Answer live interview questions by voice, text, or code and get evaluated.");
+
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const { token } = useAuth();
@@ -100,9 +103,7 @@ function InterviewSessionPage() {
       }
     };
 
-    if (token) {
-      fetchSession();
-    }
+    fetchSession();
   }, [sessionId, token]);
 
   useEffect(() => {

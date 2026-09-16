@@ -52,7 +52,11 @@ function Navbar() {
             className="navbar__settings-label"
             aria-label="Settings"
           >
-            <FiSettings size={14} style={{ verticalAlign: "-2px", marginRight: 4 }} />
+            <FiSettings
+              size={14}
+              aria-hidden="true"
+              style={{ verticalAlign: "-2px", marginRight: 4 }}
+            />
             SETTINGS
           </NavLink>
           <ThemeToggle />

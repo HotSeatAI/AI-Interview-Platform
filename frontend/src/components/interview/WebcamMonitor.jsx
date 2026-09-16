@@ -118,6 +118,7 @@ function WebcamMonitor({ stream }) {
       <video
         ref={videoRef}
         className="webcam-monitor__video"
+        aria-label="Live camera preview"
         muted
         autoPlay
         playsInline

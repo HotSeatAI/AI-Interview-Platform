@@ -2,9 +2,7 @@ import apiClient from "./client";
 
 export const generateInterview = async (payload, token) => {
   const response = await apiClient.post("/interview/generate-questions", payload, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   return response.data;
@@ -13,9 +11,7 @@ export const generateInterview = async (payload, token) => {
 export const getInterviewRounds = async (role, token) => {
   const response = await apiClient.get("/interview/rounds", {
     params: { role },
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   return response.data;
@@ -23,9 +19,7 @@ export const getInterviewRounds = async (role, token) => {
 
 export const getInterviewSession = async (sessionId, token) => {
   const response = await apiClient.get(`/interview/${sessionId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   return response.data;
@@ -33,9 +27,7 @@ export const getInterviewSession = async (sessionId, token) => {
 
 export const getInterviewHistory = async (token) => {
   const response = await apiClient.get("/interview/history", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   return response.data;
@@ -46,9 +38,7 @@ export const finishInterviewSession = async (sessionId, token) => {
     `/interview/${sessionId}/finish`,
     {},
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }
   );
 
@@ -60,9 +50,7 @@ export const submitSessionFeedback = async (sessionId, payload, token) => {
     `/interview/${sessionId}/feedback`,
     payload,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }
   );
 

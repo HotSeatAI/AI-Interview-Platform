@@ -9,8 +9,11 @@ import PageHeader from "../components/layout/PageHeader.jsx";
 import DeliveryTrend from "../components/interview/DeliveryTrend.jsx";
 import SessionFeedbackForm from "../components/interview/SessionFeedbackForm.jsx";
 import { ROUND_LABELS } from "../constants/interviewRounds";
+import usePageMeta from "../hooks/usePageMeta";
 
 function SessionResultsPage() {
+  usePageMeta("Results", "Review your scores and feedback from a completed interview session.");
+
   const { sessionId } = useParams();
   const { token } = useAuth();
   const location = useLocation();
@@ -35,9 +38,7 @@ function SessionResultsPage() {
       }
     };
 
-    if (token) {
-      fetchResults();
-    }
+    fetchResults();
   }, [sessionId, token]);
 
   const handleFeedbackSubmit = async (payload) => {

@@ -64,9 +64,7 @@ function ResumeUploadCard() {
   };
 
   useEffect(() => {
-    if (token) {
-      loadResumes();
-    }
+    loadResumes();
   }, [token]);
 
   const handleFileChange = (event) => {
@@ -279,6 +277,7 @@ function ResumeUploadCard() {
                   type="button"
                   className="resume-list__delete"
                   title="Delete resume"
+                  aria-label="Delete resume"
                   disabled={deletingResumeId === resume.id}
                   onClick={() => handleDelete(resume)}
                 >
@@ -413,6 +412,7 @@ function ResumeUploadCard() {
                   type="button"
                   className="file-preview__remove"
                   title="Remove JD file"
+                  aria-label="Remove JD file"
                   onClick={handleRemoveJdFile}
                 >
                   <FaTrash />

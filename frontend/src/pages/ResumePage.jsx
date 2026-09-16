@@ -2,8 +2,11 @@ import ResumeUploadCard from '../components/resume/ResumeUploadCard.jsx'
 import AnalysisHistoryList from '../components/resume-analysis/AnalysisHistoryList.jsx'
 import Navbar from '../components/layout/Navbar.jsx'
 import PageHeader from '../components/layout/PageHeader.jsx'
+import usePageMeta from '../hooks/usePageMeta'
 
 function ResumePage() {
+  usePageMeta("Resume ATS Score", "Upload your resume to see how well it scores against ATS systems.")
+
   return (
     <div className="resume-page">
       <Navbar />

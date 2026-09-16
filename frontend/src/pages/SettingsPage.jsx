@@ -10,12 +10,15 @@ import {
 } from "../api/profileApi";
 import { COUNTRIES, CITIES_BY_COUNTRY } from "../constants/locationData";
 import { JOB_DOMAINS } from "../constants/jobDomains";
+import usePageMeta from "../hooks/usePageMeta";
 
 const GENDER_OPTIONS = ["Male", "Female", "Prefer not to say"];
 const OTHER_CITY = "__other__";
 const currentYear = new Date().getFullYear();
 
 function SettingsPage() {
+  usePageMeta("Settings", "Manage your HotSeat profile, email, and password.");
+
   const { user, token, refreshUser } = useAuth();
   const isLocalAccount = user?.auth_provider === "local";
 

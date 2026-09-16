@@ -63,10 +63,6 @@ export default function AnalysisHistoryList() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!token) {
-      return;
-    }
-
     const fetchHistory = async () => {
       try {
         const data = await getResumeAnalysisHistory(token);

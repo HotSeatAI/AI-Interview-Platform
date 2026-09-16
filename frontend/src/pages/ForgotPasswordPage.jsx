@@ -1,7 +1,10 @@
 import AuthLayout from "../components/auth/AuthLayout.jsx";
 import ForgotPasswordForm from "../components/auth/ForgotPasswordForm.jsx";
+import usePageMeta from "../hooks/usePageMeta";
 
 function ForgotPasswordPage() {
+  usePageMeta("Forgot Password", "Request a link to reset your HotSeat account password.");
+
   return (
     <AuthLayout
       eyebrow="ACCOUNT RECOVERY"

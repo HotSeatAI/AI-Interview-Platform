@@ -6,7 +6,7 @@ export const uploadResume = async (file, token) => {
 
   const response = await apiClient.post("/resume/upload", formData, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       "Content-Type": "multipart/form-data",
     },
   });
@@ -16,9 +16,7 @@ export const uploadResume = async (file, token) => {
 
 export const getResumes = async (token) => {
   const response = await apiClient.get("/resume", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   return response.data;
@@ -26,9 +24,7 @@ export const getResumes = async (token) => {
 
 export const deleteResume = async (resumeId, token) => {
   const response = await apiClient.delete(`/resume/${resumeId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   return response.data;

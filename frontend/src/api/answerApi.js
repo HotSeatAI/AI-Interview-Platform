@@ -2,9 +2,7 @@ import apiClient from "./client";
 
 export const submitAnswer = async (payload, token) => {
   const response = await apiClient.post("/answer", payload, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   return response.data;
@@ -15,9 +13,7 @@ export const generateFollowUp = async (answerId, token) => {
     `/answer/${answerId}/follow-up`,
     {},
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }
   );
 
@@ -26,9 +22,7 @@ export const generateFollowUp = async (answerId, token) => {
 
 export const getAnswer = async (answerId, token) => {
   const response = await apiClient.get(`/answer/${answerId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   return response.data;
@@ -36,9 +30,7 @@ export const getAnswer = async (answerId, token) => {
 
 export const getSessionResults = async (sessionId, token) => {
   const response = await apiClient.get(`/answer/session/${sessionId}/results`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   return response.data;

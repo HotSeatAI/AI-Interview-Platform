@@ -4,6 +4,12 @@ const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
 });
 
+let unauthorizedHandler = null;
+
+export function setUnauthorizedHandler(handler) {
+  unauthorizedHandler = handler;
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -14,6 +20,10 @@ apiClient.interceptors.response.use(
       error.friendlyMessage = Number.isFinite(seconds) && seconds > 0
         ? `Too many requests — please try again in ${seconds}s.`
         : "Too many requests — please wait a moment and try again.";
+    }
+
+    if (error?.response?.status === 401 && unauthorizedHandler) {
+      unauthorizedHandler();
     }
 
     return Promise.reject(error);

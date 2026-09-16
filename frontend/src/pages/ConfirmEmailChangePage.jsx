@@ -3,8 +3,14 @@ import { useSearchParams, useNavigate, Link } from "react-router-dom";
 
 import useAuth from "../hooks/useAuth";
 import { confirmEmailChange } from "../api/profileApi";
+import usePageMeta from "../hooks/usePageMeta";
 
 function ConfirmEmailChangePage() {
+  usePageMeta(
+    "Confirm Email Change",
+    "Confirm the email address change requested for your HotSeat account."
+  );
+
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { logout } = useAuth();

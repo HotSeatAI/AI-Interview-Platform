@@ -5,8 +5,11 @@ import { getTopics, startTopicPractice } from "../api/topicsApi";
 import useAuth from "../hooks/useAuth";
 import Navbar from "../components/layout/Navbar.jsx";
 import PageHeader from "../components/layout/PageHeader.jsx";
+import usePageMeta from "../hooks/usePageMeta";
 
 function TopicsPage() {
+  usePageMeta("Weak Topics", "Practice the topics you've scored weakest on in past interviews.");
+
   const { token } = useAuth();
   const navigate = useNavigate();
 
@@ -30,9 +33,7 @@ function TopicsPage() {
       }
     };
 
-    if (token) {
-      fetchTopics();
-    }
+    fetchTopics();
   }, [token]);
 
   const handlePractice = async (topicId) => {
