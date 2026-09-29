@@ -26,6 +26,7 @@ const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const ConfirmEmailChangePage = lazy(() => import("./pages/ConfirmEmailChangePage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
+const SlotBookingPage = lazy(() => import("./pages/SlotBookingPage"));
 
 const router = createBrowserRouter([
   {
@@ -162,6 +163,15 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <SettingsPage />
+          </ProtectedRoute>
+        ),
+      },
+
+      {
+        path: "book-mock-interview",
+        element: (
+          <ProtectedRoute>
+            <SlotBookingPage />
           </ProtectedRoute>
         ),
       },

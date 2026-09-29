@@ -5,20 +5,15 @@ import BrandLogo from "./BrandLogo";
 import ThemeToggle from "./ThemeToggle";
 import Button from "../ui/Button";
 import MobileNavToggle from "./MobileNavToggle";
+import { getInitials } from "../../utils/initials";
 
 const privateLinks = [
   { label: "Dashboard", to: "/dashboard" },
   { label: "Resume", to: "/resume" },
   { label: "Generate Interview", to: "/generate-interview" },
+  { label: "Book Mock Interview", to: "/book-mock-interview" },
   { label: "History", to: "/history" },
 ];
-
-function getInitials(name) {
-  if (!name) return "?";
-  const parts = name.trim().split(/\s+/);
-  const initials = parts.slice(0, 2).map((part) => part[0]?.toUpperCase());
-  return initials.join("") || "?";
-}
 
 function Navbar() {
   const { user, logout } = useAuth();

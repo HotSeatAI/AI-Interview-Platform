@@ -2255,6 +2255,100 @@ textarea::placeholder {
 }
 
 /* ============================================================
+   Slot booking (peer mock-interview booking)
+   ============================================================ */
+
+.booking-page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.booking-container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(28px, 4vw, 48px) clamp(20px, 4vw, 24px) 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.booking-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  align-items: end;
+  background: var(--surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 20px;
+}
+
+.booking-filters .form-field {
+  min-width: 0;
+}
+
+.booking-filters .form-field select {
+  text-overflow: ellipsis;
+}
+
+.list-row--booking {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.list-row__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.list-row__bio {
+  font-size: 13px;
+  color: var(--text-soft);
+  margin: 4px 0 0;
+}
+
+.slot-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.slot-chip {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.slot-chip--selected {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.interviewer-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--border-default);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 12px;
+  flex: none;
+}
+
+/* ============================================================
    Resume page (upload, JD analysis, analysis history)
    ============================================================ */
 

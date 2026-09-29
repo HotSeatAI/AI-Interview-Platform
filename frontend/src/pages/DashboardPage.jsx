@@ -105,6 +105,11 @@ function DashboardPage() {
               <div className="dashboard-side-card__title">Weak topics</div>
               <div className="dashboard-side-card__meta">Practice and track progress →</div>
             </Link>
+            <Link to="/book-mock-interview" className="dashboard-side-card">
+              <div className="dashboard-side-card__label">BOOK MOCK INTERVIEW</div>
+              <div className="dashboard-side-card__title">Book a mock interview</div>
+              <div className="dashboard-side-card__meta">Practice with a real person →</div>
+            </Link>
           </div>
         </div>
 
